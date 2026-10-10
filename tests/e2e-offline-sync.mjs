@@ -241,6 +241,28 @@ async function main() {
     const overflow = await kid.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 1, 'chat page has no sideways scroll');
 
+    step('Swipe between screens');
+    {
+      const cdp = await kid.page.context().newCDPSession(kid.page);
+      await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+      const swipe = async (x0, x1, y = 400, steps = 6) => {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] });
+        for (let i = 1; i <= steps; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + ((x1 - x0) * i) / steps, y: y + i }] });
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await kid.page.waitForTimeout(300);
+      };
+      await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+      const w = await kid.page.evaluate(() => innerWidth);
+      await swipe(w * 0.6, w * 0.45);
+      assert.equal(await kid.page.locator('.topbar h1').innerText().then((t) => t.includes('קניות')), false, 'a short swipe does nothing');
+      await swipe(w * 0.85, w * 0.15);
+      await kid.page.locator('.topbar h1', { hasText: 'קניות' }).waitFor({ timeout: 3000 });
+      await swipe(w * 0.15, w * 0.85);
+      await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).waitFor({ timeout: 3000 });
+      await cdp.detach();
+    }
+    ok('a long sideways swipe moves between screens; a short one does not');
+
     step('Weekly timetable');
     const pdfPage = await dad.page.context().newPage();
     await pdfPage.setContent('<h1>מערכת שעות</h1><table border=1><tr><td>ראשון</td><td>מתמטיקה</td></tr><tr><td>שני</td><td>אנגלית</td></tr></table>');

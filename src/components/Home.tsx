@@ -102,6 +102,42 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     history.replaceState(null, '', '/');
   }, [deepLink, items, tasks, events]);
 
+  // Swipe sideways to move between the bottom-bar screens. Deliberately firm:
+  // a long, fast, clearly horizontal swipe, never inside sheets, inputs or
+  // things that scroll sideways, so scrolling a list never switches screens.
+  const overlayOpen = Boolean(thread || settingsOpen || scheduleFor);
+  useEffect(() => {
+    if (overlayOpen) return;
+    let start: { x: number; y: number; t: number } | null = null;
+    const blocked = (el: EventTarget | null) =>
+      el instanceof Element && Boolean(el.closest('input, textarea, select, .sheet-backdrop, .zoom-viewer, .chips, .month-grid, .bottom-nav, [data-no-swipe]'));
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      start = e.touches.length === 1 && !blocked(e.target) && t.clientX > 24 && t.clientX < window.innerWidth - 24 ? { x: t.clientX, y: t.clientY, t: Date.now() } : null;
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (!start) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      const fast = Date.now() - start.t < 600;
+      start = null;
+      if (!fast || Math.abs(dx) < Math.max(100, window.innerWidth * 0.3) || Math.abs(dx) < Math.abs(dy) * 2.5) return;
+      if (document.body.classList.contains('kb-open')) return;
+      // RTL: the next screen sits to the left, so a right-to-left swipe moves forward.
+      setView((v) => {
+        const i = VIEWS.findIndex((x) => x.id === v) + (dx < 0 ? 1 : -1);
+        return i >= 0 && i < VIEWS.length ? VIEWS[i].id : v;
+      });
+    };
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, [overlayOpen]);
+
   useEffect(() => {
     const onError = () => setWriteError('שינוי אחד לא נשמר בשרת. ייתכן שההרשאות שלך השתנו.');
     window.addEventListener('write-error', onError);
