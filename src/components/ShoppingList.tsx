@@ -64,7 +64,7 @@ export function ShoppingList({
   };
 
   return (
-    <main className="list-page with-bottom-add">
+    <main className="list-page with-bottom-add shopping">
       {active.length > 0 && (
         <div className="list-actions">
           <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>

@@ -224,6 +224,13 @@ async function main() {
     });
     ok('daughter removed → access gone immediately');
 
+    if (process.env.SCREENSHOT_DIR) {
+      await dad.page.getByRole('dialog').getByRole('button', { name: 'סגירה' }).click().catch(() => {});
+      await dad.page.getByRole('button', { name: 'קניות' }).click();
+      await add(dad, 'עגבניות, מלפפונים, 2 אבוקדו, חצי קילו ענבים, בצל, שישייה מים\nחלב 3%, 10 ביצים, גבינה צהובה, קוטג׳\nפיתות, קילו חזה עוף, אורז, פסטה, במבה, שקיות זבל, נייר טואלט');
+      await row(dad, 'נייר טואלט').waitFor();
+      await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-long.png` });
+    }
     console.log('\nALL CHECKS PASSED');
   } finally {
     await browser.close();

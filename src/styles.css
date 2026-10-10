@@ -373,3 +373,29 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .list-actions { display: flex; justify-content: flex-start; margin: 4px 0 2px; }
 .whatsapp { color: #128c4b; border-color: #9fd8b6; }
 @media (prefers-color-scheme: dark) { .whatsapp { color: #5fd38f; border-color: #2f5d43; } }
+
+/* ---------- compact shopping list: plain rows, no cards, fits long lists ---------- */
+.shopping .dept { margin-top: 12px; }
+.shopping .dept h2 { font-size: 0.8rem; color: var(--accent); margin: 0 4px 2px; letter-spacing: 0.01em; }
+.shopping .dept ul { background: none; border: 0; border-radius: 0; }
+.shopping .row { min-height: 40px; border-bottom: 1px solid var(--line); }
+.shopping .row:last-child { border-bottom: 0; }
+.shopping .check-area { min-height: 40px; gap: 10px; padding: 0 4px; }
+.shopping .box { width: 22px; height: 22px; border-radius: 6px; font-size: 0.8rem; }
+.shopping .name { flex: 0 1 auto; font-size: 1rem; }
+.shopping .qty {
+  margin-inline-end: auto;
+  font-size: 0.8rem;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 1px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.shopping .check-area .pending-dot { margin-inline-start: auto; }
+.shopping .qty + .pending-dot { margin-inline-start: 0; }
+.shopping .row button { min-height: 40px; }
+.shopping .row .edit { min-width: 36px; font-size: 0.95rem; opacity: 0.55; }
+.shopping .deleted .row { padding: 0 4px; }
+.shopping .list-actions { margin-bottom: 0; justify-content: flex-end; }
+.shopping .whatsapp { min-height: 30px; padding: 0 10px; font-size: 0.8rem; border-radius: 999px; }
