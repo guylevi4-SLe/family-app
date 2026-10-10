@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { normalize, orderedDepartments } from '../data/departments';
 import { setCategory, updateItem, type Item } from '../data/items';
+import { CommentButton } from './CommentButton';
 
 export function ItemSheet({
   familyId,
@@ -47,6 +48,7 @@ export function ItemSheet({
           </select>
         </label>
         <p className="muted small-text">שינוי מחלקה נשמר למשפחה, והמוצר ימוין כך גם בפעם הבאה.</p>
+        <CommentButton type="item" id={item.id} title={item.name} always />
         <div className="sheet-actions">
           <button className="primary" onClick={save}>
             שמירה

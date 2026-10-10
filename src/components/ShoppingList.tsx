@@ -3,6 +3,7 @@ import { orderedDepartments } from '../data/departments';
 import { addItems, clearChecked, parseItems, updateItem, type Item } from '../data/items';
 import { useOverrides } from '../data/hooks';
 import { ItemSheet } from './ItemSheet';
+import { CommentButton } from './CommentButton';
 
 const RECENT_DAYS = 30;
 
@@ -186,6 +187,7 @@ function ItemRow({ item, onToggle, onEdit }: { item: Item; onToggle: () => void;
         {item.qty && <span className="qty">{item.qty}</span>}
         {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}
       </button>
+      <CommentButton type="item" id={item.id} title={item.name} />
       <button className="icon-button edit" aria-label={`עריכת ${item.name}`} onClick={onEdit}>
         ✎
       </button>

@@ -19,6 +19,10 @@ async function newPhone(browser, name) {
   const page = await context.newPage();
   page.on('dialog', (d) => d.accept());
   page.on('pageerror', (e) => console.log(`  [${name} page error] ${e.message}`));
+  // These phones chose the shopping list as their start screen (a personal setting).
+  await context.addInitScript(() => {
+    if (!localStorage.getItem('startScreen')) localStorage.setItem('startScreen', 'list');
+  });
   await page.goto(BASE);
   await page.getByPlaceholder('שם לבדיקה (באנגלית)').fill(name);
   await page.getByRole('button', { name: 'כניסת בדיקה' }).click();
@@ -60,7 +64,7 @@ async function main() {
     ok('4 products added in one line, sorted into departments, quantity parsed');
 
     step('Dad invites the daughter; she cannot see anything until approved');
-    await dad.page.getByLabel('הגדרות משפחה').click();
+    await dad.page.getByLabel('הגדרות').click();
     await dad.page.getByLabel('תפקיד').selectOption('child');
     await dad.page.getByRole('button', { name: 'יצירת הזמנה' }).click();
     const code = (await dad.page.locator('.invite code').first().textContent()).trim();
@@ -157,8 +161,47 @@ async function main() {
     await row(kid, 'עגבניות').waitFor({ timeout: 10000 });
     ok('restored item reappears on the other phone');
 
+    step('Home screen, tasks, calendar and comments');
+    await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));
+    await kid.page.reload();
+    await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).waitFor();
+    ok('start screen "home" shows the dashboard tiles');
+    await dad.page.getByRole('button', { name: 'משימות' }).click();
+    await dad.page.getByLabel('משימה חדשה').fill('לתלות כביסה');
+    await dad.page.getByRole('group', { name: 'אחראי' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByLabel('הוספת משימה').click();
+    await kid.page.locator('.tile', { hasText: 'משימות' }).getByText('1 שלך: לתלות כביסה').waitFor({ timeout: 10000 });
+    ok('task assigned by Dad shows on the daughter\'s home screen as hers');
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'משימות' }).click();
+    await kid.page.locator('.row', { hasText: 'לתלות כביסה' }).getByRole('button', { name: /עריכת/ }).click();
+    await kid.page.getByRole('dialog').getByRole('button', { name: /תגוב/ }).click();
+    await kid.page.getByLabel('כתיבת תגובה').fill('אבל עשיתי אתמול!');
+    await kid.page.getByLabel('כתיבת תגובה').press('Enter');
+    await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip', { hasText: '1' }).waitFor({ timeout: 10000 });
+    await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
+    await dad.page.getByText('אבל עשיתי אתמול!').waitFor();
+    ok('daughter commented on the task; Dad sees the comment count and the text');
+    await dad.page.getByLabel('סגירה').click();
+    await kid.page.getByLabel('סגירה').click();
+    await kid.page.keyboard.press('Escape');
+
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
+    await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
+    await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('חוג ציור');
+    await dad.page.locator('input[type=time]').fill('17:30');
+    await dad.page.getByRole('group', { name: 'מי משתתף' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByRole('button', { name: 'שמירה' }).click();
+    await kid.page.reload();
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
+    await kid.page.locator('.row', { hasText: 'חוג ציור' }).getByText('17:30').waitFor({ timeout: 10000 });
+    ok('event added by Dad appears in the daughter\'s calendar');
+    if (process.env.SCREENSHOT_DIR) {
+      await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+      await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home.png` });
+    }
+
     step('Removed member loses access');
-    await dad.page.getByLabel('הגדרות משפחה').click();
+    await dad.page.getByLabel('הגדרות').click();
     await dad.page.locator('.person', { hasText: 'kid' }).getByRole('button', { name: 'הסרה' }).click();
     await kid.page.getByText('אין לך גישה למשפחה הזו').waitFor({ timeout: 15000 }).catch(async (e) => {
       console.log('  [debug] kid page:', (await kid.page.locator('body').innerText()).slice(0, 300).replace(/\n/g, ' | '));

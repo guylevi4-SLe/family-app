@@ -138,7 +138,7 @@ export function clearChecked(fid: string, items: Item[]) {
   batch.commit().catch(reportWriteError);
 }
 
-function reportWriteError(e: unknown) {
+export function reportWriteError(e: unknown) {
   console.error('write rejected', e);
   window.dispatchEvent(new CustomEvent('write-error', { detail: String(e) }));
 }

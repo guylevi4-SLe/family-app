@@ -32,7 +32,7 @@ service cloud.firestore {
       allow create, update: if signedIn() && me() == userId
         && onlyKeys(['familyId', 'startScreen'])
         && (!('familyId' in data()) || data().familyId == null || shortString(data().familyId, 64))
-        && (!('startScreen' in data()) || data().startScreen in ['list', 'tasks', 'calendar']);
+        && (!('startScreen' in data()) || data().startScreen in ['home', 'list', 'tasks', 'calendar']);
       allow delete: if false;
     }
 
@@ -137,6 +137,37 @@ service cloud.firestore {
           && data().deleted is bool
           && data().updatedBy == me();
         // Items are soft-deleted so they can be restored.
+        allow delete: if false;
+      }
+
+      // ---------- tasks ----------
+      match /tasks/{taskId} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['title', 'assignee', 'due', 'done', 'deleted',
+                       'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && shortString(data().title, 120) && data().title.size() > 0
+          && (data().assignee == null || shortString(data().assignee, 128))
+          && (data().due == null || data().due is string && data().due.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+          && data().done is bool
+          && data().deleted is bool
+          && data().updatedBy == me();
+        allow delete: if false;
+      }
+
+      // ---------- calendar events ----------
+      match /events/{eventId} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['title', 'date', 'time', 'location', 'people', 'deleted',
+                       'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && shortString(data().title, 120) && data().title.size() > 0
+          && data().date is string && data().date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && data().time is string && (data().time == '' || data().time.matches('^[0-9]{2}:[0-9]{2}$'))
+          && shortString(data().location, 120)
+          && data().people is list && data().people.size() <= 20
+          && data().deleted is bool
+          && data().updatedBy == me();
         allow delete: if false;
       }
 

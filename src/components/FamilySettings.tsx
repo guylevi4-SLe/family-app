@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   terminate,
   updateDoc,
 } from 'firebase/firestore';
@@ -22,18 +23,21 @@ import {
 } from '../data/family';
 import { orderedDepartments } from '../data/departments';
 import { useInvites, useMembers, usePendingRequests } from '../data/hooks';
+import { START_KEY, type View } from './Home';
 
 export function FamilySettings({
   familyId,
   me,
   deptOrder,
   pendingWrites,
+  startScreen,
   onClose,
 }: {
   familyId: string;
   me: Member;
   deptOrder: string[] | undefined;
   pendingWrites: number;
+  startScreen: View;
   onClose: () => void;
 }) {
   const isAdmin = me.role === 'admin';
@@ -41,6 +45,7 @@ export function FamilySettings({
   const requests = usePendingRequests(familyId, isAdmin);
   const invites = useInvites(familyId, isAdmin);
   const [error, setError] = useState('');
+  const [start, setStart] = useState<View>(startScreen);
 
   const guard = (fn: () => Promise<unknown>) => () => {
     setError('');
@@ -111,6 +116,31 @@ export function FamilySettings({
         {isAdmin && <InviteSection familyId={familyId} invites={invites ?? []} onError={setError} />}
 
         <DepartmentOrder familyId={familyId} deptOrder={deptOrder} />
+
+        <section className="card">
+          <h3>ההגדרות שלי</h3>
+          <label>
+            האפליקציה נפתחת על
+            <select
+              value={start}
+              onChange={(e) => {
+                const v = e.target.value as View;
+                setStart(v);
+                try {
+                  localStorage.setItem(START_KEY, v);
+                } catch {
+                  /* per-device copy is optional */
+                }
+                setDoc(doc(db, 'users', me.id), { startScreen: v }, { merge: true }).catch(() => {});
+              }}
+            >
+              <option value="home">מסך הבית</option>
+              <option value="list">רשימת הקניות</option>
+              <option value="tasks">משימות</option>
+              <option value="calendar">יומן</option>
+            </select>
+          </label>
+        </section>
 
         <section className="card">
           <h3>החשבון שלי</h3>
@@ -246,7 +276,7 @@ async function exportFamily(familyId: string) {
     exportedAt: new Date().toISOString(),
     family: { id: familyId, ...family.data() },
   };
-  for (const sub of ['members', 'items', 'categoryOverrides', 'comments']) {
+  for (const sub of ['members', 'items', 'tasks', 'events', 'categoryOverrides', 'comments']) {
     const snap = await getDocs(collection(db, ...base, sub));
     out[sub] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }

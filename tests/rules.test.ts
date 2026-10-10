@@ -240,6 +240,29 @@ describe('joining: invite, request, approval', () => {
   });
 });
 
+describe('tasks and events', () => {
+  const task = (who: Who) => ({
+    title: 'לתלות כביסה', assignee: 'daughter', due: '2026-10-12', done: false, deleted: false,
+    createdBy: users[who].uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: users[who].uid,
+  });
+  const event = (who: Who) => ({
+    title: 'חוג', date: '2026-10-12', time: '17:00', location: 'מתנ"ס', people: ['daughter'], deleted: false,
+    createdBy: users[who].uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: users[who].uid,
+  });
+  it('members manage tasks and events; other families cannot see them', async () => {
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't1'), task('dad')));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e1'), event('dad')));
+    await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'tasks', 't1')));
+    await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'events', 'e1')));
+    await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'tasks', 't2'), task('neighbor')));
+  });
+  it('rejects malformed tasks and events', async () => {
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't3'), { ...task('dad'), due: 'tomorrow' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e3'), { ...event('dad'), time: '5pm' }));
+    await assertFails(deleteDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't1')));
+  });
+});
+
 describe('shopping list and comments', () => {
   it('members cannot hard-delete items or write foreign fields', async () => {
     await assertFails(deleteDoc(doc(db('dad'), 'families', 'levi', 'items', 'חלב')));

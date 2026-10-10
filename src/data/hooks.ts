@@ -11,6 +11,9 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { Item } from './items';
+import type { Task } from './tasks';
+import type { FamilyEvent } from './events';
+import type { Comment } from './comments';
 import type { Invite, JoinRequest, Member } from './family';
 
 /**
@@ -125,4 +128,29 @@ export function useOnline() {
     };
   }, []);
   return online;
+}
+
+export function useTasks(fid: string) {
+  return useQuery<Task>(
+    `tasks/${fid}`,
+    () => collection(db, 'families', fid, 'tasks'),
+    (id, d, pending) => ({ id, ...(d as Omit<Task, 'id' | 'pending'>), pending }),
+  );
+}
+
+export function useEvents(fid: string) {
+  return useQuery<FamilyEvent>(
+    `events/${fid}`,
+    () => collection(db, 'families', fid, 'events'),
+    (id, d, pending) => ({ id, ...(d as Omit<FamilyEvent, 'id' | 'pending'>), pending }),
+  );
+}
+
+/** All of the family's comments; a family has few enough to keep in memory. */
+export function useComments(fid: string) {
+  return useQuery<Comment>(
+    `comments/${fid}`,
+    () => collection(db, 'families', fid, 'comments'),
+    (id, d, pending) => ({ id, ...(d as Omit<Comment, 'id' | 'pending'>), pending }),
+  );
 }

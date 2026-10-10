@@ -45,7 +45,7 @@ function useInviteCodeFromLink() {
 export function App() {
   const user = useAuthUser();
   const [inviteCode, clearInviteCode] = useInviteCodeFromLink();
-  const profile = useDoc<{ familyId?: string | null }>(user ? ['users', user.uid] : null);
+  const profile = useDoc<{ familyId?: string | null; startScreen?: string }>(user ? ['users', user.uid] : null);
   const familyId = profile?.familyId ?? null;
   // A denied read ends a listener, so re-subscribe to the membership once
   // the join request is approved.
@@ -82,7 +82,7 @@ export function App() {
   if (!familyId) return <Onboarding inviteCode={inviteCode} onUsedInvite={clearInviteCode} />;
   if (membership === undefined) return <Splash />;
   if (revoked) return <Waiting familyId={familyId} request={null} />;
-  if (membership) return <Home familyId={familyId} me={membership} />;
+  if (membership) return <Home familyId={familyId} me={membership} startScreen={profile?.startScreen} />;
   if (request === undefined) return <Splash />;
   return <Waiting familyId={familyId} request={request} />;
 }
