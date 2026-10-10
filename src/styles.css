@@ -652,3 +652,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .zoom-box { overflow: auto; direction: ltr; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
 .zoom-stage { display: grid; place-items: center; }
 .zoom-stage img { display: block; max-width: none; background: #fff; user-select: none; -webkit-user-select: none; }
+
+.topbar h1.with-logo { display: flex; align-items: center; gap: 10px; }
+.title-logo { width: 1.05em; height: 1.05em; border-radius: 22%; flex: none; box-shadow: 0 2px 8px rgba(0,0,0,.12); }

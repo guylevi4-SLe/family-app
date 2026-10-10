@@ -153,7 +153,10 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     >
       <div className="app">
         <header className="topbar">
-          <h1>{title}</h1>
+          <h1 className={view === 'home' ? 'with-logo' : undefined}>
+            {view === 'home' && <img className="title-logo" src="/icon-192.png" alt="" width="34" height="34" />}
+            {title}
+          </h1>
           <SyncBadge online={online} pending={pendingCount} />
           <button className="icon-button" aria-label="הגדרות" onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" />
