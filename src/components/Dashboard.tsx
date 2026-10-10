@@ -94,7 +94,7 @@ export function Dashboard({
               {upcoming.slice(0, 3).map((e) => (
                 <li key={`${e.id}:${e.date}`}>
                   <span className="muted">
-                    {e.date < today ? 'עכשיו' : dayLabel(e.date).split(' · ')[0]}
+                    {e.date < today ? 'עכשיו' : dayLabel(e.date).replace(' · ', ' ')}
                     {e.time ? ` ${e.time}` : ''}
                   </span>{' '}
                   {e.title}
