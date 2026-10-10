@@ -183,10 +183,13 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if isMember(fid);
         allow create: if isMember(fid)
-          && onlyKeys(['targetType', 'targetId', 'text', 'authorUid', 'authorName', 'createdAt'])
+          && onlyKeys(['targetType', 'targetId', 'text', 'image', 'authorUid', 'authorName', 'createdAt'])
           && data().targetType in ['item', 'task', 'event']
           && shortString(data().targetId, 120)
-          && shortString(data().text, 1000) && data().text.size() > 0
+          && shortString(data().text, 1000)
+          // An optional photo: a small JPEG stored inline (resized on the phone).
+          && (!('image' in data()) || (shortString(data().image, 700000) && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')))
+          && (data().text.size() > 0 || 'image' in data())
           && shortString(data().authorName, 80)
           && data().authorUid == me();
         allow update: if isMember(fid) && resource.data.authorUid == me()

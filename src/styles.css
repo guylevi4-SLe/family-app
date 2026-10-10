@@ -591,3 +591,12 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 .legend .mark:not(:first-child) { margin-inline-start: 10px; }
 .day-empty { margin: 4px; }
 .kind-tag { color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; font-size: 0.75rem; }
+
+/* ---------- photos in comments ---------- */
+.photo-button { min-width: 48px; min-height: 52px; padding: 0; display: grid; place-items: center; color: var(--accent); background: var(--surface); }
+.comment-photo { display: block; padding: 0; border: 0; background: none; margin-top: 6px; min-height: 0; }
+.comment-photo img { display: block; max-width: 100%; max-height: 260px; border-radius: 12px; }
+.photo-preview { display: flex; align-items: center; gap: 10px; }
+.photo-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; }
+.photo-viewer { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.92); display: grid; place-items: center; padding: 16px; }
+.photo-viewer img { max-width: 100%; max-height: 100%; border-radius: 8px; }

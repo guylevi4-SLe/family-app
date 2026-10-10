@@ -197,6 +197,14 @@ async function main() {
     await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
     await dad.page.getByText('אבל עשיתי אתמול!').waitFor();
     ok('daughter commented on the task; Dad sees the comment count and the text');
+    await dad.page.getByLabel('בחירת תמונה').setInputFiles('public/icon-512.png');
+    await dad.page.locator('.photo-preview img').waitFor();
+    await dad.page.getByRole('dialog').getByRole('button', { name: 'שליחה' }).click();
+    await kid.page.locator('.comment-photo img').waitFor({ timeout: 10000 });
+    const src = await kid.page.locator('.comment-photo img').getAttribute('src');
+    assert.ok(src.startsWith('data:image/jpeg;base64,') && src.length < 700000, 'photo stored as a small JPEG');
+    if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/comment-photo.png` });
+    ok('Dad attached a photo to a comment; the daughter sees it');
     await dad.page.getByLabel('סגירה').click();
     await kid.page.getByLabel('סגירה').click();
     await kid.page.keyboard.press('Escape');

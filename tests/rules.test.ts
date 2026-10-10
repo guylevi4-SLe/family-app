@@ -279,4 +279,13 @@ describe('shopping list and comments', () => {
     await assertFails(updateDoc(doc(db('dad'), 'families', 'levi', 'comments', 'c1'), { text: 'כן צריך' }));
     await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'comments', 'c1')));
   });
+  it('comments: may carry a small JPEG photo, nothing else', async () => {
+    const c = { targetType: 'item', targetId: 'קמח', authorUid: 'dad', authorName: 'אבא', createdAt: serverTimestamp() };
+    const ref = (id: string) => doc(db('dad'), 'families', 'levi', 'comments', id);
+    await assertSucceeds(setDoc(ref('p1'), { ...c, text: '', image: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==' }));
+    await assertSucceeds(setDoc(ref('p2'), { ...c, text: 'את זה', image: 'data:image/jpeg;base64,/9j/4AAQ' }));
+    await assertFails(setDoc(ref('p3'), { ...c, text: '' }));
+    await assertFails(setDoc(ref('p4'), { ...c, text: '', image: 'data:text/html;base64,PGgxPg==' }));
+    await assertFails(setDoc(ref('p5'), { ...c, text: '', image: 'data:image/jpeg;base64,' + 'A'.repeat(700001) }));
+  });
 });

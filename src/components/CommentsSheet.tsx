@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { addComment, deleteComment, type Comment, type TargetType } from '../data/comments';
+import { addComment, deleteComment, shrinkPhoto, type Comment, type TargetType } from '../data/comments';
 import { useFamily } from './FamilyContext';
+import { Icon } from './Icon';
 
 export function CommentsSheet({
   type,
@@ -17,6 +18,11 @@ export function CommentsSheet({
 }) {
   const { familyId, me } = useFamily();
   const [text, setText] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const [viewing, setViewing] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const list = comments
     .filter((c) => c.targetType === type && c.targetId === targetId)
@@ -25,9 +31,24 @@ export function CommentsSheet({
   useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [list.length]);
 
   const send = () => {
-    if (!text.trim()) return;
-    addComment(familyId, type, targetId, text);
+    if (!text.trim() && !photo) return;
+    addComment(familyId, type, targetId, text, photo ?? undefined);
     setText('');
+    setPhoto(null);
+  };
+
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoError('');
+    setBusy(true);
+    try {
+      setPhoto(await shrinkPhoto(file));
+    } catch {
+      setPhotoError('לא הצלחנו לטעון את התמונה. נסו תמונה אחרת');
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   };
 
   return (
@@ -54,11 +75,25 @@ export function CommentsSheet({
                   </button>
                 )}
               </div>
-              <p>{c.text}</p>
+              {c.image && (
+                <button type="button" className="comment-photo" aria-label="הגדלת התמונה" onClick={() => setViewing(c.image!)}>
+                  <img src={c.image} alt="תמונה שצורפה" />
+                </button>
+              )}
+              {c.text && <p>{c.text}</p>}
             </div>
           ))}
           <div ref={endRef} />
         </div>
+        {photo && (
+          <div className="photo-preview">
+            <img src={photo} alt="התמונה שתישלח" />
+            <button type="button" className="small" onClick={() => setPhoto(null)}>
+              הסרת התמונה
+            </button>
+          </div>
+        )}
+        {photoError && <p className="error">{photoError}</p>}
         <form
           className="add-box comment-box"
           onSubmit={(e) => {
@@ -66,6 +101,23 @@ export function CommentsSheet({
             send();
           }}
         >
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            aria-label="בחירת תמונה"
+            onChange={(e) => pick(e.target.files?.[0])}
+          />
+          <button
+            type="button"
+            className="photo-button"
+            aria-label="צירוף תמונה"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Icon name="camera" size={22} />
+          </button>
           <textarea
             rows={1}
             value={text}
@@ -80,11 +132,16 @@ export function CommentsSheet({
               }
             }}
           />
-          <button className="primary add-button" aria-label="שליחה" disabled={!text.trim()}>
+          <button className="primary add-button" aria-label="שליחה" disabled={busy || (!text.trim() && !photo)}>
             ↑
           </button>
         </form>
       </div>
+      {viewing && (
+        <div className="photo-viewer" role="dialog" aria-label="תמונה" onClick={(e) => { e.stopPropagation(); setViewing(null); }}>
+          <img src={viewing} alt="תמונה מוגדלת" />
+        </div>
+      )}
     </div>
   );
 }
