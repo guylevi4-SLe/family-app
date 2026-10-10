@@ -36,6 +36,17 @@ export function Dashboard({
 
   return (
     <main className="dashboard">
+      <button className="tile" onClick={() => go('list')}>
+        <div className="tile-head">
+          <span className="tile-icon"><Icon name="cart" /></span>
+          <h2>רשימת קניות</h2>
+          <span className="tile-count">{toBuy.length}</span>
+        </div>
+        <p className="tile-body">
+          {toBuy.length === 0 ? 'הרשימה ריקה' : toBuy.slice(0, 6).map((i) => i.name).join(' · ') + (toBuy.length > 6 ? ' …' : '')}
+        </p>
+      </button>
+
       {schedules !== undefined && (
         <button className="tile schedule-tile" onClick={() => openSchedule(shown?.id ?? me.id)}>
           <div className="tile-head">
@@ -52,16 +63,6 @@ export function Dashboard({
           )}
         </button>
       )}
-      <button className="tile" onClick={() => go('list')}>
-        <div className="tile-head">
-          <span className="tile-icon"><Icon name="cart" /></span>
-          <h2>רשימת קניות</h2>
-          <span className="tile-count">{toBuy.length}</span>
-        </div>
-        <p className="tile-body">
-          {toBuy.length === 0 ? 'הרשימה ריקה' : toBuy.slice(0, 6).map((i) => i.name).join(' · ') + (toBuy.length > 6 ? ' …' : '')}
-        </p>
-      </button>
 
       <button className="tile" onClick={() => go('tasks')}>
         <div className="tile-head">
