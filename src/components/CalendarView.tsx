@@ -349,6 +349,7 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
   );
   const set = (patch: Partial<EventFields>) => setF((prev) => ({ ...prev, ...patch }));
   const [multi, setMulti] = useState(Boolean(event?.endDate));
+  const [free, setFree] = useState(true);
   const valid =
     f.title.trim() && /^\d{4}-\d{2}-\d{2}$/.test(f.date) && (!multi || (f.endDate && f.endDate > f.date));
 
@@ -420,11 +421,15 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
         {event && (
           <div className="calendar-export">
             <span className="field-label">הוספה ליומן האישי (העתק חד־פעמי, שינויים כאן לא יתעדכנו שם)</span>
+            <label className="check-line">
+              <input type="checkbox" checked={free} onChange={(e) => setFree(e.target.checked)} />
+              להציג אותי כפנוי (לא לחסום לי את היום)
+            </label>
             <div className="inline">
-              <a className="button-link" href={googleCalendarLink(event)} target="_blank" rel="noopener noreferrer">
+              <a className="button-link" href={googleCalendarLink(event, free)} target="_blank" rel="noopener noreferrer">
                 יומן Google
               </a>
-              <button type="button" className="small" onClick={() => downloadIcs(event)}>
+              <button type="button" className="small" onClick={() => downloadIcs(event, free)}>
                 יומן Apple
               </button>
             </div>

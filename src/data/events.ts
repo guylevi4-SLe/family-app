@@ -100,14 +100,18 @@ function range(e: FamilyEvent) {
   return { allDay: false, start: toUtcStamp(e.date, e.time), end: toUtcStamp(lastDay(e), `${endH}:${String(mm).padStart(2, '0')}`) };
 }
 
-export function googleCalendarLink(e: FamilyEvent) {
+/** `free`: the copy is marked "available" so it doesn't block the person's day. */
+export function googleCalendarLink(e: FamilyEvent, free = true) {
   const r = range(e);
   const params = new URLSearchParams({ action: 'TEMPLATE', text: e.title, dates: `${r.start}/${r.end}` });
+  // trp covers timed events, crm covers all-day ones.
+  params.set('trp', String(!free));
+  params.set('crm', free ? 'AVAILABLE' : 'BUSY');
   if (e.location) params.set('location', e.location);
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
-export function downloadIcs(e: FamilyEvent) {
+export function downloadIcs(e: FamilyEvent, free = true) {
   const r = range(e);
   const esc = (s: string) => s.replace(/[\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
   const lines = [
@@ -120,6 +124,8 @@ export function downloadIcs(e: FamilyEvent) {
     r.allDay ? `DTSTART;VALUE=DATE:${r.start}` : `DTSTART:${r.start}`,
     r.allDay ? `DTEND;VALUE=DATE:${r.end}` : `DTEND:${r.end}`,
     `SUMMARY:${esc(e.title)}`,
+    `TRANSP:${free ? 'TRANSPARENT' : 'OPAQUE'}`,
+    ...(free ? ['X-MICROSOFT-CDO-BUSYSTATUS:FREE'] : []),
     ...(e.location ? [`LOCATION:${esc(e.location)}`] : []),
     'END:VEVENT',
     'END:VCALENDAR',
