@@ -30,17 +30,26 @@ export function Dashboard({
     .filter((e) => !e.deleted && lastDay(e) >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
-  const mySchedule = schedules?.find((s) => s.id === me.id);
+  const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
+  const shown = live.find((s) => s.id === me.id) ?? live[0];
+  const others = live.filter((s) => s.id !== me.id).map((s) => memberName(members, s.id));
 
   return (
     <main className="dashboard">
-      {mySchedule && (
-        <button className="tile schedule-tile" onClick={() => openSchedule(me.id)}>
+      {schedules !== undefined && (
+        <button className="tile schedule-tile" onClick={() => openSchedule(shown?.id ?? me.id)}>
           <div className="tile-head">
             <span className="tile-icon"><Icon name="book" /></span>
-            <h2>המערכת שלי</h2>
+            <h2>{shown?.id === me.id ? 'המערכת שלי' : 'מערכת שעות'}</h2>
           </div>
-          <img className="schedule-thumb" src={mySchedule.image} alt="" />
+          {shown ? (
+            <>
+              <img className="schedule-thumb" src={shown.image} alt="" />
+              {others.length > 0 && <p className="tile-body">{shown.id === me.id ? 'יש גם של: ' : 'של: '}{others.join(', ')}</p>}
+            </>
+          ) : (
+            <p className="tile-body">עדיין לא הועלתה מערכת. לחיצה להעלאה</p>
+          )}
         </button>
       )}
       <button className="tile" onClick={() => go('list')}>

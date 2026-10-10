@@ -254,6 +254,13 @@ async function main() {
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/schedule.png` });
     await kid.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('the daughter sees "my timetable" on her home screen and opens it');
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+    await dad.page.locator('.schedule-tile', { hasText: 'מערכת שעות' }).locator('.schedule-thumb').waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-schedule.png` });
+    await dad.page.locator('.schedule-tile').click();
+    await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('heading', { name: /של kid/ }).waitFor();
+    await dad.page.getByRole('dialog').getByLabel('סגירה').click();
+    ok('Dad sees the children\'s timetable on his own home screen too');
 
     await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
