@@ -230,6 +230,12 @@ async function main() {
       await add(dad, 'עגבניות, מלפפונים, 2 אבוקדו, חצי קילו ענבים, בצל, שישייה מים\nחלב 3%, 10 ביצים, גבינה צהובה, קוטג׳\nפיתות, קילו חזה עוף, אורז, פסטה, במבה, שקיות זבל, נייר טואלט');
       await row(dad, 'נייר טואלט').waitFor();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-long.png` });
+      for (const [label, file] of [['לבן וזהב', 'list-goldlight.png'], ['ירוק (הקלאסי)', 'list-green.png'], ['שחור וזהב', null]]) {
+        await dad.page.getByRole('button', { name: 'הגדרות' }).click();
+        await dad.page.getByRole('dialog').getByRole('button', { name: label }).click();
+        await dad.page.getByRole('dialog').getByRole('button', { name: 'סגירה' }).click();
+        if (file) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/${file}` });
+      }
     }
     console.log('\nALL CHECKS PASSED');
   } finally {

@@ -24,6 +24,7 @@ import {
 import { orderedDepartments } from '../data/departments';
 import { useInvites, useMembers, usePendingRequests } from '../data/hooks';
 import { START_KEY, type View } from './Home';
+import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
 export function FamilySettings({
   familyId,
@@ -46,6 +47,7 @@ export function FamilySettings({
   const invites = useInvites(familyId, isAdmin);
   const [error, setError] = useState('');
   const [start, setStart] = useState<View>(startScreen);
+  const [palette, setPalette] = useState<Palette>(readPalette);
 
   const guard = (fn: () => Promise<unknown>) => () => {
     setError('');
@@ -140,6 +142,26 @@ export function FamilySettings({
               <option value="calendar">יומן</option>
             </select>
           </label>
+          <div>
+            <span className="field-label">ערכת צבעים (בטלפון הזה)</span>
+            <div className="chips" role="group" aria-label="ערכת צבעים">
+              {PALETTES.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={palette === p.id ? 'chip on' : 'chip'}
+                  aria-pressed={palette === p.id}
+                  onClick={() => {
+                    setPalette(p.id);
+                    applyPalette(p.id, true);
+                  }}
+                >
+                  <span className="swatch" style={{ background: p.swatch }} />
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className="card">

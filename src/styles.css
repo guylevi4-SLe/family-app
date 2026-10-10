@@ -416,6 +416,62 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 
 .topbar .icon-button { color: var(--muted); }
 
+/* ---------- other palettes (Settings → ערכת צבעים) ---------- */
+:root[data-palette='goldlight'] {
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --surface-2: #ece8de;
+  --text: #15130e;
+  --muted: #6b6457;
+  --line: #ddd6c6;
+  --accent: #c99700;
+  --accent-2: #9a6f00;
+  --accent-ink: #ffffff;
+  --warn: #9a6200;
+  --danger: #b3261e;
+  --shadow: 0 8px 24px rgba(40, 30, 0, 0.08);
+  color-scheme: light;
+}
+:root[data-palette='green'] {
+  --bg: #f6f7f4;
+  --surface: #ffffff;
+  --surface-2: #eef1ec;
+  --text: #1d2420;
+  --muted: #66706a;
+  --line: #e3e6e1;
+  --accent: #2f6f4f;
+  --accent-2: #2f6f4f;
+  --accent-ink: #ffffff;
+  --accent-soft: #e4f0e9;
+  --warn: #9a6200;
+  --warn-soft: #fff3dc;
+  --danger: #b3261e;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='green'] {
+    --bg: #131715;
+    --surface: #1c211e;
+    --surface-2: #232925;
+    --text: #e9eee9;
+    --muted: #9aa49e;
+    --line: #2c332f;
+    --accent: #6fbf94;
+    --accent-2: #6fbf94;
+    --accent-ink: #0d1410;
+    --accent-soft: #1f3329;
+    --warn: #f0b75a;
+    --warn-soft: #3a2e17;
+    --danger: #ff8a80;
+  }
+}
+:root[data-palette='goldlight'] .whatsapp,
+:root[data-palette='green'] .whatsapp { color: #128c4b; border-color: #9fd8b6; }
+:root[data-palette='green'] body { background: var(--bg); }
+.swatch { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 25%, transparent); flex: none; }
+.chips .chip { display: inline-flex; align-items: center; gap: 6px; }
+
 /* ---------- Setou look ---------- */
 body {
   background: radial-gradient(900px 420px at 50% -160px, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%) no-repeat, var(--bg);
