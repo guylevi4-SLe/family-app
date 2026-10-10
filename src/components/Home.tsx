@@ -120,9 +120,9 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
       const t = e.changedTouches[0];
       const dx = t.clientX - start.x;
       const dy = t.clientY - start.y;
-      const fast = Date.now() - start.t < 600;
+      const fast = Date.now() - start.t < 900;
       start = null;
-      if (!fast || Math.abs(dx) < Math.max(100, window.innerWidth * 0.3) || Math.abs(dx) < Math.abs(dy) * 2.5) return;
+      if (!fast || Math.abs(dx) < Math.max(80, window.innerWidth * 0.25) || Math.abs(dx) < Math.abs(dy) * 2) return;
       if (document.body.classList.contains('kb-open')) return;
       // RTL: the next screen sits to the left, so a right-to-left swipe moves forward.
       setView((v) => {

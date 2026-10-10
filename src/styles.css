@@ -655,3 +655,4 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 
 .topbar h1.with-logo { display: flex; align-items: center; gap: 10px; }
 .title-logo { width: 1.05em; height: 1.05em; border-radius: 22%; flex: none; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.version { text-align: center; }

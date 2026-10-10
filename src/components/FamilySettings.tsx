@@ -182,6 +182,9 @@ export function FamilySettings({
             התנתקות מהמכשיר הזה
           </button>
         </section>
+        <p className="muted small-print version">
+          גרסה: {new Date(__BUILD_TIME__).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </p>
       </div>
     </div>
   );
