@@ -52,6 +52,20 @@ export async function disablePush(uid: string): Promise<PushState> {
   return 'off';
 }
 
+/** Where the newest unread notification points, if one arrived since the app was last opened. */
+export async function takePendingUrl(): Promise<string | null> {
+  if (!('caches' in window)) return null;
+  try {
+    const cache = await caches.open('family-badge');
+    const res = await cache.match('/__last-url');
+    if (!res) return null;
+    await cache.delete('/__last-url');
+    return await res.text();
+  } catch {
+    return null;
+  }
+}
+
 /** Clears the red number on the app icon. */
 export function clearBadge() {
   (navigator as Navigator & { clearAppBadge?: () => Promise<void> }).clearAppBadge?.().catch(() => {});

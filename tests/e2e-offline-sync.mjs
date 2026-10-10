@@ -214,12 +214,20 @@ async function main() {
     await kid.page.getByRole('dialog', { name: 'תגובות על לחם' }).waitFor({ timeout: 15000 });
     await kid.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('tapping a notification link opens that item\'s comments');
+    await kid.page.evaluate(async (url) => (await caches.open('family-badge')).put('/__last-url', new Response(url)), `/?open=comments&type=item&id=${encodeURIComponent('לחם')}`);
+    await kid.page.goto(BASE);
+    await kid.page.getByRole('dialog', { name: 'תגובות על לחם' }).waitFor({ timeout: 15000 });
+    await kid.page.getByRole('dialog').getByLabel('סגירה').click();
+    await kid.page.reload();
+    await kid.page.waitForTimeout(1500);
+    assert.equal(await kid.page.getByRole('dialog', { name: 'תגובות על לחם' }).count(), 0, 'only jumps once per notification');
+    ok('opening the app from its icon jumps to the newest unread notification, once');
     await dad.page.getByLabel('סגירה').click();
 
     await dad.page.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
     await dad.page.locator('.chat-ref', { hasText: 'תזכורת בשבילך' }).waitFor({ timeout: 10000 });
     ok('family chat lists comments made on items and tasks');
-    await dad.page.locator('.chat-compose').getByRole('group', { name: 'התראה ל' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.locator('.chat-compose').getByRole('group', { name: 'הודעה ל' }).getByRole('button', { name: 'kid' }).click();
     await dad.page.getByLabel('כתיבת הודעה').fill('ארוחת ערב ב־7');
     await dad.page.getByLabel('כתיבת הודעה').press('Enter');
     await kid.page.goto(`${BASE}/?open=chat`);

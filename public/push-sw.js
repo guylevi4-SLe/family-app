@@ -5,6 +5,16 @@
 // and reset by the app (push.ts clearBadge) when it is opened.
 const BADGE_CACHE = 'family-badge';
 const BADGE_KEY = '/__badge-count';
+const LAST_URL_KEY = '/__last-url'; // where the newest unread notification points
+
+async function rememberUrl(url) {
+  try {
+    const cache = await caches.open(BADGE_CACHE);
+    await cache.put(LAST_URL_KEY, new Response(url));
+  } catch (e) {
+    // opening at the notification is a nice-to-have
+  }
+}
 
 async function bumpBadge() {
   if (!self.navigator.setAppBadge) return;
@@ -41,6 +51,7 @@ self.addEventListener('push', (event) => {
         lang: 'he',
       }),
       bumpBadge(),
+      rememberUrl(data.url || '/'),
     ]),
   );
 });

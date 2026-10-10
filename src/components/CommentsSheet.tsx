@@ -84,7 +84,19 @@ export function PhotoViewer({ src, onClose }: { src: string; onClose: () => void
 }
 
 /** Text box with photo and "notify" chips, shared by comments and the family chat. */
-export function Composer({ type, targetId, placeholder, label }: { type: TargetType; targetId: string; placeholder: string; label: string }) {
+export function Composer({
+  type,
+  targetId,
+  placeholder,
+  label,
+  notifyLabel = 'התראה ל',
+}: {
+  type: TargetType;
+  targetId: string;
+  placeholder: string;
+  label: string;
+  notifyLabel?: string;
+}) {
   const { familyId, me, members } = useFamily();
   const [notify, setNotify] = useState<string[]>([]);
   const others = members.filter((m) => m.id !== me.id);
@@ -128,8 +140,8 @@ export function Composer({ type, targetId, placeholder, label }: { type: TargetT
       {photoError && <p className="error">{photoError}</p>}
       {others.length > 0 && (
         <div className="notify-row">
-          <span className="assign-label">🔔 התראה ל:</span>
-          <div className="chips" role="group" aria-label="התראה ל">
+          <span className="assign-label">🔔 {notifyLabel}:</span>
+          <div className="chips" role="group" aria-label={notifyLabel}>
             {others.map((m) => {
               const on = notify.includes(m.id);
               return (

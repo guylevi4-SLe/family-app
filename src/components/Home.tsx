@@ -11,7 +11,7 @@ import { CommentsSheet } from './CommentsSheet';
 import { ChatView } from './ChatView';
 import { ScheduleSheet } from './ScheduleSheet';
 import { Icon, type IconName } from './Icon';
-import { clearBadge } from '../push';
+import { clearBadge, takePendingUrl } from '../push';
 import { FamilyContext } from './FamilyContext';
 
 interface Family {
@@ -62,10 +62,20 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   // A tapped notification opens the app at /?open=comments&type=…&id=…
   const [deepLink, setDeepLink] = useState<DeepLink | null>(() => readDeepLink(location.href));
   useEffect(() => {
-    clearBadge();
-    const onVisible = () => document.visibilityState === 'visible' && clearBadge();
+    // Opening the app (not via the notification itself) still lands on the newest notification.
+    const openPending = async () => {
+      const url = await takePendingUrl();
+      clearBadge();
+      const link = url && readDeepLink(url);
+      if (link) setDeepLink(link);
+    };
+    openPending();
+    const onVisible = () => document.visibilityState === 'visible' && openPending();
     const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === 'open-url') setDeepLink(readDeepLink(e.data.url));
+      if (e.data?.type === 'open-url') {
+        takePendingUrl(); // already handled by the tap
+        setDeepLink(readDeepLink(e.data.url));
+      }
     };
     document.addEventListener('visibilitychange', onVisible);
     navigator.serviceWorker?.addEventListener('message', onMessage);

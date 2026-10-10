@@ -57,7 +57,7 @@ export function ChatView({
         <div ref={endRef} />
       </div>
       <div className="chat-compose">
-        <Composer type="chat" targetId={CHAT_ID} placeholder="הודעה למשפחה…" label="כתיבת הודעה" />
+        <Composer type="chat" targetId={CHAT_ID} placeholder="הודעה למשפחה…" label="כתיבת הודעה" notifyLabel="הודעה ל" />
       </div>
       {viewing && <PhotoViewer src={viewing} onClose={() => setViewing(null)} />}
     </main>
