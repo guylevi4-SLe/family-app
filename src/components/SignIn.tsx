@@ -18,9 +18,11 @@ export function SignIn({ hasInvite }: { hasInvite: boolean }) {
     try {
       // Redirect (not popup) works in iPhone home-screen apps.
       await signInWithRedirect(auth, new GoogleAuthProvider());
-    } catch {
+    } catch (e) {
       setBusy(false);
-      setError('ההתחברות נכשלה. בדקו את החיבור לאינטרנט ונסו שוב');
+      const code = (e as { code?: string }).code ?? 'unknown';
+      // The code helps diagnose setup problems (e.g. auth/configuration-not-found).
+      setError(`ההתחברות נכשלה. בדקו את החיבור לאינטרנט ונסו שוב (${code})`);
     }
   };
 
