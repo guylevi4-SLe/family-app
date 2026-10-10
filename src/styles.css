@@ -632,3 +632,5 @@ body:has(.sheet-backdrop) { overflow: hidden; }
   background: var(--bg); border-top: 1px solid var(--line);
 }
 body.kb-open .chat-compose { bottom: var(--kb); }
+
+.brand-logo { display: block; margin: 0 auto 4px; border-radius: 22px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }

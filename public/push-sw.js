@@ -27,7 +27,7 @@ self.addEventListener('push', (event) => {
     msg = {};
   }
   const data = msg.data || msg;
-  const title = data.title || 'הבית שלנו';
+  const title = data.title || "לוי'ס";
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(title, {
