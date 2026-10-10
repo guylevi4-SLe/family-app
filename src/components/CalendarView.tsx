@@ -9,67 +9,298 @@ import {
   type EventFields,
   type FamilyEvent,
 } from '../data/events';
+import { addTask, updateTask, type Task } from '../data/tasks';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 
-export function CalendarView({ events }: { events: FamilyEvent[] | undefined }) {
+type Mode = 'list' | 'month';
+const MODE_KEY = 'calendarMode';
+
+function readMode(): Mode {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'month' ? 'month' : 'list';
+  } catch {
+    return 'list';
+  }
+}
+
+export function CalendarView({ events, tasks }: { events: FamilyEvent[] | undefined; tasks: Task[] | undefined }) {
   const { members } = useFamily();
   const [editing, setEditing] = useState<FamilyEvent | 'new' | null>(null);
+  const [newDate, setNewDate] = useState<string | null>(null);
+  const [addingTask, setAddingTask] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [mode, setModeState] = useState<Mode>(readMode);
   const today = isoDate(new Date());
+  const [selected, setSelected] = useState(today);
+
+  const setMode = (m: Mode) => {
+    setModeState(m);
+    try {
+      localStorage.setItem(MODE_KEY, m);
+    } catch {
+      /* optional */
+    }
+  };
 
   const live = (events ?? []).filter((e) => !e.deleted);
   const sorted = live.sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')));
   const upcoming = sorted.filter((e) => e.date >= today);
   const past = sorted.filter((e) => e.date < today).reverse().slice(0, 20);
+  const dated = (tasks ?? []).filter((t) => !t.deleted && t.due) as (Task & { due: string })[];
+  const openDated = dated.filter((t) => !t.done && t.due >= today);
 
-  const byDay = new Map<string, FamilyEvent[]>();
-  for (const e of upcoming) {
-    if (!byDay.has(e.date)) byDay.set(e.date, []);
-    byDay.get(e.date)!.push(e);
-  }
+  const byDay = new Map<string, { events: FamilyEvent[]; tasks: Task[] }>();
+  const slot = (d: string) => {
+    if (!byDay.has(d)) byDay.set(d, { events: [], tasks: [] });
+    return byDay.get(d)!;
+  };
+  for (const e of upcoming) slot(e.date).events.push(e);
+  for (const t of openDated) slot(t.due).tasks.push(t);
+  const days = [...byDay].sort(([a], [b]) => a.localeCompare(b));
+
+  const openNewEvent = (date: string | null) => {
+    setNewDate(date);
+    setEditing('new');
+  };
 
   return (
     <main className="list-page">
-      <button className="primary big add-event" onClick={() => setEditing('new')}>
-        + אירוע חדש
-      </button>
+      <div className="segmented" role="group" aria-label="תצוגה">
+        <button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>
+          רשימה
+        </button>
+        <button className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>
+          לוח חודשי
+        </button>
+      </div>
 
-      {events !== undefined && upcoming.length === 0 && <p className="empty">אין אירועים קרובים</p>}
+      {mode === 'month' ? (
+        <MonthView
+          events={live}
+          tasks={dated}
+          selected={selected}
+          onSelect={setSelected}
+          onOpenEvent={setEditing}
+          onAddEvent={() => openNewEvent(selected)}
+          onAddTask={() => setAddingTask(selected)}
+        />
+      ) : (
+        <>
+          <div className="calendar-add">
+            <button className="primary" onClick={() => openNewEvent(null)}>
+              + אירוע חדש
+            </button>
+            <button onClick={() => setAddingTask(today)}>+ משימה ליומן</button>
+          </div>
 
-      {[...byDay].map(([date, list]) => (
-        <section key={date} className="dept">
-          <h2>{dayLabel(date)}</h2>
-          <ul>
-            {list.map((e) => (
-              <EventRow key={e.id} event={e} members={members} onOpen={() => setEditing(e)} />
-            ))}
-          </ul>
-        </section>
-      ))}
+          {events !== undefined && days.length === 0 && <p className="empty">אין אירועים קרובים</p>}
 
-      {past.length > 0 && (
-        <section className="dept bought">
-          <button className="link muted" onClick={() => setShowPast(!showPast)} aria-expanded={showPast}>
-            אירועים שעברו {showPast ? '▴' : '▾'}
-          </button>
-          {showPast && (
-            <ul>
-              {past.map((e) => (
-                <EventRow key={e.id} event={e} members={members} onOpen={() => setEditing(e)} showDate />
-              ))}
-            </ul>
+          {days.map(([date, list]) => (
+            <section key={date} className="dept">
+              <h2>{dayLabel(date)}</h2>
+              <ul>
+                {list.events.map((e) => (
+                  <EventRow key={e.id} event={e} members={members} onOpen={() => setEditing(e)} />
+                ))}
+                {list.tasks.map((t) => (
+                  <TaskRow key={t.id} task={t} />
+                ))}
+              </ul>
+            </section>
+          ))}
+
+          {past.length > 0 && (
+            <section className="dept bought">
+              <button className="link muted" onClick={() => setShowPast(!showPast)} aria-expanded={showPast}>
+                אירועים שעברו {showPast ? '▴' : '▾'}
+              </button>
+              {showPast && (
+                <ul>
+                  {past.map((e) => (
+                    <EventRow key={e.id} event={e} members={members} onOpen={() => setEditing(e)} showDate />
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
-        </section>
+        </>
       )}
 
       {editing && (
         <EventSheet
           event={editing === 'new' ? null : (live.find((e) => e.id === editing.id) ?? editing)}
+          initialDate={newDate ?? today}
           onClose={() => setEditing(null)}
         />
       )}
+      {addingTask && <TaskOnDateSheet date={addingTask} onClose={() => setAddingTask(null)} />}
     </main>
+  );
+}
+
+const WEEKDAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
+
+function MonthView({
+  events,
+  tasks,
+  selected,
+  onSelect,
+  onOpenEvent,
+  onAddEvent,
+  onAddTask,
+}: {
+  events: FamilyEvent[];
+  tasks: (Task & { due: string })[];
+  selected: string;
+  onSelect: (d: string) => void;
+  onOpenEvent: (e: FamilyEvent) => void;
+  onAddEvent: () => void;
+  onAddTask: () => void;
+}) {
+  const { members } = useFamily();
+  const [y, m] = selected.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const today = isoDate(new Date());
+  const cells: (string | null)[] = Array(first.getDay()).fill(null);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) cells.push(isoDate(new Date(y, m - 1, d)));
+  while (cells.length % 7) cells.push(null);
+
+  const shift = (delta: number) => {
+    const d = new Date(y, m - 1 + delta, 1);
+    onSelect(isoDate(d));
+  };
+
+  const dayEvents = events
+    .filter((e) => e.date === selected)
+    .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
+  const dayTasks = tasks.filter((t) => t.due === selected);
+
+  return (
+    <div className="month">
+      <div className="month-head">
+        <button className="icon-button" aria-label="החודש הקודם" onClick={() => shift(-1)}>
+          ‹
+        </button>
+        <h2>{first.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}</h2>
+        <button className="icon-button" aria-label="החודש הבא" onClick={() => shift(1)}>
+          ›
+        </button>
+      </div>
+      <div className="month-grid" role="grid" aria-label="לוח חודשי">
+        {WEEKDAYS.map((w) => (
+          <span key={w} className="weekday">
+            {w}
+          </span>
+        ))}
+        {cells.map((d, i) => {
+          if (!d) return <span key={i} />;
+          const ev = events.filter((e) => e.date === d).length;
+          const tk = tasks.filter((t) => t.due === d && !t.done).length;
+          const cls = ['day', d === today ? 'today' : '', d === selected ? 'sel' : ''].join(' ');
+          return (
+            <button key={d} className={cls} aria-label={`${dayLabel(d)}: ${ev} אירועים, ${tk} משימות`} onClick={() => onSelect(d)}>
+              <span className="num">{Number(d.slice(8))}</span>
+              <span className="marks">
+                {ev > 0 && <i className="mark ev" />}
+                {tk > 0 && <i className="mark tk" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="legend">
+        <i className="mark ev" /> אירוע <i className="mark tk" /> משימה
+      </p>
+
+      <section className="dept">
+        <h2>{dayLabel(selected)}</h2>
+        {dayEvents.length + dayTasks.length === 0 ? (
+          <p className="muted day-empty">אין כלום ביום הזה</p>
+        ) : (
+          <ul>
+            {dayEvents.map((e) => (
+              <EventRow key={e.id} event={e} members={members} onOpen={() => onOpenEvent(e)} />
+            ))}
+            {dayTasks.map((t) => (
+              <TaskRow key={t.id} task={t} />
+            ))}
+          </ul>
+        )}
+        <div className="calendar-add">
+          <button className="primary" onClick={onAddEvent}>
+            + אירוע ביום הזה
+          </button>
+          <button onClick={onAddTask}>+ משימה ביום הזה</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function TaskRow({ task }: { task: Task }) {
+  const { familyId, members } = useFamily();
+  const who = memberName(members, task.assignee);
+  return (
+    <li className={`row ${task.done ? 'checked' : ''}`}>
+      <button className="check-area" aria-pressed={task.done} onClick={() => updateTask(familyId, task.id, { done: !task.done })}>
+        <span className="box round" aria-hidden="true">{task.done ? '✓' : ''}</span>
+        <span className="name">
+          {task.title}
+          <span className="sub">
+            <span className="kind-tag">משימה</span>
+            {who && <span className="who-tag">{who}</span>}
+          </span>
+        </span>
+        {task.pending && <span className="pending-dot" aria-label="ממתין לסנכרון" />}
+      </button>
+      <CommentButton type="task" id={task.id} title={task.title} />
+    </li>
+  );
+}
+
+function TaskOnDateSheet({ date, onClose }: { date: string; onClose: () => void }) {
+  const { familyId, members } = useFamily();
+  const [title, setTitle] = useState('');
+  const [due, setDue] = useState(date);
+  const [assignee, setAssignee] = useState<string | null>(null);
+  const save = () => {
+    if (!title.trim()) return;
+    addTask(familyId, title, assignee, due || null);
+    onClose();
+  };
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" role="dialog" aria-label="משימה ליומן" onClick={(e) => e.stopPropagation()}>
+        <label>
+          משימה
+          <input value={title} maxLength={120} placeholder="למשל: לקנות מתנה לסבתא" onChange={(e) => setTitle(e.target.value)} autoFocus />
+        </label>
+        <label>
+          תאריך
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+        </label>
+        <div>
+          <span className="field-label">למי</span>
+          <div className="chips" role="group" aria-label="אחראי">
+            <button type="button" className={assignee === null ? 'chip on' : 'chip'} onClick={() => setAssignee(null)}>
+              כולם
+            </button>
+            {members.map((m) => (
+              <button type="button" key={m.id} className={assignee === m.id ? 'chip on' : 'chip'} onClick={() => setAssignee(m.id)}>
+                {m.displayName.split(' ')[0]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="sheet-actions">
+          <button className="primary" onClick={save} disabled={!title.trim()}>
+            הוספה
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -104,12 +335,12 @@ function EventRow({
   );
 }
 
-function EventSheet({ event, onClose }: { event: FamilyEvent | null; onClose: () => void }) {
+function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null; initialDate: string; onClose: () => void }) {
   const { familyId, members } = useFamily();
   const [f, setF] = useState<EventFields>(
     event
       ? { title: event.title, date: event.date, time: event.time, location: event.location, people: event.people }
-      : { title: '', date: isoDate(new Date()), time: '', location: '', people: [] },
+      : { title: '', date: initialDate, time: '', location: '', people: [] },
   );
   const set = (patch: Partial<EventFields>) => setF((prev) => ({ ...prev, ...patch }));
   const valid = f.title.trim() && /^\d{4}-\d{2}-\d{2}$/.test(f.date);

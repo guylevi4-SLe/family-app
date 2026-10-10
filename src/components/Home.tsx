@@ -125,7 +125,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} go={setView} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'tasks' && <TasksView tasks={tasks} />}
-        {view === 'calendar' && <CalendarView events={events} />}
+        {view === 'calendar' && <CalendarView events={events} tasks={tasks} />}
 
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (

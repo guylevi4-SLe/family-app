@@ -557,3 +557,37 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 .task-options { padding-top: 2px; }
 .assign-row { display: flex; align-items: center; gap: 8px; }
 .assign-label { color: var(--muted); font-size: 0.92rem; flex: none; }
+
+/* ---------- calendar: month grid ---------- */
+.calendar-add { display: flex; gap: 8px; margin: 6px 0 4px; }
+.calendar-add button { flex: 1; min-height: 44px; }
+.month-head { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; }
+.month-head h2 { font-size: 1.15rem; font-weight: 800; }
+.month-head .icon-button { font-size: 1.8rem; color: var(--accent); }
+.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.weekday { text-align: center; font-size: 0.78rem; color: var(--muted); padding-bottom: 2px; }
+.month-grid .day {
+  min-height: 42px;
+  padding: 4px 0;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: var(--surface);
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+}
+.month-grid .day .num { font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+.month-grid .day.today { border-color: var(--accent); }
+.month-grid .day.today .num { color: var(--accent); font-weight: 800; }
+.month-grid .day.sel { background: var(--grad); border-color: transparent; }
+.month-grid .day.sel .num { color: var(--accent-ink); font-weight: 800; }
+.marks { display: flex; gap: 3px; height: 6px; }
+.mark { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+.mark.ev { background: var(--accent); }
+.mark.tk { background: var(--muted); }
+.day.sel .mark.ev, .day.sel .mark.tk { background: var(--accent-ink); }
+.legend { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); margin: 8px 2px 0; }
+.legend .mark:not(:first-child) { margin-inline-start: 10px; }
+.day-empty { margin: 4px; }
+.kind-tag { color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 0 8px; font-size: 0.75rem; }

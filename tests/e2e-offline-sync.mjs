@@ -211,6 +211,17 @@ async function main() {
     await kid.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await kid.page.locator('.row', { hasText: 'חוג ציור' }).getByText('17:30').waitFor({ timeout: 10000 });
     ok('event added by Dad appears in the daughter\'s calendar');
+    await dad.page.getByRole('button', { name: 'לוח חודשי' }).click();
+    await dad.page.locator('.month-grid .day.today .mark.ev').waitFor();
+    await dad.page.getByRole('button', { name: '+ משימה ביום הזה' }).click();
+    await dad.page.getByPlaceholder('למשל: לקנות מתנה לסבתא').fill('לקנות מתנה');
+    await dad.page.getByRole('dialog').getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByRole('dialog').getByRole('button', { name: 'הוספה' }).click();
+    await dad.page.locator('.month .row', { hasText: 'לקנות מתנה' }).getByText('kid').waitFor();
+    await dad.page.locator('.month-grid .day.today .mark.tk').waitFor();
+    await kid.page.locator('.row', { hasText: 'לקנות מתנה' }).waitFor({ timeout: 10000 });
+    ok('month view marks today; a task added on a calendar day shows there and in the daughter\'s calendar');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-month.png` });
     if (process.env.SCREENSHOT_DIR) {
       await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
       await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home.png` });
