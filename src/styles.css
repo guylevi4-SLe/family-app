@@ -537,3 +537,23 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .sheet-backdrop { touch-action: pan-y; overscroll-behavior: contain; }
 .sheet.tall { min-height: calc(100dvh - env(safe-area-inset-top) - 16px); max-height: calc(100dvh - env(safe-area-inset-top) - 16px); }
 body:has(.sheet-backdrop) { overflow: hidden; }
+
+/* WhatsApp share: a solid, clearly visible button in WhatsApp green (white text, 4.6:1). */
+.shopping .whatsapp,
+:root[data-palette] .shopping .whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: #128c4b;
+  border-color: #128c4b;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(18, 140, 75, 0.3);
+}
+.task-options { padding-top: 2px; }
+.assign-row { display: flex; align-items: center; gap: 8px; }
+.assign-label { color: var(--muted); font-size: 0.92rem; flex: none; }

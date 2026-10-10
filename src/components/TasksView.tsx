@@ -51,8 +51,9 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
             +
           </button>
         </div>
-        {title.trim() && (
-          <div className="task-options">
+        <div className="task-options">
+          <div className="assign-row">
+            <span className="assign-label">למי:</span>
             <div className="chips" role="group" aria-label="אחראי">
               <button type="button" className={assignee === null ? 'chip on' : 'chip'} onClick={() => setAssignee(null)}>
                 כולם
@@ -68,12 +69,14 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
                 </button>
               ))}
             </div>
+          </div>
+          {title.trim() && (
             <label className="inline-label">
               עד
               <input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} aria-label="תאריך יעד" />
             </label>
-          </div>
-        )}
+          )}
+        </div>
       </form>
 
       <div className="segmented" role="group" aria-label="סינון">

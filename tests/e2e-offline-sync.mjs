@@ -248,6 +248,9 @@ async function main() {
         await dad.page.getByRole('dialog').getByRole('button', { name: 'סגירה' }).click();
         if (file) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/${file}` });
       }
+      await dad.page.getByRole('button', { name: 'משימות' }).click();
+      await dad.page.getByText('למי:').waitFor();
+      await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/tasks.png` });
     }
     console.log('\nALL CHECKS PASSED');
   } finally {

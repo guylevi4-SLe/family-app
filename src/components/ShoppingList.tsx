@@ -69,6 +69,7 @@ export function ShoppingList({
       {active.length > 0 && (
         <div className="list-actions">
           <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
+            <Icon name="whatsapp" size={20} />
             שליחת הרשימה לוואטסאפ
           </button>
         </div>
