@@ -354,10 +354,16 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
   background: none;
   min-height: 44px;
   padding: 0 6px;
-  color: var(--accent);
+  color: var(--muted);
   font-size: 0.9rem;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  opacity: 0.75;
 }
+.comment-chip.has { color: var(--accent); font-weight: 800; opacity: 1; }
+.comment-chip.has .icon { stroke-width: 2.3; }
 .comments { display: grid; gap: 10px; align-content: start; min-height: 30dvh; }
 .comment { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; max-width: 88%; }
 .comment.mine { background: var(--accent-soft); justify-self: end; }

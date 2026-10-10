@@ -1,22 +1,37 @@
 import type { TargetType } from '../data/comments';
 import { commentKey } from '../data/comments';
 import { useFamily } from './FamilyContext';
+import { Icon } from './Icon';
 
-/** Small speech-bubble with a count; hidden when there are no comments unless `always`. */
+/** Speech-bubble with the comment count (0 when none) next to every row; `always` is the labelled button inside sheets. */
 export function CommentButton({ type, id, title, always = false }: { type: TargetType; id: string; title: string; always?: boolean }) {
   const { commentCounts, openComments } = useFamily();
   const count = commentCounts.get(commentKey(type, id)) ?? 0;
-  if (!count && !always) return null;
+  if (!always) {
+    return (
+      <button
+        className={count ? 'comment-chip has' : 'comment-chip'}
+        aria-label={count ? `${count} תגובות על ${title}` : `הוספת תגובה על ${title}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          openComments(type, id, title);
+        }}
+      >
+        <Icon name="chat" size={18} />
+        {count}
+      </button>
+    );
+  }
   return (
     <button
-      className={always ? 'small' : 'comment-chip'}
+      className="small"
       aria-label={count ? `${count} תגובות על ${title}` : `הוספת תגובה על ${title}`}
       onClick={(e) => {
         e.stopPropagation();
         openComments(type, id, title);
       }}
     >
-      💬{count ? ` ${count}` : always ? ' תגובות' : ''}
+      💬{count ? ` ${count}` : ' תגובות'}
     </button>
   );
 }
