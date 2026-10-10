@@ -462,6 +462,22 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
   --shadow: 0 8px 24px rgba(120, 20, 60, 0.08);
   color-scheme: light;
 }
+:root[data-palette='orange'] {
+  /* Warm ivory and terracotta orange; the orange is deepened slightly so text stays readable. */
+  --bg: #faf9f5;
+  --surface: #ffffff;
+  --surface-2: #f0eee6;
+  --text: #141413;
+  --muted: #6b6a63;
+  --line: #e8e6dc;
+  --accent: #c15f3c;
+  --accent-2: #d97757;
+  --accent-ink: #ffffff;
+  --warn: #9a5a00;
+  --danger: #b3261e;
+  --shadow: 0 8px 24px rgba(80, 40, 20, 0.07);
+  color-scheme: light;
+}
 :root[data-palette='green'] {
   --bg: #f6f7f4;
   --surface: #ffffff;
@@ -498,6 +514,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 }
 :root[data-palette='goldlight'] .whatsapp,
 :root[data-palette='pink'] .whatsapp,
+:root[data-palette='orange'] .whatsapp,
 :root[data-palette='green'] .whatsapp { color: #128c4b; border-color: #9fd8b6; }
 :root[data-palette='green'] body { background: var(--bg); }
 .swatch { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 25%, transparent); flex: none; }
