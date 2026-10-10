@@ -55,4 +55,6 @@ export async function disablePush(uid: string): Promise<PushState> {
 /** Clears the red number on the app icon. */
 export function clearBadge() {
   (navigator as Navigator & { clearAppBadge?: () => Promise<void> }).clearAppBadge?.().catch(() => {});
+  // reset the unread counter kept by push-sw.js
+  if ('caches' in window) caches.delete('family-badge').catch(() => {});
 }

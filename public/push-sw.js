@@ -1,5 +1,24 @@
 // Imported into the generated service worker. Shows family notifications
 // (data-only FCM messages) and opens the right comment when tapped.
+// Unread counter for the number on the app icon. iPhone ignores a badge
+// without a number, so the count is kept in Cache storage between pushes
+// and reset by the app (push.ts clearBadge) when it is opened.
+const BADGE_CACHE = 'family-badge';
+const BADGE_KEY = '/__badge-count';
+
+async function bumpBadge() {
+  if (!self.navigator.setAppBadge) return;
+  try {
+    const cache = await caches.open(BADGE_CACHE);
+    const prev = await cache.match(BADGE_KEY);
+    const count = (prev ? Number(await prev.text()) || 0 : 0) + 1;
+    await cache.put(BADGE_KEY, new Response(String(count)));
+    await self.navigator.setAppBadge(count);
+  } catch (e) {
+    // badge is a nice-to-have
+  }
+}
+
 self.addEventListener('push', (event) => {
   let msg = {};
   try {
@@ -21,7 +40,7 @@ self.addEventListener('push', (event) => {
         dir: 'rtl',
         lang: 'he',
       }),
-      self.navigator.setAppBadge ? self.navigator.setAppBadge().catch(() => {}) : null,
+      bumpBadge(),
     ]),
   );
 });
