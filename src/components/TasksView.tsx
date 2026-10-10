@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { addTask, updateTask, type Task } from '../data/tasks';
-import { isoDate } from '../data/events';
+import { downloadIcs, googleCalendarLink, isoDate, type FamilyEvent } from '../data/events';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 
@@ -161,6 +161,11 @@ function TaskSheet({ task, members, onClose }: { task: Task; members: { id: stri
   const [title, setTitle] = useState(task.title);
   const [assignee, setAssignee] = useState<string | null>(task.assignee);
   const [due, setDue] = useState(task.due ?? '');
+  const [free, setFree] = useState(true);
+  // A dated task can be copied to a personal calendar as an all-day item.
+  const asEvent: FamilyEvent | null = due
+    ? { id: task.id, title: title.trim() || task.title, date: due, endDate: '', time: '', location: '', people: [], deleted: false, pending: false }
+    : null;
 
   const save = () => {
     updateTask(familyId, task.id, { title: title.trim() || task.title, assignee, due: due || null });
@@ -189,6 +194,23 @@ function TaskSheet({ task, members, onClose }: { task: Task; members: { id: stri
           תאריך יעד
           <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
         </label>
+        {asEvent && (
+          <div className="calendar-export">
+            <span className="field-label">הוספה ליומן האישי (העתק חד־פעמי, שינויים כאן לא יתעדכנו שם)</span>
+            <label className="check-line">
+              <input type="checkbox" checked={free} onChange={(e) => setFree(e.target.checked)} />
+              להציג אותי כפנוי (לא לחסום לי את היום)
+            </label>
+            <div className="inline">
+              <a className="button-link" href={googleCalendarLink(asEvent, free)} target="_blank" rel="noopener noreferrer">
+                יומן Google
+              </a>
+              <button type="button" className="small" onClick={() => downloadIcs(asEvent, free)}>
+                יומן Apple
+              </button>
+            </div>
+          </div>
+        )}
         <CommentButton type="task" id={task.id} title={task.title} always />
         <div className="sheet-actions">
           <button className="primary" onClick={save}>
@@ -197,6 +219,7 @@ function TaskSheet({ task, members, onClose }: { task: Task; members: { id: stri
           <button
             className="danger"
             onClick={() => {
+              if (!window.confirm(`למחוק את המשימה "${task.title}"?`)) return;
               updateTask(familyId, task.id, { deleted: true });
               onClose();
             }}

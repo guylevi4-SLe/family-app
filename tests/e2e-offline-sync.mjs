@@ -197,6 +197,30 @@ async function main() {
     await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
     await dad.page.getByText('אבל עשיתי אתמול!').waitFor();
     ok('daughter commented on the task; Dad sees the comment count and the text');
+    {
+      await dad.page.getByLabel('סגירה').click();
+      await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).getByRole('button', { name: /עריכת/ }).click();
+      const sheet = dad.page.getByRole('dialog', { name: /עריכת/ });
+      assert.equal(await sheet.getByRole('link', { name: 'יומן Google' }).count(), 0, 'no calendar export without a date');
+      const d = new Date(); d.setDate(d.getDate() + 2);
+      await sheet.getByLabel('תאריך יעד').fill(d.toLocaleDateString('sv-SE'));
+      const href = await sheet.getByRole('link', { name: 'יומן Google' }).getAttribute('href');
+      assert.ok(href.includes('calendar.google.com') && href.includes('dates='), 'Google calendar link for the task');
+      let asked = '';
+      dad.page.once('dialog', (dlg) => { asked = dlg.message(); });
+      await sheet.getByRole('button', { name: 'שמירה' }).click();
+      ok('a dated task can be added to Google or Apple calendar');
+      assert.equal(asked, '', 'saving does not ask');
+      await dad.page.getByLabel('משימה חדשה').fill('משימה למחיקה');
+      await dad.page.getByLabel('הוספת משימה').click();
+      await dad.page.locator('.row', { hasText: 'משימה למחיקה' }).getByRole('button', { name: /עריכת/ }).click();
+      dad.page.once('dialog', (dlg) => { asked = dlg.message(); });
+      await dad.page.getByRole('dialog', { name: /עריכת/ }).locator('button.danger').click();
+      await dad.page.locator('.row', { hasText: 'משימה למחיקה' }).first().waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+      assert.ok(asked.includes('למחוק את המשימה'), 'deleting a task asks first');
+      ok('deleting a task asks for confirmation');
+      await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
+    }
     await dad.page.getByLabel('בחירת תמונה').setInputFiles('public/icon-512.png');
     await dad.page.locator('.photo-preview img').waitFor();
     await dad.page.getByRole('dialog').getByRole('button', { name: 'שליחה' }).click();

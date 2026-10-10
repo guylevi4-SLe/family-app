@@ -456,6 +456,7 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
             <button
               className="danger"
               onClick={() => {
+                if (!window.confirm(`למחוק את האירוע "${event.title}"?`)) return;
                 deleteEvent(familyId, event.id);
                 onClose();
               }}
