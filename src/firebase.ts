@@ -17,7 +17,7 @@ import {
 const env = import.meta.env;
 export const usingEmulators = env.VITE_USE_EMULATORS === '1';
 
-const app = initializeApp(
+export const app = initializeApp(
   usingEmulators
     ? { apiKey: 'demo-key', authDomain: location.host, projectId: 'demo-family', appId: 'demo' }
     : {
@@ -25,6 +25,7 @@ const app = initializeApp(
         authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
         projectId: env.VITE_FIREBASE_PROJECT_ID,
         appId: env.VITE_FIREBASE_APP_ID,
+        messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
       },
 );
 

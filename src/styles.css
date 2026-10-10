@@ -604,3 +604,7 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 .check-line { display: flex; align-items: center; gap: 10px; color: var(--text); }
 .check-line input { width: 22px; height: 22px; min-height: 0; padding: 0; accent-color: var(--accent); }
 .until { color: var(--accent); font-weight: 600; }
+
+/* ---------- notifications ---------- */
+.notify-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.notified { display: block; margin-top: 4px; font-size: 0.8rem; color: var(--muted); }

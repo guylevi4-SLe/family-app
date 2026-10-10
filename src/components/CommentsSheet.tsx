@@ -16,7 +16,9 @@ export function CommentsSheet({
   comments: Comment[];
   onClose: () => void;
 }) {
-  const { familyId, me } = useFamily();
+  const { familyId, me, members } = useFamily();
+  const [notify, setNotify] = useState<string[]>([]);
+  const others = members.filter((m) => m.id !== me.id);
   const [text, setText] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,7 +34,7 @@ export function CommentsSheet({
 
   const send = () => {
     if (!text.trim() && !photo) return;
-    addComment(familyId, type, targetId, text, photo ?? undefined);
+    addComment(familyId, type, targetId, text, photo ?? undefined, notify);
     setText('');
     setPhoto(null);
   };
@@ -81,6 +83,9 @@ export function CommentsSheet({
                 </button>
               )}
               {c.text && <p>{c.text}</p>}
+              {c.notify && c.notify.length > 0 && (
+                <span className="notified">🔔 {c.notify.map((u) => members.find((m) => m.id === u)?.displayName.split(' ')[0]).filter(Boolean).join(', ')}</span>
+              )}
             </div>
           ))}
           <div ref={endRef} />
@@ -94,6 +99,27 @@ export function CommentsSheet({
           </div>
         )}
         {photoError && <p className="error">{photoError}</p>}
+        {others.length > 0 && (
+          <div className="notify-row">
+            <span className="assign-label">🔔 התראה ל:</span>
+            <div className="chips" role="group" aria-label="התראה ל">
+              {others.map((m) => {
+                const on = notify.includes(m.id);
+                return (
+                  <button
+                    type="button"
+                    key={m.id}
+                    className={on ? 'chip on' : 'chip'}
+                    aria-pressed={on}
+                    onClick={() => setNotify(on ? notify.filter((x) => x !== m.id) : [...notify, m.id])}
+                  >
+                    {m.displayName.split(' ')[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <form
           className="add-box comment-box"
           onSubmit={(e) => {

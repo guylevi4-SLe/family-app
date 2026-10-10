@@ -205,9 +205,16 @@ async function main() {
     assert.ok(src.startsWith('data:image/jpeg;base64,') && src.length < 700000, 'photo stored as a small JPEG');
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/comment-photo.png` });
     ok('Dad attached a photo to a comment; the daughter sees it');
+    await dad.page.getByRole('group', { name: 'התראה ל' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByLabel('כתיבת תגובה').fill('תזכורת בשבילך');
+    await dad.page.getByLabel('כתיבת תגובה').press('Enter');
+    await kid.page.locator('.comment', { hasText: 'תזכורת בשבילך' }).locator('.notified', { hasText: 'kid' }).waitFor({ timeout: 10000 });
+    ok('a comment can name who gets a phone notification');
+    await kid.page.goto(`${BASE}/?open=comments&type=item&id=${encodeURIComponent('לחם')}`);
+    await kid.page.getByRole('dialog', { name: 'תגובות על לחם' }).waitFor({ timeout: 15000 });
+    await kid.page.getByRole('dialog').getByLabel('סגירה').click();
+    ok('tapping a notification link opens that item\'s comments');
     await dad.page.getByLabel('סגירה').click();
-    await kid.page.getByLabel('סגירה').click();
-    await kid.page.keyboard.press('Escape');
 
     await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();

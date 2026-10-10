@@ -292,4 +292,22 @@ describe('shopping list and comments', () => {
     await assertFails(setDoc(ref('p4'), { ...c, text: '', image: 'data:text/html;base64,PGgxPg==' }));
     await assertFails(setDoc(ref('p5'), { ...c, text: '', image: 'data:image/jpeg;base64,' + 'A'.repeat(700001) }));
   });
+  it('comments may name up to 20 people to notify', async () => {
+    const c = { targetType: 'item', targetId: 'קמח', text: 'סוגת', authorUid: 'dad', authorName: 'אבא', createdAt: serverTimestamp() };
+    const ref = (id: string) => doc(db('dad'), 'families', 'levi', 'comments', id);
+    await assertSucceeds(setDoc(ref('n1'), { ...c, notify: ['mom'] }));
+    await assertFails(setDoc(ref('n2'), { ...c, notify: 'mom' }));
+    await assertFails(setDoc(ref('n3'), { ...c, notify: Array(21).fill('x') }));
+  });
+});
+
+describe('notification devices', () => {
+  it('only the owner registers or reads their phones', async () => {
+    const d = { token: 'fcm-token', platform: 'ios', createdAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(db('dad'), 'users', 'dad', 'devices', 'p1'), d));
+    await assertSucceeds(getDoc(doc(db('dad'), 'users', 'dad', 'devices', 'p1')));
+    await assertFails(getDoc(doc(db('daughter'), 'users', 'dad', 'devices', 'p1')));
+    await assertFails(setDoc(doc(db('daughter'), 'users', 'dad', 'devices', 'p2'), d));
+    await assertFails(setDoc(doc(db('dad'), 'users', 'dad', 'devices', 'p3'), { ...d, platform: 'toaster' }));
+  });
 });

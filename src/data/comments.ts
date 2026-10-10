@@ -10,6 +10,7 @@ export interface Comment {
   targetId: string;
   text: string;
   image?: string;
+  notify?: string[];
   authorUid: string;
   authorName: string;
   createdAt?: Timestamp | null;
@@ -18,13 +19,21 @@ export interface Comment {
 
 export const commentKey = (type: TargetType, id: string) => `${type}:${id}`;
 
-export function addComment(fid: string, targetType: TargetType, targetId: string, text: string, image?: string) {
+export function addComment(
+  fid: string,
+  targetType: TargetType,
+  targetId: string,
+  text: string,
+  image?: string,
+  notify: string[] = [],
+) {
   const u = auth.currentUser!;
   addDoc(collection(db, 'families', fid, 'comments'), {
     targetType,
     targetId,
     text: text.trim().slice(0, 1000),
     ...(image ? { image } : {}),
+    ...(notify.length ? { notify: notify.slice(0, 20) } : {}),
     authorUid: u.uid,
     authorName: (u.displayName || u.email || '').split(' ')[0].slice(0, 80),
     createdAt: serverTimestamp(),

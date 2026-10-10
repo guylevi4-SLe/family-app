@@ -9,6 +9,7 @@ import { TasksView } from './TasksView';
 import { CalendarView } from './CalendarView';
 import { CommentsSheet } from './CommentsSheet';
 import { Icon, type IconName } from './Icon';
+import { clearBadge } from '../push';
 import { FamilyContext } from './FamilyContext';
 
 interface Family {
@@ -52,6 +53,32 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [writeError, setWriteError] = useState('');
   const [thread, setThread] = useState<{ type: TargetType; id: string; title: string } | null>(null);
+
+  // A tapped notification opens the app at /?open=comments&type=…&id=…
+  const [deepLink, setDeepLink] = useState<{ type: TargetType; id: string } | null>(() => readDeepLink(location.href));
+  useEffect(() => {
+    clearBadge();
+    const onVisible = () => document.visibilityState === 'visible' && clearBadge();
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'open-url') setDeepLink(readDeepLink(e.data.url));
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      navigator.serviceWorker?.removeEventListener('message', onMessage);
+    };
+  }, []);
+  useEffect(() => {
+    if (!deepLink) return;
+    const list = deepLink.type === 'item' ? items : deepLink.type === 'task' ? tasks : events;
+    if (list === undefined) return; // wait for data
+    const target = list.find((x) => x.id === deepLink.id) as { name?: string; title?: string } | undefined;
+    setThread({ ...deepLink, title: target?.name ?? target?.title ?? '' });
+    setView(deepLink.type === 'item' ? 'list' : deepLink.type === 'task' ? 'tasks' : 'calendar');
+    setDeepLink(null);
+    history.replaceState(null, '', '/');
+  }, [deepLink, items, tasks, events]);
 
   useEffect(() => {
     const onError = () => setWriteError('שינוי אחד לא נשמר בשרת. ייתכן שההרשאות שלך השתנו.');
@@ -175,4 +202,12 @@ function SyncBadge({ online, pending }: { online: boolean; pending: number }) {
       ✓
     </span>
   );
+}
+
+function readDeepLink(href: string): { type: TargetType; id: string } | null {
+  const q = new URL(href, location.origin).searchParams;
+  const type = q.get('type');
+  const id = q.get('id');
+  if (q.get('open') !== 'comments' || !id || !['item', 'task', 'event'].includes(type ?? '')) return null;
+  return { type: type as TargetType, id };
 }

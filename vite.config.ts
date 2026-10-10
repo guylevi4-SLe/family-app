@@ -28,6 +28,8 @@ export default defineConfig({
         navigateFallback: '/index.html',
         // Firebase Auth's sign-in handler lives under /__/ on Firebase Hosting.
         navigateFallbackDenylist: [/^\/__\//],
+        // Phone notifications (see public/push-sw.js).
+        importScripts: ['push-sw.js'],
       },
     }),
   ],

@@ -34,6 +34,15 @@ service cloud.firestore {
         && (!('familyId' in data()) || data().familyId == null || shortString(data().familyId, 64))
         && (!('startScreen' in data()) || data().startScreen in ['home', 'list', 'tasks', 'calendar']);
       allow delete: if false;
+
+      // Phones registered for notifications. Only the owner sees or changes them.
+      match /devices/{deviceId} {
+        allow read, delete: if signedIn() && me() == userId;
+        allow create, update: if signedIn() && me() == userId
+          && onlyKeys(['token', 'platform', 'createdAt'])
+          && shortString(data().token, 4096) && data().token.size() > 0
+          && data().platform in ['ios', 'android', 'web'];
+      }
     }
 
     // ---------- invites (top level so a short code can be typed in) ----------
@@ -185,7 +194,8 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if isMember(fid);
         allow create: if isMember(fid)
-          && onlyKeys(['targetType', 'targetId', 'text', 'image', 'authorUid', 'authorName', 'createdAt'])
+          && onlyKeys(['targetType', 'targetId', 'text', 'image', 'notify', 'authorUid', 'authorName', 'createdAt'])
+          && (!('notify' in data()) || (data().notify is list && data().notify.size() <= 20))
           && data().targetType in ['item', 'task', 'event']
           && shortString(data().targetId, 120)
           && shortString(data().text, 1000)

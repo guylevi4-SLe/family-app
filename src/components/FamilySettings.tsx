@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signOut } from 'firebase/auth';
 import {
   clearIndexedDbPersistence,
@@ -24,6 +24,7 @@ import {
 import { orderedDepartments } from '../data/departments';
 import { useInvites, useMembers, usePendingRequests } from '../data/hooks';
 import { START_KEY, type View } from './Home';
+import { disablePush, enablePush, pushState, type PushState } from '../push';
 import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
 export function FamilySettings({
@@ -118,6 +119,8 @@ export function FamilySettings({
         {isAdmin && <InviteSection familyId={familyId} invites={invites ?? []} onError={setError} />}
 
         <DepartmentOrder familyId={familyId} deptOrder={deptOrder} />
+
+        <PushCard uid={me.id} />
 
         <section className="card">
           <h3>ההגדרות שלי</h3>
@@ -319,4 +322,48 @@ async function signOutAndWipe(pendingWrites: number) {
   await terminate(db);
   await clearIndexedDbPersistence(db).catch(() => {});
   location.reload();
+}
+
+const PUSH_TEXT: Record<PushState, string> = {
+  unconfigured: 'התראות לטלפון יופעלו בקרוב.',
+  'needs-install': 'כדי לקבל התראות באייפון, צריך להוסיף את האפליקציה למסך הבית (Safari ← שיתוף ← הוספה למסך הבית) ולפתוח אותה משם.',
+  unsupported: 'הדפדפן הזה לא תומך בהתראות.',
+  blocked: 'ההתראות חסומות. אפשר להפעיל אותן בהגדרות הטלפון ← התראות ← הבית שלנו.',
+  off: 'קבלו התראה עם צליל כשמישהו שולח לכם הערה.',
+  on: 'ההתראות פעילות בטלפון הזה.',
+};
+
+function PushCard({ uid }: { uid: string }) {
+  const [state, setState] = useState<PushState | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    pushState().then(setState);
+  }, []);
+  if (!state) return null;
+  const run = (fn: () => Promise<PushState>) => {
+    setBusy(true);
+    setError('');
+    fn()
+      .then(setState)
+      .catch(() => setError('לא הצלחנו להפעיל התראות. נסו שוב עם חיבור לאינטרנט'))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <section className="card">
+      <h3>🔔 התראות</h3>
+      <p className="muted">{PUSH_TEXT[state]}</p>
+      {error && <p className="error">{error}</p>}
+      {state === 'off' && (
+        <button className="primary" disabled={busy} onClick={() => run(() => enablePush(uid))}>
+          הפעלת התראות בטלפון הזה
+        </button>
+      )}
+      {state === 'on' && (
+        <button className="small" disabled={busy} onClick={() => run(() => disablePush(uid))}>
+          כיבוי התראות בטלפון הזה
+        </button>
+      )}
+    </section>
+  );
 }
