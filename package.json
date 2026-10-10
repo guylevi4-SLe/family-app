@@ -1,0 +1,29 @@
+{
+  "name": "family-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-family \"vitest run tests/rules.test.ts\"",
+    "emulators": "firebase emulators:start --only auth,firestore --project demo-family"
+  },
+  "dependencies": {
+    "firebase": "^12.19.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "firebase-tools": "^15.33.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.4",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.3"
+  },
+  "type": "module",
+  "private": true
+}

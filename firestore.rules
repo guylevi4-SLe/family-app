@@ -1,0 +1,168 @@
+rules_version = '2';
+
+// Every family's data lives under /families/{familyId}. Access requires a
+// member document there; nobody can create their own membership except the
+// founder of a brand-new family. Everyone else joins in three steps:
+//   1. an admin creates an invite (/invites/{code})
+//   2. the invitee claims it and files a join request (one batch)
+//   3. an admin approves the request and creates the membership (one batch)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function familyPath(fid) { return /databases/$(database)/documents/families/$(fid); }
+    function memberPath(fid, uid) { return /databases/$(database)/documents/families/$(fid)/members/$(uid); }
+    function requestPath(fid, uid) { return /databases/$(database)/documents/families/$(fid)/joinRequests/$(uid); }
+    function invitePath(code) { return /databases/$(database)/documents/invites/$(code); }
+
+    function isMember(fid) { return signedIn() && exists(memberPath(fid, me())); }
+    function myRole(fid) { return get(memberPath(fid, me())).data.role; }
+    function isAdmin(fid) { return isMember(fid) && myRole(fid) == 'admin'; }
+
+    function data() { return request.resource.data; }
+    function onlyKeys(keys) { return data().keys().hasOnly(keys); }
+    function changedKeys() { return data().diff(resource.data).affectedKeys(); }
+    function validRole(r) { return r in ['admin', 'member', 'child']; }
+    function shortString(v, max) { return v is string && v.size() <= max; }
+
+    // ---------- personal profile ----------
+    match /users/{userId} {
+      allow read: if signedIn() && me() == userId;
+      allow create, update: if signedIn() && me() == userId
+        && onlyKeys(['familyId', 'startScreen'])
+        && (!('familyId' in data()) || data().familyId == null || shortString(data().familyId, 64))
+        && (!('startScreen' in data()) || data().startScreen in ['list', 'tasks', 'calendar']);
+      allow delete: if false;
+    }
+
+    // ---------- invites (top level so a short code can be typed in) ----------
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if signedIn() && isAdmin(resource.data.familyId);
+      allow create: if signedIn()
+        && isAdmin(data().familyId)
+        && onlyKeys(['familyId', 'role', 'createdBy', 'createdAt', 'expiresAt', 'usedBy'])
+        && data().createdBy == me()
+        && validRole(data().role)
+        && data().usedBy == null
+        && data().createdAt == request.time
+        && data().expiresAt is timestamp
+        && data().expiresAt <= request.time + duration.value(8, 'd')
+        && code.size() >= 6 && code.size() <= 32;
+      // The invitee claims an unused, unexpired invite in the same batch that
+      // creates their join request.
+      allow update: if signedIn()
+        && resource.data.usedBy == null
+        && resource.data.expiresAt > request.time
+        && changedKeys().hasOnly(['usedBy'])
+        && data().usedBy == me()
+        && getAfter(requestPath(resource.data.familyId, me())).data.inviteCode == code;
+      allow delete: if signedIn() && isAdmin(resource.data.familyId);
+    }
+
+    match /families/{fid} {
+      allow read: if isMember(fid);
+      // Founding a family: the family doc and the founder's admin membership
+      // are written together, and only if the family id is unused.
+      allow create: if signedIn()
+        && onlyKeys(['name', 'createdBy', 'createdAt', 'deptOrder'])
+        && data().createdBy == me()
+        && data().createdAt == request.time
+        && shortString(data().name, 60) && data().name.size() > 0
+        && data().deptOrder is list
+        && getAfter(memberPath(fid, me())).data.role == 'admin';
+      allow update: if isAdmin(fid) && changedKeys().hasOnly(['name', 'deptOrder'])
+        || isMember(fid) && changedKeys().hasOnly(['deptOrder']);
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow read: if isMember(fid);
+        allow create: if signedIn()
+          && onlyKeys(['role', 'displayName', 'email', 'photoURL', 'joinedAt'])
+          && validRole(data().role)
+          && data().joinedAt == request.time
+          && (
+            // founder
+            (uid == me() && data().role == 'admin'
+              && !exists(familyPath(fid))
+              && getAfter(familyPath(fid)).data.createdBy == me())
+            ||
+            // approval of a pending join request, in the same batch
+            (uid != me() && isAdmin(fid)
+              && get(requestPath(fid, uid)).data.status == 'pending'
+              && getAfter(requestPath(fid, uid)).data.status == 'approved'
+              && data().role == get(requestPath(fid, uid)).data.role)
+          );
+        allow update: if isAdmin(fid) && uid != me()
+          && changedKeys().hasOnly(['role']) && validRole(data().role);
+        // Admins remove others; anyone may leave.
+        allow delete: if isAdmin(fid) && uid != me() || signedIn() && uid == me();
+      }
+
+      match /joinRequests/{uid} {
+        allow read: if signedIn() && uid == me() || isAdmin(fid);
+        allow create: if signedIn() && uid == me()
+          && !isMember(fid)
+          && onlyKeys(['inviteCode', 'role', 'displayName', 'email', 'photoURL', 'status', 'createdAt'])
+          && data().status == 'pending'
+          && data().createdAt == request.time
+          && data().email == request.auth.token.email
+          && shortString(data().displayName, 80)
+          && get(invitePath(data().inviteCode)).data.familyId == fid
+          && get(invitePath(data().inviteCode)).data.usedBy == null
+          && get(invitePath(data().inviteCode)).data.expiresAt > request.time
+          && getAfter(invitePath(data().inviteCode)).data.usedBy == me()
+          && data().role == get(invitePath(data().inviteCode)).data.role;
+        allow update: if isAdmin(fid)
+          && resource.data.status == 'pending'
+          && changedKeys().hasOnly(['status', 'decidedBy', 'decidedAt'])
+          && data().status in ['approved', 'rejected']
+          && data().decidedBy == me()
+          && data().decidedAt == request.time;
+        allow delete: if signedIn() && uid == me() || isAdmin(fid);
+      }
+
+      // ---------- shopping list ----------
+      match /items/{itemId} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['name', 'norm', 'qty', 'category', 'checked', 'deleted',
+                       'addedAt', 'updatedAt', 'updatedBy'])
+          && shortString(data().name, 80) && data().name.size() > 0
+          && shortString(data().norm, 80)
+          && shortString(data().qty, 30)
+          && shortString(data().category, 40)
+          && data().checked is bool
+          && data().deleted is bool
+          && data().updatedBy == me();
+        // Items are soft-deleted so they can be restored.
+        allow delete: if false;
+      }
+
+      // Family corrections to the built-in product dictionary.
+      match /categoryOverrides/{norm} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['category']) && shortString(data().category, 40);
+        allow delete: if isMember(fid);
+      }
+
+      // ---------- comments on any item ----------
+      match /comments/{commentId} {
+        allow read: if isMember(fid);
+        allow create: if isMember(fid)
+          && onlyKeys(['targetType', 'targetId', 'text', 'authorUid', 'authorName', 'createdAt'])
+          && data().targetType in ['item', 'task', 'event']
+          && shortString(data().targetId, 120)
+          && shortString(data().text, 1000) && data().text.size() > 0
+          && shortString(data().authorName, 80)
+          && data().authorUid == me();
+        allow update: if isMember(fid) && resource.data.authorUid == me()
+          && changedKeys().hasOnly(['text', 'editedAt'])
+          && shortString(data().text, 1000) && data().text.size() > 0;
+        allow delete: if isMember(fid) && resource.data.authorUid == me() || isAdmin(fid);
+      }
+    }
+  }
+}
