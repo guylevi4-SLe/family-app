@@ -89,7 +89,7 @@ export function Composer({
   targetId,
   placeholder,
   label,
-  notifyLabel = 'התראה ל',
+  notifyLabel = 'הודעה ל',
 }: {
   type: TargetType;
   targetId: string;

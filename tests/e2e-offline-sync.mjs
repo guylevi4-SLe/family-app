@@ -205,7 +205,7 @@ async function main() {
     assert.ok(src.startsWith('data:image/jpeg;base64,') && src.length < 700000, 'photo stored as a small JPEG');
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/comment-photo.png` });
     ok('Dad attached a photo to a comment; the daughter sees it');
-    await dad.page.getByRole('group', { name: 'התראה ל' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByRole('group', { name: 'הודעה ל' }).getByRole('button', { name: 'kid' }).click();
     await dad.page.getByLabel('כתיבת תגובה').fill('תזכורת בשבילך');
     await dad.page.getByLabel('כתיבת תגובה').press('Enter');
     await kid.page.locator('.comment', { hasText: 'תזכורת בשבילך' }).locator('.notified', { hasText: 'kid' }).waitFor({ timeout: 10000 });
