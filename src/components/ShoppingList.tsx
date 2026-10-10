@@ -4,6 +4,7 @@ import { addItems, clearChecked, parseItems, updateItem, type Item } from '../da
 import { useOverrides } from '../data/hooks';
 import { ItemSheet } from './ItemSheet';
 import { CommentButton } from './CommentButton';
+import { Icon } from './Icon';
 
 const RECENT_DAYS = 30;
 
@@ -196,7 +197,7 @@ function ItemRow({ item, onToggle, onEdit }: { item: Item; onToggle: () => void;
       </button>
       <CommentButton type="item" id={item.id} title={item.name} />
       <button className="icon-button edit" aria-label={`עריכת ${item.name}`} onClick={onEdit}>
-        ✎
+        <Icon name="edit" size={18} />
       </button>
     </li>
   );

@@ -409,7 +409,15 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .shopping .check-area .pending-dot { margin-inline-start: auto; }
 .shopping .qty + .pending-dot { margin-inline-start: 0; }
 .shopping .row button { min-height: 40px; }
-.shopping .row .edit { min-width: 36px; font-size: 0.95rem; opacity: 0.55; }
+.shopping .row .edit { min-width: 40px; display: grid; place-items: center; color: var(--accent); }
+.shopping .row .edit .icon {
+  width: 32px;
+  height: 32px;
+  padding: 7px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke-width: 2.1;
+}
 .shopping .deleted .row { padding: 0 4px; }
 .shopping .list-actions { margin-bottom: 0; justify-content: flex-end; }
 .shopping .whatsapp { min-height: 30px; padding: 0 10px; font-size: 0.8rem; border-radius: 999px; }
@@ -505,3 +513,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .brand-mark { background: var(--grad); color: var(--accent-ink); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 30%, transparent); }
 .toast { background: var(--text); color: var(--bg); border: 0; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35); }
 .toast button { color: var(--accent-2); font-weight: 800; }
+
+/* Sheets never scroll sideways: long emails and names wrap instead of widening the page. */
+.sheet { overflow-x: hidden; overscroll-behavior: contain; overflow-wrap: anywhere; }
+.sheet > *, .card > *, .person .who > * { min-width: 0; }
+.sheet-backdrop { touch-action: pan-y; overscroll-behavior: contain; }
+.sheet.tall { min-height: calc(100dvh - env(safe-area-inset-top) - 16px); max-height: calc(100dvh - env(safe-area-inset-top) - 16px); }
+body:has(.sheet-backdrop) { overflow: hidden; }

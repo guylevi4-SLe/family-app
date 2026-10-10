@@ -1,7 +1,7 @@
 // Colour palettes. The choice is per device and is applied before the first render.
 export const PALETTES = [
-  { id: 'gold', label: 'שחור וזהב', swatch: '#f5c518', bar: '#090909' },
   { id: 'goldlight', label: 'לבן וזהב', swatch: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', bar: '#f5f3ee' },
+  { id: 'gold', label: 'שחור וזהב', swatch: '#f5c518', bar: '#090909' },
   { id: 'green', label: 'ירוק (הקלאסי)', swatch: '#2f6f4f', bar: '' },
 ] as const;
 
@@ -16,7 +16,7 @@ export function readPalette(): Palette {
   } catch {
     /* storage may be blocked */
   }
-  return 'gold';
+  return 'goldlight';
 }
 
 export function applyPalette(id: Palette, save = false) {
