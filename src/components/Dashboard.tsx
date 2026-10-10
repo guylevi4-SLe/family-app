@@ -4,17 +4,22 @@ import { dayLabel, lastDay, untilLabel, isoDate, type FamilyEvent } from '../dat
 import { memberName, useFamily } from './FamilyContext';
 import type { View } from './Home';
 import { Icon } from './Icon';
+import type { Schedule } from '../data/schedules';
 
 export function Dashboard({
   items,
   tasks,
   events,
+  schedules,
   go,
+  openSchedule,
 }: {
   items: Item[] | undefined;
   tasks: Task[] | undefined;
   events: FamilyEvent[] | undefined;
+  schedules: Schedule[] | undefined;
   go: (v: View) => void;
+  openSchedule: (uid: string) => void;
 }) {
   const { me, members } = useFamily();
   const toBuy = (items ?? []).filter((i) => !i.deleted && !i.checked);
@@ -25,8 +30,19 @@ export function Dashboard({
     .filter((e) => !e.deleted && lastDay(e) >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
+  const mySchedule = schedules?.find((s) => s.id === me.id);
+
   return (
     <main className="dashboard">
+      {mySchedule && (
+        <button className="tile schedule-tile" onClick={() => openSchedule(me.id)}>
+          <div className="tile-head">
+            <span className="tile-icon"><Icon name="book" /></span>
+            <h2>המערכת שלי</h2>
+          </div>
+          <img className="schedule-thumb" src={mySchedule.image} alt="" />
+        </button>
+      )}
       <button className="tile" onClick={() => go('list')}>
         <div className="tile-head">
           <span className="tile-icon"><Icon name="cart" /></span>

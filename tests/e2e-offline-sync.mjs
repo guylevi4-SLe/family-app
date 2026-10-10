@@ -233,6 +233,28 @@ async function main() {
     const overflow = await kid.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 1, 'chat page has no sideways scroll');
 
+    step('Weekly timetable');
+    const pdfPage = await dad.page.context().newPage();
+    await pdfPage.setContent('<h1>מערכת שעות</h1><table border=1><tr><td>ראשון</td><td>מתמטיקה</td></tr><tr><td>שני</td><td>אנגלית</td></tr></table>');
+    const pdfPath = `${process.env.TMPDIR || '/tmp'}/timetable-e2e.pdf`;
+    await pdfPage.pdf({ path: pdfPath, format: 'A4' });
+    await pdfPage.close();
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
+    await dad.page.getByRole('button', { name: '📚 מערכת שעות' }).click();
+    await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('group', { name: 'של מי' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByLabel('בחירת קובץ מערכת').setInputFiles(pdfPath);
+    await dad.page.locator('.schedule-img img').waitFor({ timeout: 20000 });
+    const sched = await dad.page.locator('.schedule-img img').getAttribute('src');
+    assert.ok(sched.startsWith('data:image/jpeg;base64,') && sched.length < 950000, 'PDF rendered to a JPEG');
+    await dad.page.getByRole('dialog').getByLabel('סגירה').click();
+    ok('Dad uploaded a PDF timetable for the daughter');
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+    await kid.page.locator('.schedule-tile').click();
+    await kid.page.getByRole('dialog', { name: 'מערכת שעות' }).locator('.schedule-img img').waitFor({ timeout: 10000 });
+    if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/schedule.png` });
+    await kid.page.getByRole('dialog').getByLabel('סגירה').click();
+    ok('the daughter sees "my timetable" on her home screen and opens it');
+
     await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('חוג ציור');

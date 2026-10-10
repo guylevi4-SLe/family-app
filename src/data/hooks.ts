@@ -14,6 +14,7 @@ import type { Item } from './items';
 import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
+import type { Schedule } from './schedules';
 import type { Invite, JoinRequest, Member } from './family';
 
 /**
@@ -152,5 +153,14 @@ export function useComments(fid: string) {
     `comments/${fid}`,
     () => collection(db, 'families', fid, 'comments'),
     (id, d, pending) => ({ id, ...(d as Omit<Comment, 'id' | 'pending'>), pending }),
+  );
+}
+
+/** Members' timetables (one image per member). */
+export function useSchedules(fid: string) {
+  return useQuery<Schedule>(
+    `schedules/${fid}`,
+    () => collection(db, 'families', fid, 'schedules'),
+    (id, d, pending) => ({ id, ...(d as Omit<Schedule, 'id' | 'pending'>), pending }),
   );
 }

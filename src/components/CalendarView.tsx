@@ -27,7 +27,15 @@ function readMode(): Mode {
   }
 }
 
-export function CalendarView({ events, tasks }: { events: FamilyEvent[] | undefined; tasks: Task[] | undefined }) {
+export function CalendarView({
+  events,
+  tasks,
+  openSchedule,
+}: {
+  events: FamilyEvent[] | undefined;
+  tasks: Task[] | undefined;
+  openSchedule: () => void;
+}) {
   const { members } = useFamily();
   const [editing, setEditing] = useState<FamilyEvent | 'new' | null>(null);
   const [newDate, setNewDate] = useState<string | null>(null);
@@ -70,6 +78,9 @@ export function CalendarView({ events, tasks }: { events: FamilyEvent[] | undefi
 
   return (
     <main className="list-page">
+      <button className="small schedule-open" onClick={openSchedule}>
+        📚 מערכת שעות
+      </button>
       <div className="segmented" role="group" aria-label="תצוגה">
         <button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>
           רשימה

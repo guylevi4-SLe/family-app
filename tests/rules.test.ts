@@ -312,6 +312,26 @@ describe('shopping list and comments', () => {
   });
 });
 
+describe('weekly timetables', () => {
+  const img = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+  it('a member uploads their own timetable; parents can upload for a child; the family can see it', async () => {
+    await createInvite('dad', 'levi', 'CODE19', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE19', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const s = (by: string) => ({ image: img, updatedAt: serverTimestamp(), updatedBy: by });
+    await assertSucceeds(setDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'daughter'), s('daughter')));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter'), s('dad')));
+    await assertSucceeds(getDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter')));
+    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'dad'), s('daughter')));
+    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'daughter'), s('dad')));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'stranger'), s('dad')));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'dad'), { ...s('dad'), image: 'data:text/html;base64,PGgxPg==' }));
+    await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'schedules', 'daughter')));
+    await assertFails(deleteDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'dad')));
+    await assertSucceeds(deleteDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'daughter')));
+  });
+});
+
 describe('notification devices', () => {
   it('only the owner registers or reads their phones', async () => {
     const d = { token: 'fcm-token', platform: 'ios', createdAt: serverTimestamp() };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useTasks } from '../data/hooks';
+import { useComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks } from '../data/hooks';
 import type { Member } from '../data/family';
 import { commentKey, type TargetType } from '../data/comments';
 import { ShoppingList } from './ShoppingList';
@@ -9,6 +9,7 @@ import { TasksView } from './TasksView';
 import { CalendarView } from './CalendarView';
 import { CommentsSheet } from './CommentsSheet';
 import { ChatView } from './ChatView';
+import { ScheduleSheet } from './ScheduleSheet';
 import { Icon, type IconName } from './Icon';
 import { clearBadge } from '../push';
 import { FamilyContext } from './FamilyContext';
@@ -45,6 +46,8 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const tasks = useTasks(familyId);
   const events = useEvents(familyId);
   const comments = useComments(familyId);
+  const schedules = useSchedules(familyId);
+  const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const members = useMembers(familyId);
   const online = useOnline();
   const isAdmin = me.role === 'admin';
@@ -159,10 +162,10 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           </button>
         )}
 
-        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} go={setView} />}
+        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} go={setView} openSchedule={setScheduleFor} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'tasks' && <TasksView tasks={tasks} />}
-        {view === 'calendar' && <CalendarView events={events} tasks={tasks} />}
+        {view === 'calendar' && <CalendarView events={events} tasks={tasks} openSchedule={() => setScheduleFor(me.id)} />}
         {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} />}
 
         <nav className="bottom-nav" aria-label="ניווט">
@@ -177,6 +180,8 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         {thread && (
           <CommentsSheet type={thread.type} targetId={thread.id} title={thread.title} comments={comments ?? []} onClose={() => setThread(null)} />
         )}
+
+        {scheduleFor && <ScheduleSheet schedules={schedules} initialUid={scheduleFor} onClose={() => setScheduleFor(null)} />}
 
         {settingsOpen && (
           <FamilySettings

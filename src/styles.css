@@ -634,3 +634,14 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 body.kb-open .chat-compose { bottom: var(--kb); }
 
 .brand-logo { display: block; margin: 0 auto 4px; border-radius: 22px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+
+/* ---------- weekly timetable ---------- */
+.schedule-open { justify-self: start; margin: 2px 0 4px; }
+.schedule-img { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: auto; min-height: 0; max-height: 62dvh; }
+.schedule-img img { display: block; width: 100%; height: auto; }
+.schedule-img.zoom { max-height: 70dvh; }
+.schedule-img.zoom img { width: 240%; max-width: none; }
+.schedule-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.small-print { font-size: 0.82rem; margin: 0; }
+.schedule-tile { gap: 10px; }
+.schedule-thumb { display: block; width: 100%; max-height: 220px; object-fit: cover; object-position: top; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
