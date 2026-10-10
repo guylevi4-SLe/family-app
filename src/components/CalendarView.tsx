@@ -12,7 +12,7 @@ import {
   type EventFields,
   type FamilyEvent,
 } from '../data/events';
-import { addTask, updateTask, type Task } from '../data/tasks';
+import { addTask, toggleDone, type Task } from '../data/tasks';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 
@@ -259,7 +259,7 @@ function TaskRow({ task }: { task: Task }) {
   const who = memberName(members, task.assignee);
   return (
     <li className={`row ${task.done ? 'checked' : ''}`}>
-      <button className="check-area" aria-pressed={task.done} onClick={() => updateTask(familyId, task.id, { done: !task.done })}>
+      <button className="check-area" aria-pressed={task.done} onClick={() => toggleDone(familyId, task)}>
         <span className="box round" aria-hidden="true">{task.done ? '✓' : ''}</span>
         <span className="name">
           {task.title}

@@ -219,6 +219,14 @@ async function main() {
       await dad.page.locator('.row', { hasText: 'משימה למחיקה' }).first().waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
       assert.ok(asked.includes('למחוק את המשימה'), 'deleting a task asks first');
       ok('deleting a task asks for confirmation');
+      await dad.page.getByLabel('משימה חדשה').fill('משימה לסימון');
+      await dad.page.getByLabel('הוספת משימה').click();
+      asked = '';
+      dad.page.once('dialog', (dlg) => { asked = dlg.message(); });
+      await dad.page.locator('.row', { hasText: 'משימה לסימון' }).locator('.check-area').click();
+      await dad.page.waitForTimeout(300);
+      assert.ok(asked.includes('כבוצע'), 'ticking a task asks first');
+      ok('marking a task done asks for confirmation');
       await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
     }
     await dad.page.getByLabel('בחירת תמונה').setInputFiles('public/icon-512.png');

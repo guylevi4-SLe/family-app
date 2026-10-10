@@ -37,3 +37,9 @@ export function updateTask(fid: string, id: string, fields: Partial<Pick<Task, '
     updatedBy: auth.currentUser!.uid,
   }).catch(reportWriteError);
 }
+
+/** Ticks a task off after asking (a tap on the row is easy to make by mistake); un-ticking needs no question. */
+export function toggleDone(fid: string, task: Pick<Task, 'id' | 'title' | 'done'>) {
+  if (!task.done && !window.confirm(`לסמן את "${task.title}" כבוצע?`)) return;
+  updateTask(fid, task.id, { done: !task.done });
+}
