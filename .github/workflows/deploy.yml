@@ -44,8 +44,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm ci
+        working-directory: functions
       - run: npm run build
-      - name: Deploy hosting and security rules
+      - name: Deploy hosting, security rules and notification function
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
@@ -55,5 +57,5 @@ jobs:
           fi
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          npx firebase deploy --only hosting,firestore:rules --project family-app-7ceae --non-interactive
+          npx firebase deploy --only hosting,firestore:rules,functions --project family-app-7ceae --non-interactive --force
           rm -f "$RUNNER_TEMP/sa.json"
