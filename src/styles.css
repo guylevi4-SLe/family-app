@@ -350,3 +350,26 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .comment-meta { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
 .comment-meta .link { min-height: 28px; font-size: 0.8rem; margin-inline-start: auto; }
 .comment-box { position: static; padding: 0; }
+
+/* ---------- add box at the bottom of the shopping list ---------- */
+:root { --nav-h: calc(58px + env(safe-area-inset-bottom)); --kb: 0px; }
+.list-page.with-bottom-add { padding-bottom: calc(var(--nav-h) + 96px); }
+.add-box.bottom-add {
+  position: fixed;
+  top: auto;
+  inset-inline: 0;
+  bottom: var(--nav-h);
+  z-index: 7;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+body.kb-open .bottom-nav { display: none; }
+body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
+.list-page.with-bottom-add ~ .toast,
+.with-bottom-add .toast { bottom: calc(var(--nav-h) + 84px); }
+.list-actions { display: flex; justify-content: flex-start; margin: 4px 0 2px; }
+.whatsapp { color: #128c4b; border-color: #9fd8b6; }
+@media (prefers-color-scheme: dark) { .whatsapp { color: #5fd38f; border-color: #2f5d43; } }

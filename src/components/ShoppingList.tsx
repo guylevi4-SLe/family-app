@@ -64,34 +64,14 @@ export function ShoppingList({
   };
 
   return (
-    <main className="list-page">
-      <form
-        className="add-box"
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-      >
-        <textarea
-          ref={inputRef}
-          rows={1}
-          value={text}
-          placeholder="מה להוסיף? למשל: חלב, לחם, ביצים"
-          aria-label="הוספת מוצרים"
-          enterKeyHint="send"
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            // Enter adds; pasted multi-line lists still work.
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <button className="primary add-button" aria-label="הוספה" disabled={!text.trim()}>
-          +
-        </button>
-      </form>
+    <main className="list-page with-bottom-add">
+      {active.length > 0 && (
+        <div className="list-actions">
+          <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
+            שליחת הרשימה לוואטסאפ
+          </button>
+        </div>
+      )}
 
       {items === undefined ? null : active.length === 0 ? (
         <p className="empty">הרשימה ריקה. מה חסר בבית?</p>
@@ -174,6 +154,33 @@ export function ShoppingList({
           onClose={() => setEditing(null)}
         />
       )}
+      <form
+        className="add-box bottom-add"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <textarea
+          ref={inputRef}
+          rows={1}
+          value={text}
+          placeholder="מה להוסיף? אפשר כמה, עם פסיק"
+          aria-label="הוספת מוצרים"
+          enterKeyHint="send"
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter adds; pasted multi-line lists still work.
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <button className="primary add-button" aria-label="הוספה" disabled={!text.trim()}>
+          +
+        </button>
+      </form>
     </main>
   );
 }
@@ -193,4 +200,14 @@ function ItemRow({ item, onToggle, onEdit }: { item: Item; onToggle: () => void;
       </button>
     </li>
   );
+}
+
+/** Opens WhatsApp with the open items, grouped by department. */
+function shareToWhatsApp(groups: (readonly [string, Item[]])[]) {
+  const lines = ['🛒 *רשימת קניות*'];
+  for (const [dept, list] of groups) {
+    lines.push('', `*${dept}*`);
+    for (const it of list) lines.push(`• ${it.name}${it.qty ? ` (${it.qty})` : ''}`);
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
 }

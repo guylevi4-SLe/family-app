@@ -58,6 +58,25 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     return () => window.removeEventListener('write-error', onError);
   }, []);
 
+  // iOS keeps fixed elements behind the on-screen keyboard; track its height
+  // so the bottom add box rides above it and the nav bar hides while typing.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb', `${kb}px`);
+      document.body.classList.toggle('kb-open', kb > 80);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
   const commentCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of comments ?? []) {

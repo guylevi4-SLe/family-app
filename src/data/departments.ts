@@ -104,6 +104,11 @@ for (const [dept, words] of Object.entries(WORDS)) {
   for (const w of words) DICTIONARY.set(normalize(w), dept);
 }
 
+/** True when the whole phrase is a product we know, e.g. "שקיות זבל". */
+export function isKnownProduct(name: string) {
+  return DICTIONARY.has(normalize(name));
+}
+
 /** Canonical form used for duplicate detection, ids and dictionary lookups. */
 export function normalize(name: string): string {
   return name

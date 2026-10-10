@@ -24,48 +24,8 @@ export interface Item {
   pending: boolean;
 }
 
-export interface ParsedItem {
-  name: string;
-  qty: string;
-}
-
-const UNIT = String.raw`(?:ק"ג|קג|ק'ג|קילו|גרם|גר'?|ליטר|ל'|מ"ל|יח'?|יחידות|חבילות|חבילה|בקבוקים|בקבוק|קופסאות|קופסה|שקיות|שקית)`;
-const TRAILING_QTY = new RegExp(String.raw`^(.*?)\s*(?:x|X|×)?\s*(\d+(?:[.,]\d+)?\s*${UNIT}?)$`);
-const LEADING_QTY = new RegExp(String.raw`^(\d+(?:[.,]\d+)?\s*${UNIT}?)\s+(.+)$`);
-
-/**
- * Splits free text into products. Accepts one per line or comma-separated,
- * with an optional quantity before or after the name: "חלב 2", "2 ק"ג עגבניות".
- */
-export function parseItems(text: string): ParsedItem[] {
-  const out: ParsedItem[] = [];
-  const seen = new Set<string>();
-  for (const raw of text.split(/[\n,،;]+/)) {
-    const part = raw.replace(/^[\s\-•*·]+/, '').trim();
-    if (!part) continue;
-    let name = part;
-    let qty = '';
-    const lead = part.match(LEADING_QTY);
-    const trail = part.match(TRAILING_QTY);
-    if (lead) {
-      qty = lead[1].trim();
-      name = lead[2].trim();
-    } else if (trail && trail[1].trim()) {
-      name = trail[1].trim();
-      qty = trail[2].trim();
-    }
-    // Names like "חלב 3%" are a product, not a quantity.
-    if (/%$/.test(part)) {
-      name = part;
-      qty = '';
-    }
-    const norm = normalize(name);
-    if (!norm || seen.has(norm)) continue;
-    seen.add(norm);
-    out.push({ name: name.slice(0, 80), qty: qty.slice(0, 30) });
-  }
-  return out;
-}
+export { parseItems, type ParsedItem } from './parse';
+import type { ParsedItem } from './parse';
 
 /** Firestore document id for a product: its normalized name, made path-safe. */
 export function itemId(norm: string): string {

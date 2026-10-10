@@ -61,7 +61,20 @@ async function main() {
     const depts = await list(dad).locator('.dept h2').allTextContents();
     assert.deepEqual(depts, ['פירות וירקות', 'מוצרי חלב וביצים', 'לחם ומאפים', 'טיפוח והיגיינה']);
     assert.equal(await row(dad, 'לחם').locator('.qty').textContent(), '2');
-    ok('4 products added in one line, sorted into departments, quantity parsed');
+    await add(dad, 'קילו בשר טחון');
+    await row(dad, 'בשר טחון').waitFor();
+    assert.equal(await row(dad, 'בשר טחון').locator('.qty').textContent(), 'קילו');
+    await row(dad, 'בשר טחון').getByRole('button', { name: /עריכת/ }).click();
+    await dad.page.getByRole('button', { name: 'מחיקה' }).click();
+    ok('4 products added in one line, sorted into departments, quantity parsed ("קילו בשר טחון" too)');
+    await dad.page.evaluate(() => {
+      window.open = (url) => { window.__shared = String(url); return null; };
+    });
+    await dad.page.getByRole('button', { name: 'שליחת הרשימה לוואטסאפ' }).click();
+    const sharedUrl = await dad.page.evaluate(() => window.__shared ?? '');
+    const shared = new URL(sharedUrl).searchParams.get('text') ?? '';
+    assert.match(shared, /\*לחם ומאפים\*\n• לחם \(2\)/);
+    ok('WhatsApp button opens a share with the list grouped by department');
 
     step('Dad invites the daughter; she cannot see anything until approved');
     await dad.page.getByLabel('הגדרות').click();
@@ -148,7 +161,9 @@ async function main() {
     ok('delete beat a concurrent edit; item is in "recently deleted" for restore');
 
     if (process.env.SCREENSHOT_DIR) {
+      await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list.png` });
+      await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
       await kid.context.setOffline(true);
       await add(kid, 'קפה, סוכר');
       await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/offline.png` });
