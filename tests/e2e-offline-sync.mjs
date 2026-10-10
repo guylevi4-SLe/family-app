@@ -74,6 +74,7 @@ async function main() {
     const sharedUrl = await dad.page.evaluate(() => window.__shared ?? '');
     const shared = new URL(sharedUrl).searchParams.get('text') ?? '';
     assert.match(shared, /\*לחם ומאפים\*\n• לחם \(2\)/);
+    assert.ok(!shared.includes('\n\n'), 'no blank lines between departments');
     ok('WhatsApp button opens a share with the list grouped by department');
 
     step('Dad invites the daughter; she cannot see anything until approved');

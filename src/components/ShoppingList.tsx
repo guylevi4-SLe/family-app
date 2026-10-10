@@ -207,7 +207,7 @@ function ItemRow({ item, onToggle, onEdit }: { item: Item; onToggle: () => void;
 function shareToWhatsApp(groups: (readonly [string, Item[]])[]) {
   const lines = ['🛒 *רשימת קניות*'];
   for (const [dept, list] of groups) {
-    lines.push('', `*${dept}*`);
+    lines.push(`*${dept}*`);
     for (const it of list) lines.push(`• ${it.name}${it.qty ? ` (${it.qty})` : ''}`);
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
