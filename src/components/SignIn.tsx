@@ -7,6 +7,7 @@ import {
   updateProfile,
 } from 'firebase/auth';
 import { auth, usingEmulators } from '../firebase';
+import { Icon } from './Icon';
 
 export function SignIn({ hasInvite }: { hasInvite: boolean }) {
   const [busy, setBusy] = useState(false);
@@ -28,7 +29,7 @@ export function SignIn({ hasInvite }: { hasInvite: boolean }) {
 
   return (
     <main className="center-page">
-      <div className="brand-mark" aria-hidden="true">🏠</div>
+      <div className="brand-mark"><Icon name="home" size={40} /></div>
       <h1>הבית שלנו</h1>
       <p className="muted">
         {hasInvite ? 'קיבלת הזמנה להצטרף למשפחה. התחברו כדי להמשיך.' : 'רשימת קניות, משימות ויומן למשפחה.'}

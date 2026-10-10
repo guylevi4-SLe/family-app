@@ -3,6 +3,7 @@ import type { Task } from '../data/tasks';
 import { dayLabel, isoDate, type FamilyEvent } from '../data/events';
 import { memberName, useFamily } from './FamilyContext';
 import type { View } from './Home';
+import { Icon } from './Icon';
 
 export function Dashboard({
   items,
@@ -28,7 +29,7 @@ export function Dashboard({
     <main className="dashboard">
       <button className="tile" onClick={() => go('list')}>
         <div className="tile-head">
-          <span className="tile-icon" aria-hidden="true">🛒</span>
+          <span className="tile-icon"><Icon name="cart" /></span>
           <h2>רשימת קניות</h2>
           <span className="tile-count">{toBuy.length}</span>
         </div>
@@ -39,7 +40,7 @@ export function Dashboard({
 
       <button className="tile" onClick={() => go('tasks')}>
         <div className="tile-head">
-          <span className="tile-icon" aria-hidden="true">✅</span>
+          <span className="tile-icon"><Icon name="tasks" /></span>
           <h2>משימות</h2>
           <span className="tile-count">{open.length}</span>
         </div>
@@ -54,7 +55,7 @@ export function Dashboard({
 
       <button className="tile" onClick={() => go('calendar')}>
         <div className="tile-head">
-          <span className="tile-icon" aria-hidden="true">📅</span>
+          <span className="tile-icon"><Icon name="calendar" /></span>
           <h2>יומן</h2>
         </div>
         <div className="tile-body">

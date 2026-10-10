@@ -8,6 +8,7 @@ import { Dashboard } from './Dashboard';
 import { TasksView } from './TasksView';
 import { CalendarView } from './CalendarView';
 import { CommentsSheet } from './CommentsSheet';
+import { Icon, type IconName } from './Icon';
 import { FamilyContext } from './FamilyContext';
 
 interface Family {
@@ -17,11 +18,11 @@ interface Family {
 
 export type View = 'home' | 'list' | 'tasks' | 'calendar';
 
-const VIEWS: { id: View; label: string; icon: string }[] = [
-  { id: 'home', label: 'בית', icon: '🏠' },
-  { id: 'list', label: 'קניות', icon: '🛒' },
-  { id: 'tasks', label: 'משימות', icon: '✅' },
-  { id: 'calendar', label: 'יומן', icon: '📅' },
+const VIEWS: { id: View; label: string; icon: IconName }[] = [
+  { id: 'home', label: 'בית', icon: 'home' },
+  { id: 'list', label: 'קניות', icon: 'cart' },
+  { id: 'tasks', label: 'משימות', icon: 'tasks' },
+  { id: 'calendar', label: 'יומן', icon: 'calendar' },
 ];
 
 export const START_KEY = 'startScreen';
@@ -105,7 +106,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           <h1>{title}</h1>
           <SyncBadge online={online} pending={pendingCount} />
           <button className="icon-button" aria-label="הגדרות" onClick={() => setSettingsOpen(true)}>
-            ⚙️
+            <Icon name="settings" />
             {requestCount > 0 && <span className="dot" aria-label={`${requestCount} בקשות הצטרפות`} />}
           </button>
         </header>
@@ -129,7 +130,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (
             <button key={v.id} className={view === v.id ? 'active' : ''} aria-current={view === v.id ? 'page' : undefined} onClick={() => setView(v.id)}>
-              <span aria-hidden="true">{v.icon}</span>
+              <Icon name={v.icon} />
               {v.label}
             </button>
           ))}
