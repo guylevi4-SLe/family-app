@@ -440,6 +440,22 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
   --shadow: 0 8px 24px rgba(40, 30, 0, 0.08);
   color-scheme: light;
 }
+:root[data-palette='pink'] {
+  /* Deep pink so text and buttons stay readable (all pairs pass WCAG AA 4.5:1). */
+  --bg: #fdf7fa;
+  --surface: #ffffff;
+  --surface-2: #f9e8f0;
+  --text: #2a0f1c;
+  --muted: #6e4b5c;
+  --line: #efd6e2;
+  --accent: #be185d;
+  --accent-2: #9d174d;
+  --accent-ink: #ffffff;
+  --warn: #9a4a00;
+  --danger: #b3261e;
+  --shadow: 0 8px 24px rgba(120, 20, 60, 0.08);
+  color-scheme: light;
+}
 :root[data-palette='green'] {
   --bg: #f6f7f4;
   --surface: #ffffff;
@@ -475,6 +491,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
   }
 }
 :root[data-palette='goldlight'] .whatsapp,
+:root[data-palette='pink'] .whatsapp,
 :root[data-palette='green'] .whatsapp { color: #128c4b; border-color: #9fd8b6; }
 :root[data-palette='green'] body { background: var(--bg); }
 .swatch { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 25%, transparent); flex: none; }

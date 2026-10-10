@@ -2,6 +2,7 @@
 export const PALETTES = [
   { id: 'goldlight', label: 'לבן וזהב', swatch: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', bar: '#f5f3ee' },
   { id: 'gold', label: 'שחור וזהב', swatch: '#f5c518', bar: '#090909' },
+  { id: 'pink', label: 'ורוד ולבן', swatch: 'linear-gradient(135deg, #fff 50%, #be185d 50%)', bar: '#fdf7fa' },
   { id: 'green', label: 'ירוק (הקלאסי)', swatch: '#2f6f4f', bar: '' },
 ] as const;
 
