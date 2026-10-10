@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { deleteSchedule, saveSchedule, scheduleImage, type Schedule } from '../data/schedules';
 import { memberName, useFamily } from './FamilyContext';
+import { ZoomViewer } from './ZoomViewer';
 
 /** Shows a member's weekly timetable; they (or an admin) can upload a PDF or photo to replace it. */
 export function ScheduleSheet({
@@ -57,14 +58,15 @@ export function ScheduleSheet({
         )}
         {schedule ? (
           <>
-            <button type="button" className={zoom ? 'schedule-img zoom' : 'schedule-img'} aria-label={zoom ? 'הקטנה' : 'הגדלה'} onClick={() => setZoom(!zoom)}>
+            <button type="button" className="schedule-img" aria-label="פתיחה במסך מלא" onClick={() => setZoom(true)}>
               <img src={schedule.image} alt={`מערכת השעות ${whose}`} />
             </button>
             <p className="muted small-print">
               {schedule.pending
                 ? 'ממתין לשליחה'
-                : `עודכן ${schedule.updatedAt?.toDate().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' }) ?? ''}${schedule.updatedBy !== uid ? ` ע״י ${memberName(members, schedule.updatedBy)}` : ''} · לחיצה על התמונה מגדילה`}
+                : `עודכן ${schedule.updatedAt?.toDate().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' }) ?? ''}${schedule.updatedBy !== uid ? ` ע״י ${memberName(members, schedule.updatedBy)}` : ''} · לחיצה על התמונה פותחת במסך מלא`}
             </p>
+            {zoom && <ZoomViewer src={schedule.image} alt={`מערכת השעות ${whose}`} onClose={() => setZoom(false)} />}
           </>
         ) : (
           <p className="muted">עדיין לא הועלתה מערכת שעות.</p>
