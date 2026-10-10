@@ -259,6 +259,10 @@ describe('tasks and events', () => {
   it('rejects malformed tasks and events', async () => {
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't3'), { ...task('dad'), due: 'tomorrow' }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e3'), { ...event('dad'), time: '5pm' }));
+    const ev = event('dad') as { date: string };
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'trip'), { ...ev, endDate: '2099-12-31' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e4'), { ...ev, endDate: ev.date }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e5'), { ...ev, endDate: 'tomorrow' }));
     await assertFails(deleteDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't1')));
   });
 });

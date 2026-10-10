@@ -219,7 +219,21 @@ async function main() {
     await kid.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await kid.page.locator('.row', { hasText: 'חוג ציור' }).getByText('17:30').waitFor({ timeout: 10000 });
     ok('event added by Dad appears in the daughter\'s calendar');
+    await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
+    await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('טיול שנתי');
+    await dad.page.getByLabel('כמה ימים').check();
+    const iso = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv-SE'); };
+    await dad.page.getByLabel('מתאריך').fill(iso(1));
+    await dad.page.getByLabel('עד תאריך').fill(iso(3));
+    await dad.page.getByRole('button', { name: 'שמירה' }).click();
+    await dad.page.locator('.row', { hasText: 'טיול שנתי' }).locator('.until').waitFor();
+    ok('multi-day event saved with an end date');
     await dad.page.getByRole('button', { name: 'לוח חודשי' }).click();
+    for (const n of [1, 2, 3]) {
+      const day = new Date(); day.setDate(day.getDate() + n);
+      if (day.getMonth() !== new Date().getMonth()) continue;
+      await dad.page.locator('.month-grid .day', { has: dad.page.locator('.num', { hasText: new RegExp(`^${day.getDate()}$`) }) }).locator('.mark.ev').waitFor();
+    }
     await dad.page.locator('.month-grid .day.today .mark.ev').waitFor();
     await dad.page.getByRole('button', { name: '+ משימה ביום הזה' }).click();
     await dad.page.getByPlaceholder('למשל: לקנות מתנה לסבתא').fill('לקנות מתנה');

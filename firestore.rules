@@ -159,10 +159,12 @@ service cloud.firestore {
       match /events/{eventId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['title', 'date', 'time', 'location', 'people', 'deleted',
+          && onlyKeys(['title', 'date', 'endDate', 'time', 'location', 'people', 'deleted',
                        'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
           && shortString(data().title, 120) && data().title.size() > 0
           && data().date is string && data().date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && (!('endDate' in data()) || data().endDate == ''
+              || (data().endDate is string && data().endDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && data().endDate > data().date))
           && data().time is string && (data().time == '' || data().time.matches('^[0-9]{2}:[0-9]{2}$'))
           && shortString(data().location, 120)
           && data().people is list && data().people.size() <= 20

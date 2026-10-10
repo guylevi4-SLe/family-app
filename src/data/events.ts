@@ -6,6 +6,7 @@ export interface FamilyEvent {
   id: string;
   title: string;
   date: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD for events lasting several days, else '' or missing
   time: string; // HH:MM or ''
   location: string;
   people: string[];
@@ -13,7 +14,21 @@ export interface FamilyEvent {
   pending: boolean;
 }
 
-export type EventFields = Pick<FamilyEvent, 'title' | 'date' | 'time' | 'location' | 'people'>;
+export type EventFields = Pick<FamilyEvent, 'title' | 'date' | 'time' | 'location' | 'people'> & { endDate: string };
+
+/** Last day of the event (the start day for one-day events). */
+export const lastDay = (e: Pick<FamilyEvent, 'date' | 'endDate'>) => (e.endDate && e.endDate > e.date ? e.endDate : e.date);
+
+/** True when the event takes place on the given day. */
+export const coversDay = (e: Pick<FamilyEvent, 'date' | 'endDate'>, day: string) => e.date <= day && day <= lastDay(e);
+
+/** "עד יום ג׳ · 13.10" for multi-day events, else ''. */
+export function untilLabel(e: Pick<FamilyEvent, 'date' | 'endDate'>) {
+  if (lastDay(e) === e.date) return '';
+  const [y, m, d] = lastDay(e).split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  return `עד ${dt.toLocaleDateString('he-IL', { weekday: 'short' })} ${dt.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`;
+}
 
 const eventsCol = (fid: string) => collection(db, 'families', fid, 'events');
 
@@ -22,6 +37,7 @@ export function saveEvent(fid: string, id: string | null, fields: EventFields) {
   const clean = {
     title: fields.title.trim().slice(0, 120),
     date: fields.date,
+    endDate: fields.endDate && fields.endDate > fields.date ? fields.endDate : '',
     time: fields.time,
     location: fields.location.trim().slice(0, 120),
     people: fields.people.slice(0, 20),
@@ -75,13 +91,13 @@ function toUtcStamp(date: string, time: string) {
 
 function range(e: FamilyEvent) {
   if (!e.time) {
-    const [y, m, d] = e.date.split('-').map(Number);
+    const [y, m, d] = lastDay(e).split('-').map(Number);
     const next = isoDate(new Date(y, m - 1, d + 1));
     return { allDay: true, start: e.date.replace(/-/g, ''), end: next.replace(/-/g, '') };
   }
   const [hh, mm] = e.time.split(':').map(Number);
   const endH = String(Math.min(hh + 1, 23)).padStart(2, '0');
-  return { allDay: false, start: toUtcStamp(e.date, e.time), end: toUtcStamp(e.date, `${endH}:${String(mm).padStart(2, '0')}`) };
+  return { allDay: false, start: toUtcStamp(e.date, e.time), end: toUtcStamp(lastDay(e), `${endH}:${String(mm).padStart(2, '0')}`) };
 }
 
 export function googleCalendarLink(e: FamilyEvent) {

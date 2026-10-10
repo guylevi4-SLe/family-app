@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import {
+  coversDay,
   dayLabel,
+  lastDay,
+  untilLabel,
   deleteEvent,
   downloadIcs,
   googleCalendarLink,
@@ -45,8 +48,8 @@ export function CalendarView({ events, tasks }: { events: FamilyEvent[] | undefi
 
   const live = (events ?? []).filter((e) => !e.deleted);
   const sorted = live.sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')));
-  const upcoming = sorted.filter((e) => e.date >= today);
-  const past = sorted.filter((e) => e.date < today).reverse().slice(0, 20);
+  const upcoming = sorted.filter((e) => lastDay(e) >= today);
+  const past = sorted.filter((e) => lastDay(e) < today).reverse().slice(0, 20);
   const dated = (tasks ?? []).filter((t) => !t.deleted && t.due) as (Task & { due: string })[];
   const openDated = dated.filter((t) => !t.done && t.due >= today);
 
@@ -55,7 +58,8 @@ export function CalendarView({ events, tasks }: { events: FamilyEvent[] | undefi
     if (!byDay.has(d)) byDay.set(d, { events: [], tasks: [] });
     return byDay.get(d)!;
   };
-  for (const e of upcoming) slot(e.date).events.push(e);
+  // A trip that already started is listed under today.
+  for (const e of upcoming) slot(e.date < today ? today : e.date).events.push(e);
   for (const t of openDated) slot(t.due).tasks.push(t);
   const days = [...byDay].sort(([a], [b]) => a.localeCompare(b));
 
@@ -173,7 +177,7 @@ function MonthView({
   };
 
   const dayEvents = events
-    .filter((e) => e.date === selected)
+    .filter((e) => coversDay(e, selected))
     .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
   const dayTasks = tasks.filter((t) => t.due === selected);
 
@@ -196,7 +200,7 @@ function MonthView({
         ))}
         {cells.map((d, i) => {
           if (!d) return <span key={i} />;
-          const ev = events.filter((e) => e.date === d).length;
+          const ev = events.filter((e) => coversDay(e, d)).length;
           const tk = tasks.filter((t) => t.due === d && !t.done).length;
           const cls = ['day', d === today ? 'today' : '', d === selected ? 'sel' : ''].join(' ');
           return (
@@ -324,6 +328,7 @@ function EventRow({
           {event.title}
           <span className="sub">
             {showDate && <span>{dayLabel(event.date)}</span>}
+            {untilLabel(event) && <span className="until">{untilLabel(event)}</span>}
             {event.location && <span>📍 {event.location}</span>}
             {people.length > 0 && <span className="who-tag">{people.join(', ')}</span>}
           </span>
@@ -339,15 +344,17 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
   const { familyId, members } = useFamily();
   const [f, setF] = useState<EventFields>(
     event
-      ? { title: event.title, date: event.date, time: event.time, location: event.location, people: event.people }
-      : { title: '', date: initialDate, time: '', location: '', people: [] },
+      ? { title: event.title, date: event.date, endDate: event.endDate ?? '', time: event.time, location: event.location, people: event.people }
+      : { title: '', date: initialDate, endDate: '', time: '', location: '', people: [] },
   );
   const set = (patch: Partial<EventFields>) => setF((prev) => ({ ...prev, ...patch }));
-  const valid = f.title.trim() && /^\d{4}-\d{2}-\d{2}$/.test(f.date);
+  const [multi, setMulti] = useState(Boolean(event?.endDate));
+  const valid =
+    f.title.trim() && /^\d{4}-\d{2}-\d{2}$/.test(f.date) && (!multi || (f.endDate && f.endDate > f.date));
 
   const save = () => {
     if (!valid) return;
-    saveEvent(familyId, event?.id ?? null, f);
+    saveEvent(familyId, event?.id ?? null, multi ? f : { ...f, endDate: '' });
     onClose();
   };
 
@@ -360,14 +367,32 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
         </label>
         <div className="two-cols">
           <label>
-            תאריך
+            {multi ? 'מתאריך' : 'תאריך'}
             <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} />
           </label>
-          <label>
-            שעה (לא חובה)
-            <input type="time" value={f.time} onChange={(e) => set({ time: e.target.value })} />
-          </label>
+          {multi ? (
+            <label>
+              עד תאריך
+              <input type="date" value={f.endDate} min={f.date} onChange={(e) => set({ endDate: e.target.value })} />
+            </label>
+          ) : (
+            <label>
+              שעה (לא חובה)
+              <input type="time" value={f.time} onChange={(e) => set({ time: e.target.value })} />
+            </label>
+          )}
         </div>
+        <label className="check-line">
+          <input
+            type="checkbox"
+            checked={multi}
+            onChange={(e) => {
+              setMulti(e.target.checked);
+              set(e.target.checked ? { endDate: f.endDate > f.date ? f.endDate : nextDay(f.date), time: '' } : { endDate: '' });
+            }}
+          />
+          כמה ימים (למשל טיול או חופשה)
+        </label>
         <label>
           איפה (לא חובה)
           <input value={f.location} maxLength={120} onChange={(e) => set({ location: e.target.value })} />
@@ -426,4 +451,9 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
       </div>
     </div>
   );
+}
+
+function nextDay(date: string) {
+  const [y, m, d] = date.split('-').map(Number);
+  return isoDate(new Date(y, m - 1, d + 1));
 }

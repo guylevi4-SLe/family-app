@@ -1,6 +1,6 @@
 import type { Item } from '../data/items';
 import type { Task } from '../data/tasks';
-import { dayLabel, isoDate, type FamilyEvent } from '../data/events';
+import { dayLabel, lastDay, untilLabel, isoDate, type FamilyEvent } from '../data/events';
 import { memberName, useFamily } from './FamilyContext';
 import type { View } from './Home';
 import { Icon } from './Icon';
@@ -22,7 +22,7 @@ export function Dashboard({
   const mine = open.filter((t) => t.assignee === me.id);
   const today = isoDate(new Date());
   const upcoming = (events ?? [])
-    .filter((e) => !e.deleted && e.date >= today)
+    .filter((e) => !e.deleted && lastDay(e) >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
   return (
@@ -66,10 +66,11 @@ export function Dashboard({
               {upcoming.slice(0, 3).map((e) => (
                 <li key={e.id}>
                   <span className="muted">
-                    {dayLabel(e.date).split(' · ')[0]}
+                    {e.date < today ? 'עכשיו' : dayLabel(e.date).split(' · ')[0]}
                     {e.time ? ` ${e.time}` : ''}
                   </span>{' '}
                   {e.title}
+                  {untilLabel(e) && <span className="muted"> ({untilLabel(e)})</span>}
                 </li>
               ))}
             </ul>

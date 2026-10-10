@@ -600,3 +600,7 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 .photo-preview img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; }
 .photo-viewer { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.92); display: grid; place-items: center; padding: 16px; }
 .photo-viewer img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+
+.check-line { display: flex; align-items: center; gap: 10px; color: var(--text); }
+.check-line input { width: 22px; height: 22px; min-height: 0; padding: 0; accent-color: var(--accent); }
+.until { color: var(--accent); font-weight: 600; }
