@@ -216,6 +216,23 @@ async function main() {
     ok('tapping a notification link opens that item\'s comments');
     await dad.page.getByLabel('סגירה').click();
 
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+    await dad.page.locator('.chat-ref', { hasText: 'תזכורת בשבילך' }).waitFor({ timeout: 10000 });
+    ok('family chat lists comments made on items and tasks');
+    await dad.page.locator('.chat-compose').getByRole('group', { name: 'התראה ל' }).getByRole('button', { name: 'kid' }).click();
+    await dad.page.getByLabel('כתיבת הודעה').fill('ארוחת ערב ב־7');
+    await dad.page.getByLabel('כתיבת הודעה').press('Enter');
+    await kid.page.goto(`${BASE}/?open=chat`);
+    await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' }).locator('.notified', { hasText: 'kid' }).waitFor({ timeout: 15000 });
+    if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat.png` });
+    ok('Dad wrote in the family chat for the daughter; her notification link opens the chat');
+    await kid.page.locator('.chat-ref').first().click();
+    await kid.page.getByRole('dialog', { name: /תגובות על/ }).waitFor();
+    await kid.page.getByRole('dialog').getByLabel('סגירה').click();
+    ok('tapping a comment line in the chat opens that item');
+    const overflow = await kid.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    assert.ok(overflow <= 1, 'chat page has no sideways scroll');
+
     await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('חוג ציור');

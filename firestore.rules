@@ -196,7 +196,7 @@ service cloud.firestore {
         allow create: if isMember(fid)
           && onlyKeys(['targetType', 'targetId', 'text', 'image', 'notify', 'authorUid', 'authorName', 'createdAt'])
           && (!('notify' in data()) || (data().notify is list && data().notify.size() <= 20))
-          && data().targetType in ['item', 'task', 'event']
+          && data().targetType in ['item', 'task', 'event', 'chat']
           && shortString(data().targetId, 120)
           && shortString(data().text, 1000)
           // An optional photo: a small JPEG stored inline (resized on the phone).

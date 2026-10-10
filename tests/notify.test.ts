@@ -17,6 +17,12 @@ describe('comment notifications', () => {
     expect(message({ ...comment, text: 'א'.repeat(300) }, '').body.length).toBe(140);
   });
 
+  it('family chat messages say so and open the chat', () => {
+    const chat = { ...comment, targetType: 'chat', targetId: 'family' };
+    expect(message(chat, '').title).toBe('גיא · צ׳אט משפחתי');
+    expect(link(chat)).toBe('/?open=chat');
+  });
+
   it('links to the comment thread', () => {
     expect(link(comment)).toBe('/?open=comments&type=item&id=%D7%A7%D7%9E%D7%97');
   });

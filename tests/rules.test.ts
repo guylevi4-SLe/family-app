@@ -299,6 +299,17 @@ describe('shopping list and comments', () => {
     await assertFails(setDoc(ref('n2'), { ...c, notify: 'mom' }));
     await assertFails(setDoc(ref('n3'), { ...c, notify: Array(21).fill('x') }));
   });
+  it('family chat messages are comments on the chat; outsiders cannot post or read', async () => {
+    await createInvite('dad', 'levi', 'CODE18', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE18', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const c = { targetType: 'chat', targetId: 'family', text: 'מי בבית?', authorUid: 'dad', authorName: 'אבא', createdAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'comments', 'chat1'), { ...c, notify: ['mom'] }));
+    await assertSucceeds(getDoc(doc(db('daughter'), 'families', 'levi', 'comments', 'chat1')));
+    await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'comments', 'chat1')));
+    await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'comments', 'chat2'), { ...c, authorUid: 'neighbor' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'comments', 'chat3'), { ...c, targetType: 'secret' }));
+  });
 });
 
 describe('notification devices', () => {

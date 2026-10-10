@@ -143,6 +143,7 @@ export function FamilySettings({
               <option value="list">רשימת הקניות</option>
               <option value="tasks">משימות</option>
               <option value="calendar">יומן</option>
+              <option value="chat">צ׳אט משפחתי</option>
             </select>
           </label>
           <div>

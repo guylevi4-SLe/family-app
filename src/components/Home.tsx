@@ -8,6 +8,7 @@ import { Dashboard } from './Dashboard';
 import { TasksView } from './TasksView';
 import { CalendarView } from './CalendarView';
 import { CommentsSheet } from './CommentsSheet';
+import { ChatView } from './ChatView';
 import { Icon, type IconName } from './Icon';
 import { clearBadge } from '../push';
 import { FamilyContext } from './FamilyContext';
@@ -17,13 +18,14 @@ interface Family {
   deptOrder: string[];
 }
 
-export type View = 'home' | 'list' | 'tasks' | 'calendar';
+export type View = 'home' | 'list' | 'tasks' | 'calendar' | 'chat';
 
 const VIEWS: { id: View; label: string; icon: IconName }[] = [
   { id: 'home', label: 'בית', icon: 'home' },
   { id: 'list', label: 'קניות', icon: 'cart' },
   { id: 'tasks', label: 'משימות', icon: 'tasks' },
   { id: 'calendar', label: 'יומן', icon: 'calendar' },
+  { id: 'chat', label: 'צ׳אט', icon: 'chat' },
 ];
 
 export const START_KEY = 'startScreen';
@@ -55,7 +57,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const [thread, setThread] = useState<{ type: TargetType; id: string; title: string } | null>(null);
 
   // A tapped notification opens the app at /?open=comments&type=…&id=…
-  const [deepLink, setDeepLink] = useState<{ type: TargetType; id: string } | null>(() => readDeepLink(location.href));
+  const [deepLink, setDeepLink] = useState<DeepLink | null>(() => readDeepLink(location.href));
   useEffect(() => {
     clearBadge();
     const onVisible = () => document.visibilityState === 'visible' && clearBadge();
@@ -71,6 +73,13 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   }, []);
   useEffect(() => {
     if (!deepLink) return;
+    if (deepLink === 'chat') {
+      setThread(null);
+      setView('chat');
+      setDeepLink(null);
+      history.replaceState(null, '', '/');
+      return;
+    }
     const list = deepLink.type === 'item' ? items : deepLink.type === 'task' ? tasks : events;
     if (list === undefined) return; // wait for data
     const target = list.find((x) => x.id === deepLink.id) as { name?: string; title?: string } | undefined;
@@ -108,6 +117,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const commentCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of comments ?? []) {
+      if (c.targetType === 'chat') continue;
       const k = commentKey(c.targetType, c.targetId);
       m.set(k, (m.get(k) ?? 0) + 1);
     }
@@ -153,6 +163,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'tasks' && <TasksView tasks={tasks} />}
         {view === 'calendar' && <CalendarView events={events} tasks={tasks} />}
+        {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} />}
 
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (
@@ -204,10 +215,13 @@ function SyncBadge({ online, pending }: { online: boolean; pending: number }) {
   );
 }
 
-function readDeepLink(href: string): { type: TargetType; id: string } | null {
+type DeepLink = { type: Exclude<TargetType, 'chat'>; id: string } | 'chat';
+
+function readDeepLink(href: string): DeepLink | null {
   const q = new URL(href, location.origin).searchParams;
+  if (q.get('open') === 'chat') return 'chat';
   const type = q.get('type');
   const id = q.get('id');
   if (q.get('open') !== 'comments' || !id || !['item', 'task', 'event'].includes(type ?? '')) return null;
-  return { type: type as TargetType, id };
+  return { type: type as Exclude<TargetType, 'chat'>, id };
 }

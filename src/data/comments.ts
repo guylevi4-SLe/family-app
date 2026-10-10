@@ -2,7 +2,10 @@ import { addDoc, collection, deleteDoc, doc, serverTimestamp, type Timestamp } f
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
-export type TargetType = 'item' | 'task' | 'event';
+export type TargetType = 'item' | 'task' | 'event' | 'chat';
+
+/** The family chat is stored as comments on this single target. */
+export const CHAT_ID = 'family';
 
 export interface Comment {
   id: string;

@@ -13,7 +13,7 @@ function recipients(comment, memberIds) {
 /** The text shown on the lock screen. */
 function message(comment, targetTitle) {
   const who = comment.authorName || 'מישהו מהמשפחה';
-  const about = targetTitle ? ` · ${targetTitle}` : '';
+  const about = comment.targetType === 'chat' ? ' · צ׳אט משפחתי' : targetTitle ? ` · ${targetTitle}` : '';
   const text = (comment.text || '').trim();
   const body = text ? (text.length > 140 ? `${text.slice(0, 139)}…` : text) : '📷 תמונה';
   return { title: `${who}${about}`, body };
@@ -21,6 +21,7 @@ function message(comment, targetTitle) {
 
 /** Where tapping the notification lands. */
 function link(comment) {
+  if (comment.targetType === 'chat') return '/?open=chat';
   const q = new URLSearchParams({ open: 'comments', type: comment.targetType, id: comment.targetId });
   return `/?${q}`;
 }
