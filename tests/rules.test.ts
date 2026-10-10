@@ -263,6 +263,10 @@ describe('tasks and events', () => {
     await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'trip'), { ...ev, endDate: '2099-12-31' }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e4'), { ...ev, endDate: ev.date }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'e5'), { ...ev, endDate: 'tomorrow' }));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w1'), { ...ev, repeat: 'weekly', repeatUntil: '' }));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w2'), { ...ev, repeat: 'weekly', repeatUntil: '2099-12-31' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w3'), { ...ev, repeat: 'daily' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w4'), { ...ev, repeat: 'weekly', repeatUntil: ev.date }));
     await assertFails(deleteDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't1')));
   });
 });

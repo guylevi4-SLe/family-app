@@ -350,12 +350,24 @@ async function main() {
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('טיול שנתי');
     await dad.page.getByLabel('כמה ימים').check();
+    const dayLabelFor = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }); };
     const iso = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('sv-SE'); };
     await dad.page.getByLabel('מתאריך').fill(iso(1));
     await dad.page.getByLabel('עד תאריך').fill(iso(3));
     await dad.page.getByRole('button', { name: 'שמירה' }).click();
     await dad.page.locator('.row', { hasText: 'טיול שנתי' }).locator('.until').waitFor();
     ok('multi-day event saved with an end date');
+    await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
+    await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('שיעור פרטי');
+    await dad.page.getByLabel('תאריך', { exact: true }).fill(iso(1));
+    await dad.page.locator('.sheet input[type=time]').fill('16:00');
+    await dad.page.getByLabel('חוזר כל שבוע').check();
+    await dad.page.getByRole('button', { name: 'שמירה' }).click();
+    for (const n of [1, 8, 15]) {
+      await dad.page.locator('.dept', { hasText: dayLabelFor(n) }).locator('.row', { hasText: 'שיעור פרטי' }).waitFor({ timeout: 5000 });
+    }
+    assert.ok(await dad.page.locator('.row', { hasText: 'שיעור פרטי' }).first().innerText().then((t) => t.includes('🔁 כל')), 'weekly label');
+    ok('a weekly event shows up every week');
     await dad.page.getByRole('button', { name: 'לוח חודשי' }).click();
     for (const n of [1, 2, 3]) {
       const day = new Date(); day.setDate(day.getDate() + n);

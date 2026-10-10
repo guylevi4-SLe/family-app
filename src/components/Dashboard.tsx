@@ -1,6 +1,6 @@
 import type { Item } from '../data/items';
 import type { Task } from '../data/tasks';
-import { dayLabel, lastDay, untilLabel, isoDate, type FamilyEvent } from '../data/events';
+import { dayLabel, expandEvents, lastDay, untilLabel, isoDate, type FamilyEvent } from '../data/events';
 import { memberName, useFamily } from './FamilyContext';
 import type { View } from './Home';
 import { Icon } from './Icon';
@@ -26,8 +26,10 @@ export function Dashboard({
   const open = (tasks ?? []).filter((t) => !t.deleted && !t.done);
   const mine = open.filter((t) => t.assignee === me.id);
   const today = isoDate(new Date());
-  const upcoming = (events ?? [])
-    .filter((e) => !e.deleted && lastDay(e) >= today)
+  const inTwoMonths = new Date();
+  inTwoMonths.setDate(inTwoMonths.getDate() + 62);
+  const upcoming = expandEvents((events ?? []).filter((e) => !e.deleted), today, isoDate(inTwoMonths))
+    .filter((e) => lastDay(e) >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
   const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
@@ -90,7 +92,7 @@ export function Dashboard({
           ) : (
             <ul className="tile-events">
               {upcoming.slice(0, 3).map((e) => (
-                <li key={e.id}>
+                <li key={`${e.id}:${e.date}`}>
                   <span className="muted">
                     {e.date < today ? 'עכשיו' : dayLabel(e.date).split(' · ')[0]}
                     {e.time ? ` ${e.time}` : ''}

@@ -7,6 +7,9 @@ export interface FamilyEvent {
   title: string;
   date: string; // YYYY-MM-DD
   endDate?: string; // YYYY-MM-DD for events lasting several days, else '' or missing
+  repeat?: '' | 'weekly'; // a weekly event (a lesson every Thursday)
+  repeatUntil?: string; // last possible date of a weekly event, '' = no end
+  seriesStart?: string; // on a shown occurrence: the series' first date (not stored)
   time: string; // HH:MM or ''
   location: string;
   people: string[];
@@ -14,13 +17,57 @@ export interface FamilyEvent {
   pending: boolean;
 }
 
-export type EventFields = Pick<FamilyEvent, 'title' | 'date' | 'time' | 'location' | 'people'> & { endDate: string };
+export type EventFields = Pick<FamilyEvent, 'title' | 'date' | 'time' | 'location' | 'people'> & {
+  endDate: string;
+  repeat: '' | 'weekly';
+  repeatUntil: string;
+};
 
 /** Last day of the event (the start day for one-day events). */
 export const lastDay = (e: Pick<FamilyEvent, 'date' | 'endDate'>) => (e.endDate && e.endDate > e.date ? e.endDate : e.date);
 
 /** True when the event takes place on the given day. */
 export const coversDay = (e: Pick<FamilyEvent, 'date' | 'endDate'>, day: string) => e.date <= day && day <= lastDay(e);
+
+const addDays = (date: string, n: number) => {
+  const [y, m, d] = date.split('-').map(Number);
+  return isoDate(new Date(y, m - 1, d + n));
+};
+
+/**
+ * Every event as shown between `from` and `to` (inclusive): one-off events as
+ * they are, weekly ones as one copy per week carrying `seriesStart`.
+ */
+export function expandEvents(list: FamilyEvent[], from: string, to: string): FamilyEvent[] {
+  const out: FamilyEvent[] = [];
+  for (const e of list) {
+    if (e.repeat !== 'weekly') {
+      out.push(e);
+      continue;
+    }
+    const end = e.repeatUntil && e.repeatUntil < to ? e.repeatUntil : to;
+    let d = e.date;
+    if (d < from) {
+      const [y1, m1, d1] = d.split('-').map(Number);
+      const [y2, m2, d2] = from.split('-').map(Number);
+      const weeks = Math.floor((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / (7 * 86400000));
+      d = addDays(d, weeks * 7);
+      if (d < from) d = addDays(d, 7);
+    }
+    for (; d <= end; d = addDays(d, 7)) out.push({ ...e, date: d, endDate: '', seriesStart: e.date });
+  }
+  return out;
+}
+
+/** "כל יום ה׳" (and "עד 30.6" when it ends) for weekly events, else ''. */
+export function repeatLabel(e: Pick<FamilyEvent, 'repeat' | 'repeatUntil' | 'date'>) {
+  if (e.repeat !== 'weekly') return '';
+  const [y, m, d] = e.date.split('-').map(Number);
+  const day = new Date(y, m - 1, d).toLocaleDateString('he-IL', { weekday: 'long' });
+  if (!e.repeatUntil) return `🔁 כל ${day}`;
+  const [uy, um, ud] = e.repeatUntil.split('-').map(Number);
+  return `🔁 כל ${day} עד ${new Date(uy, um - 1, ud).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`;
+}
 
 /** "עד יום ג׳ · 13.10" for multi-day events, else ''. */
 export function untilLabel(e: Pick<FamilyEvent, 'date' | 'endDate'>) {
@@ -37,7 +84,9 @@ export function saveEvent(fid: string, id: string | null, fields: EventFields) {
   const clean = {
     title: fields.title.trim().slice(0, 120),
     date: fields.date,
-    endDate: fields.endDate && fields.endDate > fields.date ? fields.endDate : '',
+    endDate: fields.repeat ? '' : fields.endDate && fields.endDate > fields.date ? fields.endDate : '',
+    repeat: fields.repeat,
+    repeatUntil: fields.repeat && fields.repeatUntil > fields.date ? fields.repeatUntil : '',
     time: fields.time,
     location: fields.location.trim().slice(0, 120),
     people: fields.people.slice(0, 20),
@@ -100,6 +149,10 @@ function range(e: FamilyEvent) {
   return { allDay: false, start: toUtcStamp(e.date, e.time), end: toUtcStamp(lastDay(e), `${endH}:${String(mm).padStart(2, '0')}`) };
 }
 
+function rrule(e: FamilyEvent) {
+  return e.repeatUntil ? `FREQ=WEEKLY;UNTIL=${e.repeatUntil.replace(/-/g, '')}T235959Z` : 'FREQ=WEEKLY';
+}
+
 /** `free`: the copy is marked "available" so it doesn't block the person's day. */
 export function googleCalendarLink(e: FamilyEvent, free = true) {
   const r = range(e);
@@ -108,6 +161,7 @@ export function googleCalendarLink(e: FamilyEvent, free = true) {
   params.set('trp', String(!free));
   params.set('crm', free ? 'AVAILABLE' : 'BUSY');
   if (e.location) params.set('location', e.location);
+  if (e.repeat === 'weekly') params.set('recur', `RRULE:${rrule(e)}`);
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
@@ -127,6 +181,7 @@ export function downloadIcs(e: FamilyEvent, free = true) {
     `TRANSP:${free ? 'TRANSPARENT' : 'OPAQUE'}`,
     ...(free ? ['X-MICROSOFT-CDO-BUSYSTATUS:FREE'] : []),
     ...(e.location ? [`LOCATION:${esc(e.location)}`] : []),
+    ...(e.repeat === 'weekly' ? [`RRULE:${rrule(e)}`] : []),
     'END:VEVENT',
     'END:VCALENDAR',
   ];

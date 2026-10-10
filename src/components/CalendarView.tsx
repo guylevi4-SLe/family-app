@@ -2,7 +2,9 @@ import { useState } from 'react';
 import {
   coversDay,
   dayLabel,
+  expandEvents,
   lastDay,
+  repeatLabel,
   untilLabel,
   deleteEvent,
   downloadIcs,
@@ -56,8 +58,17 @@ export function CalendarView({
 
   const live = (events ?? []).filter((e) => !e.deleted);
   const sorted = live.sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')));
-  const upcoming = sorted.filter((e) => lastDay(e) >= today);
-  const past = sorted.filter((e) => lastDay(e) < today).reverse().slice(0, 20);
+  const shift = (n: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    return isoDate(d);
+  };
+  // Weekly events show once per week: the next 3 months in the list, ±1 year in the month view.
+  const upcoming = expandEvents(sorted, today, shift(92))
+    .filter((e) => lastDay(e) >= today)
+    .sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')));
+  const monthEvents = expandEvents(live, shift(-370), shift(370));
+  const past = sorted.filter((e) => e.repeat !== 'weekly' && lastDay(e) < today).reverse().slice(0, 20);
   const dated = (tasks ?? []).filter((t) => !t.deleted && t.due) as (Task & { due: string })[];
   const openDated = dated.filter((t) => !t.done && t.due >= today);
 
@@ -92,7 +103,7 @@ export function CalendarView({
 
       {mode === 'month' ? (
         <MonthView
-          events={live}
+          events={monthEvents}
           tasks={dated}
           selected={selected}
           onSelect={setSelected}
@@ -116,7 +127,7 @@ export function CalendarView({
               <h2>{dayLabel(date)}</h2>
               <ul>
                 {list.events.map((e) => (
-                  <EventRow key={e.id} event={e} members={members} onOpen={() => setEditing(e)} />
+                  <EventRow key={`${e.id}:${e.date}`} event={e} members={members} onOpen={() => setEditing(e)} />
                 ))}
                 {list.tasks.map((t) => (
                   <TaskRow key={t.id} task={t} />
@@ -340,6 +351,7 @@ function EventRow({
           <span className="sub">
             {showDate && <span>{dayLabel(event.date)}</span>}
             {untilLabel(event) && <span className="until">{untilLabel(event)}</span>}
+            {repeatLabel(event) && <span className="until">{repeatLabel(event)}</span>}
             {event.location && <span>📍 {event.location}</span>}
             {people.length > 0 && <span className="who-tag">{people.join(', ')}</span>}
           </span>
@@ -355,18 +367,30 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
   const { familyId, members } = useFamily();
   const [f, setF] = useState<EventFields>(
     event
-      ? { title: event.title, date: event.date, endDate: event.endDate ?? '', time: event.time, location: event.location, people: event.people }
-      : { title: '', date: initialDate, endDate: '', time: '', location: '', people: [] },
+      ? {
+          title: event.title,
+          date: event.date,
+          endDate: event.endDate ?? '',
+          repeat: event.repeat ?? '',
+          repeatUntil: event.repeatUntil ?? '',
+          time: event.time,
+          location: event.location,
+          people: event.people,
+        }
+      : { title: '', date: initialDate, endDate: '', repeat: '', repeatUntil: '', time: '', location: '', people: [] },
   );
   const set = (patch: Partial<EventFields>) => setF((prev) => ({ ...prev, ...patch }));
   const [multi, setMulti] = useState(Boolean(event?.endDate));
   const [free, setFree] = useState(true);
   const valid =
-    f.title.trim() && /^\d{4}-\d{2}-\d{2}$/.test(f.date) && (!multi || (f.endDate && f.endDate > f.date));
+    f.title.trim() &&
+    /^\d{4}-\d{2}-\d{2}$/.test(f.date) &&
+    (!multi || (f.endDate && f.endDate > f.date)) &&
+    (!f.repeat || !f.repeatUntil || f.repeatUntil > f.date);
 
   const save = () => {
     if (!valid) return;
-    saveEvent(familyId, event?.id ?? null, multi ? f : { ...f, endDate: '' });
+    saveEvent(familyId, event?.id ?? null, multi ? { ...f, repeat: '', repeatUntil: '' } : { ...f, endDate: '' });
     onClose();
   };
 
@@ -400,11 +424,23 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
             checked={multi}
             onChange={(e) => {
               setMulti(e.target.checked);
-              set(e.target.checked ? { endDate: f.endDate > f.date ? f.endDate : nextDay(f.date), time: '' } : { endDate: '' });
+              set(e.target.checked ? { endDate: f.endDate > f.date ? f.endDate : nextDay(f.date), time: '', repeat: '' } : { endDate: '' });
             }}
           />
           כמה ימים (למשל טיול או חופשה)
         </label>
+        {!multi && (
+          <label className="check-line">
+            <input type="checkbox" checked={f.repeat === 'weekly'} onChange={(e) => set({ repeat: e.target.checked ? 'weekly' : '' })} />
+            חוזר כל שבוע (למשל חוג או שיעור פרטי)
+          </label>
+        )}
+        {!multi && f.repeat === 'weekly' && (
+          <label>
+            עד תאריך (לא חובה)
+            <input type="date" value={f.repeatUntil} min={f.date} onChange={(e) => set({ repeatUntil: e.target.value })} />
+          </label>
+        )}
         <label>
           איפה (לא חובה)
           <input value={f.location} maxLength={120} onChange={(e) => set({ location: e.target.value })} />
@@ -456,7 +492,7 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
             <button
               className="danger"
               onClick={() => {
-                if (!window.confirm(`למחוק את האירוע "${event.title}"?`)) return;
+                if (!window.confirm(event.repeat === 'weekly' ? `למחוק את "${event.title}" מכל השבועות?` : `למחוק את האירוע "${event.title}"?`)) return;
                 deleteEvent(familyId, event.id);
                 onClose();
               }}
