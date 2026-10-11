@@ -88,7 +88,7 @@ export function CalendarView({
   };
 
   return (
-    <main className="list-page">
+    <div className="planner-body">
       <button className="small schedule-open" onClick={openSchedule}>
         📚 מערכת שעות
       </button>
@@ -161,7 +161,7 @@ export function CalendarView({
         />
       )}
       {addingTask && <TaskOnDateSheet date={addingTask} onClose={() => setAddingTask(null)} />}
-    </main>
+    </div>
   );
 }
 

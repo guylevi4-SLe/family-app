@@ -23,7 +23,7 @@ import {
 } from '../data/family';
 import { orderedDepartments } from '../data/departments';
 import { useInvites, useMembers, usePendingRequests } from '../data/hooks';
-import { START_KEY, type View } from './Home';
+import { START_KEY, type Screen } from './Home';
 import { disablePush, enablePush, pushState, type PushState } from '../push';
 import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
@@ -39,7 +39,7 @@ export function FamilySettings({
   me: Member;
   deptOrder: string[] | undefined;
   pendingWrites: number;
-  startScreen: View;
+  startScreen: Screen;
   onClose: () => void;
 }) {
   const isAdmin = me.role === 'admin';
@@ -47,7 +47,7 @@ export function FamilySettings({
   const requests = usePendingRequests(familyId, isAdmin);
   const invites = useInvites(familyId, isAdmin);
   const [error, setError] = useState('');
-  const [start, setStart] = useState<View>(startScreen);
+  const [start, setStart] = useState<Screen>(startScreen);
   const [palette, setPalette] = useState<Palette>(readPalette);
 
   const guard = (fn: () => Promise<unknown>) => () => {
@@ -129,7 +129,7 @@ export function FamilySettings({
             <select
               value={start}
               onChange={(e) => {
-                const v = e.target.value as View;
+                const v = e.target.value as Screen;
                 setStart(v);
                 try {
                   localStorage.setItem(START_KEY, v);
@@ -141,8 +141,9 @@ export function FamilySettings({
             >
               <option value="home">מסך הבית</option>
               <option value="list">רשימת הקניות</option>
-              <option value="tasks">משימות</option>
               <option value="calendar">יומן</option>
+              <option value="tasks">משימות</option>
+              <option value="lists">רשימות</option>
               <option value="chat">צ׳אט משפחתי</option>
             </select>
           </label>

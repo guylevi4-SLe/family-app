@@ -10,7 +10,7 @@ import { CalendarView } from './CalendarView';
 import { CommentsSheet } from './CommentsSheet';
 import { ChatView } from './ChatView';
 import { ScheduleSheet } from './ScheduleSheet';
-import { ListsSheet } from './ListsSheet';
+import { ListsView } from './ListsView';
 import { defaultScheduleUid } from '../data/schedules';
 import { Icon, type IconName } from './Icon';
 import { clearBadge, takePendingUrl } from '../push';
@@ -21,22 +21,25 @@ interface Family {
   deptOrder: string[];
 }
 
-export type View = 'home' | 'list' | 'tasks' | 'calendar' | 'chat';
+export type View = 'home' | 'list' | 'calendar' | 'lists' | 'chat';
+/** Where a screen can be opened: the bottom-bar screens, plus the calendar's tasks side. */
+export type Screen = View | 'tasks';
 
 const VIEWS: { id: View; label: string; icon: IconName }[] = [
   { id: 'home', label: 'בית', icon: 'home' },
   { id: 'list', label: 'קניות', icon: 'cart' },
-  { id: 'tasks', label: 'משימות', icon: 'tasks' },
   { id: 'calendar', label: 'יומן', icon: 'calendar' },
+  { id: 'lists', label: 'רשימות', icon: 'list' },
   { id: 'chat', label: 'צ׳אט', icon: 'chat' },
 ];
 
 export const START_KEY = 'startScreen';
+const isScreen = (v: unknown): v is Screen => v === 'tasks' || VIEWS.some((x) => x.id === v);
 
-export function readCachedStart(): View | null {
+export function readCachedStart(): Screen | null {
   try {
     const v = localStorage.getItem(START_KEY);
-    return VIEWS.some((x) => x.id === v) ? (v as View) : null;
+    return isScreen(v) ? v : null;
   } catch {
     return null;
   }
@@ -52,15 +55,18 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const lists = useLists(familyId);
   const listEntries = useListEntries(familyId);
-  // undefined: closed; null: the index of lists; an id: that list.
-  const [listOpen, setListOpen] = useState<string | null | undefined>(undefined);
+  const [listId, setListId] = useState<string | null>(null);
   const members = useMembers(familyId);
   const online = useOnline();
   const isAdmin = me.role === 'admin';
   const requests = usePendingRequests(familyId, isAdmin);
-  const [view, setView] = useState<View>(
-    () => readCachedStart() ?? (VIEWS.some((x) => x.id === startScreen) ? (startScreen as View) : 'home'),
-  );
+  const firstScreen: Screen = readCachedStart() ?? (isScreen(startScreen) ? startScreen : 'home');
+  const [view, setView] = useState<View>(firstScreen === 'tasks' ? 'calendar' : firstScreen);
+  const [plan, setPlan] = usePlanTab(firstScreen === 'tasks' ? 'tasks' : undefined);
+  const go = (s: Screen) => {
+    if (s === 'tasks' || s === 'calendar') setPlan(s === 'tasks' ? 'tasks' : 'schedule');
+    setView(s === 'tasks' ? 'calendar' : s);
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [writeError, setWriteError] = useState('');
   const [thread, setThread] = useState<{ type: TargetType; id: string; title: string } | null>(null);
@@ -103,7 +109,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     if (list === undefined) return; // wait for data
     const target = list.find((x) => x.id === deepLink.id) as { name?: string; title?: string } | undefined;
     setThread({ ...deepLink, title: target?.name ?? target?.title ?? '' });
-    setView(deepLink.type === 'item' ? 'list' : deepLink.type === 'task' ? 'tasks' : 'calendar');
+    go(deepLink.type === 'item' ? 'list' : deepLink.type === 'task' ? 'tasks' : 'calendar');
     setDeepLink(null);
     history.replaceState(null, '', '/');
   }, [deepLink, items, tasks, events]);
@@ -111,7 +117,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   // Swipe sideways to move between the bottom-bar screens. Deliberately firm:
   // a long, fast, clearly horizontal swipe, never inside sheets, inputs or
   // things that scroll sideways, so scrolling a list never switches screens.
-  const overlayOpen = Boolean(thread || settingsOpen || scheduleFor || listOpen !== undefined);
+  const overlayOpen = Boolean(thread || settingsOpen || scheduleFor);
   useEffect(() => {
     if (overlayOpen) return;
     let start: { x: number; y: number; t: number } | null = null;
@@ -179,6 +185,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     return m;
   }, [comments]);
 
+  const openTaskCount = (tasks ?? []).filter((t) => !t.deleted && !t.done).length;
   const pendingCount = [items, tasks, events, comments, lists, listEntries].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;
   const title = view === 'home' ? (family?.name ?? '') : VIEWS.find((v) => v.id === view)!.label;
@@ -217,10 +224,27 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           </button>
         )}
 
-        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} go={setView} openSchedule={setScheduleFor} openLists={setListOpen} />}
+        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); setView('lists'); }} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
-        {view === 'tasks' && <TasksView tasks={tasks} />}
-        {view === 'calendar' && <CalendarView events={events} tasks={tasks} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />}
+        {view === 'calendar' && (
+          <main className="list-page planner">
+            <div className="planner-tabs" role="tablist" aria-label="יומן ומשימות">
+              <button role="tab" aria-selected={plan === 'schedule'} className={plan === 'schedule' ? 'on' : ''} onClick={() => setPlan('schedule')}>
+                <Icon name="calendar" size={18} /> לו״ז
+              </button>
+              <button role="tab" aria-selected={plan === 'tasks'} className={plan === 'tasks' ? 'on' : ''} onClick={() => setPlan('tasks')}>
+                <Icon name="tasks" size={18} /> משימות
+                {openTaskCount > 0 && <span className="planner-count">{openTaskCount}</span>}
+              </button>
+            </div>
+            {plan === 'tasks' ? (
+              <TasksView tasks={tasks} />
+            ) : (
+              <CalendarView events={events} tasks={tasks} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
+            )}
+          </main>
+        )}
+        {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} />}
         {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} />}
 
         <nav className="bottom-nav" aria-label="ניווט">
@@ -236,8 +260,6 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           <CommentsSheet type={thread.type} targetId={thread.id} title={thread.title} comments={comments ?? []} onClose={() => setThread(null)} />
         )}
 
-        {listOpen !== undefined && <ListsSheet lists={lists} entries={listEntries} initialId={listOpen} onClose={() => setListOpen(undefined)} />}
-
         {scheduleFor && <ScheduleSheet schedules={schedules} initialUid={scheduleFor} onClose={() => setScheduleFor(null)} />}
 
         {settingsOpen && (
@@ -246,13 +268,37 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
             me={me}
             deptOrder={family?.deptOrder}
             pendingWrites={pendingCount}
-            startScreen={(startScreen as View) ?? readCachedStart() ?? 'home'}
+            startScreen={readCachedStart() ?? (isScreen(startScreen) ? startScreen : 'home')}
             onClose={() => setSettingsOpen(false)}
           />
         )}
       </div>
     </FamilyContext.Provider>
   );
+}
+
+type PlanTab = 'schedule' | 'tasks';
+const PLAN_KEY = 'planTab';
+
+/** Which side of the calendar screen is showing; remembered on this phone. */
+function usePlanTab(initial?: PlanTab) {
+  const [tab, setTab] = useState<PlanTab>(() => {
+    if (initial) return initial;
+    try {
+      return localStorage.getItem(PLAN_KEY) === 'tasks' ? 'tasks' : 'schedule';
+    } catch {
+      return 'schedule';
+    }
+  });
+  const set = (t: PlanTab) => {
+    setTab(t);
+    try {
+      localStorage.setItem(PLAN_KEY, t);
+    } catch {
+      /* optional */
+    }
+  };
+  return [tab, set] as const;
 }
 
 function SyncBadge({ online, pending }: { online: boolean; pending: number }) {

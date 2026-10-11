@@ -32,7 +32,7 @@ service cloud.firestore {
       allow create, update: if signedIn() && me() == userId
         && onlyKeys(['familyId', 'startScreen'])
         && (!('familyId' in data()) || data().familyId == null || shortString(data().familyId, 64))
-        && (!('startScreen' in data()) || data().startScreen in ['home', 'list', 'tasks', 'calendar']);
+        && (!('startScreen' in data()) || data().startScreen in ['home', 'list', 'tasks', 'calendar', 'lists', 'chat']);
       allow delete: if false;
 
       // Phones registered for notifications. Only the owner sees or changes them.

@@ -30,7 +30,7 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
   };
 
   return (
-    <main className="list-page">
+    <div className="planner-body">
       <form
         className="task-add"
         onSubmit={(e) => {
@@ -115,7 +115,7 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
       )}
 
       {editing && <TaskSheet task={(tasks ?? []).find((t) => t.id === editing.id) ?? editing} members={members} onClose={() => setEditing(null)} />}
-    </main>
+    </div>
   );
 
   function TaskRow({ task, today, onEdit }: { task: Task; today: string; onEdit: () => void }) {

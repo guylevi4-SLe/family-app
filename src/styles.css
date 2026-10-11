@@ -682,8 +682,8 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .version { text-align: center; }
 
 /* ---------- checklists (רשימות) ---------- */
-.lists-sheet { gap: 12px; }
-.lists-sheet .back { min-height: 40px; font-weight: 600; }
+.lists-page { display: grid; gap: 12px; align-content: start; padding-top: 4px; }
+.lists-page .back { min-height: 40px; font-weight: 600; }
 .new-list { min-height: 52px; font-size: 1.05rem; }
 .list-new input.full { width: 100%; }
 .emoji-pick { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -701,8 +701,8 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .list-rename { display: flex; gap: 8px; width: 100%; max-width: 360px; }
 .list-rename input { flex: 1; }
 .list-sum { margin: 0; font-size: 0.92rem; }
-.lists-sheet .add-box { position: static; padding: 0; background: none; }
-.lists-sheet .add-box input { flex: 1; min-height: 52px; font-size: 1.05rem; }
+.lists-page .add-box { position: static; padding: 0; background: none; }
+.lists-page .add-box input { flex: 1; min-height: 52px; font-size: 1.05rem; }
 .list-tools { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 6px; }
 .list-tools button { min-height: 42px; }
 .list-tools .whatsapp { flex-basis: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -734,3 +734,10 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .entry-edit { display: grid; gap: 6px; padding: 6px 0; }
 .entry-edit select { min-height: 38px; }
 .entry-edit-actions { display: flex; gap: 6px; }
+/* ---------- calendar screen: לו״ז | משימות ---------- */
+.planner-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin: 2px 0 10px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.planner-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; border: 0; border-radius: 11px; background: none; color: var(--muted); font-weight: 600; }
+.planner-tabs button.on { background: var(--surface); color: var(--text); font-weight: 800; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); }
+.planner-tabs button.on .icon { color: var(--accent); }
+.planner-count { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--grad); color: var(--accent-ink); font-size: 0.78rem; font-weight: 800; display: inline-grid; place-items: center; }
+.lists-page .back { justify-self: start; }

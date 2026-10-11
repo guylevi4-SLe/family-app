@@ -20,30 +20,27 @@ import { Icon } from './Icon';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
-/** Full-screen checklists: an index of lists, and one list with progress, ticks and reset. */
-export function ListsSheet({
+/** The checklists screen: an index of lists, and one list with progress, ticks and reset. */
+export function ListsView({
   lists,
   entries,
-  initialId,
-  onClose,
+  openId,
+  setOpenId,
 }: {
   lists: FamilyList[] | undefined;
   entries: ListEntry[] | undefined;
-  initialId: string | null;
-  onClose: () => void;
+  openId: string | null;
+  setOpenId: (id: string | null) => void;
 }) {
-  const [openId, setOpenId] = useState<string | null>(initialId);
   const open = lists?.find((l) => l.id === openId);
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet tall lists-sheet" role="dialog" aria-label="רשימות" onClick={(e) => e.stopPropagation()}>
-        {open ? (
-          <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} onClose={onClose} />
-        ) : (
-          <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} onClose={onClose} />
-        )}
-      </div>
-    </div>
+    <main className="list-page lists-page" aria-label="רשימות">
+      {open ? (
+        <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
+      ) : (
+        <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} />
+      )}
+    </main>
   );
 }
 
@@ -60,12 +57,10 @@ function ListIndex({
   lists,
   entries,
   onOpen,
-  onClose,
 }: {
   lists: FamilyList[] | undefined;
   entries: ListEntry[];
   onOpen: (id: string) => void;
-  onClose: () => void;
 }) {
   const { familyId } = useFamily();
   const [creating, setCreating] = useState(false);
@@ -84,13 +79,6 @@ function ListIndex({
 
   return (
     <>
-      <div className="sheet-head">
-        <h2>📋 רשימות</h2>
-        <button className="icon-button" aria-label="סגירה" onClick={onClose}>
-          ✕
-        </button>
-      </div>
-
       {creating ? (
         <form className="card list-new" onSubmit={(e) => { e.preventDefault(); create(); }}>
           <label>
@@ -151,12 +139,10 @@ function ListDetail({
   list,
   entries,
   onBack,
-  onClose,
 }: {
   list: FamilyList;
   entries: ListEntry[];
   onBack: () => void;
-  onClose: () => void;
 }) {
   const { familyId } = useFamily();
   const [text, setText] = useState('');
@@ -249,12 +235,7 @@ function ListDetail({
 
   return (
     <>
-      <div className="sheet-head">
-        <button className="link back" onClick={onBack}>→ כל הרשימות</button>
-        <button className="icon-button" aria-label="סגירה" onClick={onClose}>
-          ✕
-        </button>
-      </div>
+      <button className="link back" onClick={onBack}>→ כל הרשימות</button>
 
       <div className="list-hero">
         <span className="list-emoji" aria-hidden="true">{list.emoji}</span>

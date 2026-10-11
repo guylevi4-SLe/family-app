@@ -2,7 +2,7 @@ import type { Item } from '../data/items';
 import type { Task } from '../data/tasks';
 import { dayLabel, expandEvents, lastDay, untilLabel, isoDate, type FamilyEvent } from '../data/events';
 import { memberName, useFamily } from './FamilyContext';
-import type { View } from './Home';
+import type { Screen } from './Home';
 import { Icon } from './Icon';
 import { defaultScheduleUid, type Schedule } from '../data/schedules';
 import type { FamilyList, ListEntry } from '../data/lists';
@@ -16,7 +16,7 @@ export function Dashboard({
   listEntries,
   go,
   openSchedule,
-  openLists,
+  openList,
 }: {
   items: Item[] | undefined;
   tasks: Task[] | undefined;
@@ -24,9 +24,9 @@ export function Dashboard({
   schedules: Schedule[] | undefined;
   lists: FamilyList[] | undefined;
   listEntries: ListEntry[] | undefined;
-  go: (v: View) => void;
+  go: (s: Screen) => void;
   openSchedule: (uid: string) => void;
-  openLists: (id: string | null) => void;
+  openList: (id: string | null) => void;
 }) {
   const { me, members } = useFamily();
   const toBuy = (items ?? []).filter((i) => !i.deleted && !i.checked);
@@ -114,13 +114,13 @@ export function Dashboard({
         </div>
       </button>
       <section className="tile lists-tile">
-        <button className="tile-head tile-link" onClick={() => openLists(null)}>
+        <button className="tile-head tile-link" onClick={() => openList(null)}>
           <span className="tile-icon"><Icon name="list" /></span>
           <h2>רשימות</h2>
           {sortedLists.length > 0 && <span className="tile-count">{sortedLists.length}</span>}
         </button>
         {sortedLists.length === 0 ? (
-          <button className="tile-body tile-link muted" onClick={() => openLists(null)}>
+          <button className="tile-body tile-link muted" onClick={() => openList(null)}>
             רשימה לכל דבר: תיק למכון, ציוד לטיול, דברים לטיסה. לחיצה ליצירה
           </button>
         ) : (
@@ -130,7 +130,7 @@ export function Dashboard({
               const done = mine.filter((e) => e.done).length;
               return (
                 <li key={l.id}>
-                  <button onClick={() => openLists(l.id)}>
+                  <button onClick={() => openList(l.id)}>
                     <span aria-hidden="true">{l.emoji}</span>
                     <span className="tile-list-name">{l.title}</span>
                     <span className="muted">{mine.length ? `${done}/${mine.length}` : ''}</span>
@@ -139,7 +139,7 @@ export function Dashboard({
               );
             })}
             {sortedLists.length > 4 && (
-              <li><button className="muted" onClick={() => openLists(null)}>ועוד {sortedLists.length - 4}…</button></li>
+              <li><button className="muted" onClick={() => openList(null)}>ועוד {sortedLists.length - 4}…</button></li>
             )}
           </ul>
         )}
