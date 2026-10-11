@@ -275,18 +275,39 @@ async function main() {
     ok('Dad wrote in the family chat for the daughter; her notification link opens the chat');
     {
       const bubble = dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' });
-      await bubble.getByRole('button', { name: 'עריכת הודעה' }).click();
+      await bubble.getByRole('button', { name: 'אפשרויות להודעה' }).click();
+      await dad.page.getByRole('menuitem', { name: /עריכה/ }).click();
       await dad.page.getByLabel('עריכת ההודעה').fill('ארוחת ערב ב־8');
       await dad.page.locator('.comment-edit').getByRole('button', { name: 'שמירה' }).click();
       await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByText('נערך').waitFor({ timeout: 15000 });
-      assert.equal(await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'עריכת הודעה' }).count(), 0, 'only the author can edit');
+      await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'אפשרויות להודעה' }).click();
+      await kid.page.getByRole('menuitem', { name: /שיתוף/ }).waitFor();
+      assert.equal(await kid.page.getByRole('menuitem', { name: /עריכה/ }).count(), 0, 'only the author can edit');
+      assert.equal(await kid.page.getByRole('menuitem', { name: /מחיקה/ }).count(), 0, 'others cannot delete');
+      await kid.page.keyboard.press('Escape');
+      assert.equal(await kid.page.getByRole('menu').count(), 0, 'Escape closes the menu');
       if (process.env.SCREENSHOT_DIR) {
-        await dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'עריכת הודעה' }).click();
+        await dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'אפשרויות להודעה' }).click();
+        await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-menu.png` });
+        await dad.page.getByRole('menuitem', { name: /עריכה/ }).click();
         await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-edit.png` });
         await dad.page.locator('.comment-edit').getByRole('button', { name: 'ביטול' }).click();
       }
     }
     ok('Dad edited his chat message; the daughter sees the new text marked as edited');
+    {
+      // Sharing on a phone goes through its share sheet (stubbed here to catch what is sent).
+      await dad.page.evaluate(() => {
+        window.__shared = null;
+        navigator.share = async (d) => { window.__shared = d; };
+      });
+      await dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'אפשרויות להודעה' }).click();
+      await dad.page.getByRole('menuitem', { name: /שיתוף/ }).click();
+      await dad.page.waitForFunction(() => window.__shared);
+      assert.equal((await dad.page.evaluate(() => window.__shared)).text, 'dad: ארוחת ערב ב־8', 'shares "author: text"');
+      assert.equal(await dad.page.getByRole('menu').count(), 0, 'the menu closes after choosing');
+      ok('the ⋯ menu shares a message through the phone share sheet, with who wrote it');
+    }
     {
       const size = dad.page.viewportSize();
       await dad.page.setViewportSize({ width: 320, height: size.height });

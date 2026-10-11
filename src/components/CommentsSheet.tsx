@@ -53,6 +53,42 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
   const { familyId, me, members } = useFamily();
   const [draft, setDraft] = useState<string | null>(null);
   const mine = c.authorUid === me.id;
+  const [menu, setMenu] = useState(false);
+  // Near the bottom of the screen the menu opens upwards so the typing box never hides it.
+  const [up, setUp] = useState(false);
+  const openMenu = () => {
+    setUp((menuRef.current?.getBoundingClientRect().top ?? 0) > window.innerHeight * 0.55);
+    setMenu(true);
+  };
+  const press = useRef<number | undefined>(undefined);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const canDelete = mine || me.role === 'admin';
+
+  // A tap anywhere else, or Escape, closes the menu.
+  useEffect(() => {
+    if (!menu) return;
+    const away = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenu(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(false);
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', esc);
+    };
+  }, [menu]);
+
+  // Holding a message opens the same menu, as in WhatsApp.
+  const holdStart = (e: React.PointerEvent) => {
+    if (draft !== null || e.pointerType === 'mouse') return;
+    press.current = window.setTimeout(() => {
+      openMenu();
+      navigator.vibrate?.(10);
+    }, 500);
+  };
+  const holdEnd = () => window.clearTimeout(press.current);
+
   const save = () => {
     if (draft === null) return;
     const t = draft.trim();
@@ -60,22 +96,47 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
     setDraft(null);
   };
   return (
-    <div className={`comment ${mine ? 'mine' : ''}`}>
+    <div
+      className={`comment ${mine ? 'mine' : ''}`}
+      onPointerDown={holdStart}
+      onPointerUp={holdEnd}
+      onPointerCancel={holdEnd}
+      onPointerMove={(e) => (Math.abs(e.movementX) + Math.abs(e.movementY) > 6 ? holdEnd() : undefined)}
+      onContextMenu={(e) => {
+        if (draft !== null) return;
+        e.preventDefault();
+        openMenu();
+      }}
+    >
       <div className="comment-meta">
         <strong>{c.authorName}</strong>
         <span className="muted">
           {c.pending ? 'ממתין לשליחה' : c.createdAt?.toDate().toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
           {c.editedAt !== undefined && ' · נערך'}
         </span>
-        {mine && draft === null && (
-          <button className="link muted" aria-label="עריכת הודעה" onClick={() => setDraft(c.text)}>
-            עריכה
-          </button>
-        )}
-        {(mine || me.role === 'admin') && draft === null && (
-          <button className="link muted" aria-label="מחיקת הודעה" onClick={() => deleteComment(familyId, c.id)}>
-            מחיקה
-          </button>
+        {draft === null && (
+          <div className="msg-menu" ref={menuRef}>
+            <button type="button" className="link muted msg-more" aria-label="אפשרויות להודעה" aria-haspopup="menu" aria-expanded={menu} onClick={() => (menu ? setMenu(false) : openMenu())}>
+              ⋯
+            </button>
+            {menu && (
+              <div className={up ? 'msg-menu-list up' : 'msg-menu-list'} role="menu">
+                <button type="button" role="menuitem" onClick={() => { setMenu(false); shareMessage(c); }}>
+                  <Icon name="whatsapp" size={18} /> שיתוף
+                </button>
+                {mine && (
+                  <button type="button" role="menuitem" onClick={() => { setMenu(false); setDraft(c.text); }}>
+                    ✏️ עריכה
+                  </button>
+                )}
+                {canDelete && (
+                  <button type="button" role="menuitem" className="danger" onClick={() => { setMenu(false); if (window.confirm('למחוק את ההודעה?')) deleteComment(familyId, c.id); }}>
+                    🗑️ מחיקה
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
       {c.image && (
@@ -108,6 +169,32 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
       )}
     </div>
   );
+}
+
+/**
+ * Passes a message on: the phone's share sheet (WhatsApp, with its photo) on
+ * touch devices, WhatsApp with the text ready on a computer.
+ */
+async function shareMessage(c: Comment) {
+  const text = [c.authorName && c.text ? `${c.authorName}: ${c.text}` : c.text].filter(Boolean).join('');
+  const touch = window.matchMedia?.('(pointer: coarse)').matches;
+  if (touch && navigator.share) {
+    try {
+      if (c.image) {
+        const blob = await (await fetch(c.image)).blob();
+        const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], ...(text ? { text } : {}) });
+          return;
+        }
+      }
+      await navigator.share({ text: text || 'תמונה מהצ׳אט המשפחתי' });
+    } catch {
+      /* the person closed the share sheet */
+    }
+    return;
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(text || '📷 תמונה')}`, '_blank', 'noopener');
 }
 
 export function PhotoViewer({ src, onClose }: { src: string; onClose: () => void }) {
