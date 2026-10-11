@@ -280,6 +280,17 @@ async function main() {
       }
     }
     ok('Dad edited his chat message; the daughter sees the new text marked as edited');
+    {
+      const size = dad.page.viewportSize();
+      await dad.page.setViewportSize({ width: 320, height: size.height });
+      const broken = await dad.page.evaluate(() =>
+        [...document.querySelectorAll('.comment-meta > *')]
+          .filter((el) => el.getClientRects().length > 1 || el.getBoundingClientRect().height > parseFloat(getComputedStyle(el).lineHeight || '20') * 1.6 + 8)
+          .map((el) => el.textContent),
+      );
+      await dad.page.setViewportSize(size);
+      assert.deepEqual(broken, [], 'message header text never wraps mid-word');
+    }
     await kid.page.locator('.chat-ref').first().click();
     await kid.page.getByRole('dialog', { name: /תגובות על/ }).waitFor();
     await kid.page.getByRole('dialog').getByLabel('סגירה').click();

@@ -368,7 +368,9 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .comment { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; max-width: 88%; }
 .comment.mine { background: var(--accent-soft); justify-self: end; }
 .comment p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.comment-meta { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+.comment-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; font-size: 0.85rem; }
+/* Name, time and buttons never break mid-word; on a narrow bubble they move to the next line whole. */
+.comment-meta > * { flex: none; white-space: nowrap; }
 .comment-meta .link { min-height: 28px; font-size: 0.8rem; }
 .comment-meta .link:first-of-type { margin-inline-start: auto; }
 .comment-edit { display: grid; gap: 6px; margin-top: 6px; }
