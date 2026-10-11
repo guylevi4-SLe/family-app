@@ -12,6 +12,7 @@ import { ChatView } from './ChatView';
 import { ScheduleSheet } from './ScheduleSheet';
 import { ListsView } from './ListsView';
 import { BirthdaysSheet } from './BirthdaysSheet';
+import { ErrorBoundary } from './ErrorBoundary';
 import { defaultScheduleUid } from '../data/schedules';
 import { Icon, type IconName } from './Icon';
 import { clearBadge, takePendingUrl } from '../push';
@@ -73,6 +74,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [writeError, setWriteError] = useState('');
+
   const [thread, setThread] = useState<{ type: TargetType; id: string; title: string } | null>(null);
 
   // A tapped notification opens the app at /?open=comments&type=…&id=…
@@ -228,6 +230,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           </button>
         )}
 
+        <ErrorBoundary resetKey={view}>
         {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} birthdays={birthdays} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); setView('lists'); }} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
@@ -250,6 +253,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         )}
         {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} />}
         {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} />}
+        </ErrorBoundary>
 
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (

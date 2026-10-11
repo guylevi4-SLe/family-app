@@ -24,6 +24,7 @@ import {
 import { orderedDepartments } from '../data/departments';
 import { useInvites, useMembers, usePendingRequests } from '../data/hooks';
 import { START_KEY, type Screen } from './Home';
+import { lastError } from './ErrorBoundary';
 import { disablePush, enablePush, pushState, type PushState } from '../push';
 import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
@@ -186,6 +187,7 @@ export function FamilySettings({
         <p className="muted small-print version">
           גרסה: {new Date(__BUILD_TIME__).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </p>
+        {lastError() && <p className="muted small-print version crash-detail">תקלה אחרונה: {lastError()}</p>}
       </div>
     </div>
   );

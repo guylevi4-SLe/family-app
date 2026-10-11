@@ -761,3 +761,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .bday-form input, .bday-form select { width: 100%; }
 .bday-date-row { display: grid; grid-template-columns: 0.8fr 1.4fr 1.2fr; gap: 8px; }
 .export-card { gap: 6px; }
+
+.crash { display: grid; gap: 12px; justify-items: center; text-align: center; padding-top: 48px; }
+.crash-detail { font-size: 0.8rem; direction: ltr; }

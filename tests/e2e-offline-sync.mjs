@@ -546,6 +546,24 @@ async function main() {
       await dad.page.getByText('למי:').waitFor();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/tasks.png` });
     }
+    if (process.env.STRESS) {
+      await dad.page.setViewportSize({ width: 1280, height: 800 });
+      await dad.page.reload();
+      await dad.page.getByRole('navigation').waitFor();
+      const errs = [];
+      dad.page.on('pageerror', (e) => errs.push(e.message));
+      const tabs = ['בית', 'קניות', 'יומן', 'רשימות', 'צ׳אט'];
+      for (let i = 0; i < 200; i++) {
+        const t = tabs[Math.floor(Math.random() * tabs.length)];
+        await dad.page.getByRole('navigation').getByRole('button', { name: t }).click();
+        if (t === 'יומן') await dad.page.getByRole('tab', { name: Math.random() < 0.5 ? /^משימות/ : 'לו״ז' }).click();
+        if (t === 'רשימות' && Math.random() < 0.5) await dad.page.locator('.list-card').first().click().catch(() => {});
+        await dad.page.waitForTimeout(Math.random() * 100);
+        const st = await dad.page.evaluate(() => ({ app: !!document.querySelector('.app'), main: document.querySelector('main')?.innerText.length ?? -1 }));
+        if (!st.app || st.main <= 0) console.log('BLANK', i, t, JSON.stringify(st));
+      }
+      console.log('stress errors:', JSON.stringify([...new Set(errs)]));
+    }
     console.log('\nALL CHECKS PASSED');
   } finally {
     await browser.close();
