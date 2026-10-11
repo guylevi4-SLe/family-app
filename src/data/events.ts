@@ -131,11 +131,13 @@ export function dayLabel(date: string) {
 
 // ---------- "add to my calendar" (one-time copy, not a sync) ----------
 
-function toUtcStamp(date: string, time: string) {
-  const [y, m, d] = date.split('-').map(Number);
-  const [hh, mm] = time.split(':').map(Number);
-  const dt = new Date(y, m - 1, d, hh, mm);
-  return dt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+// Event times are Israeli wall-clock times. They are exported as local times in
+// Asia/Jerusalem (not UTC) so calendars show the right zone and weekly repeats
+// keep their hour across the summer/winter clock change.
+const TZ = 'Asia/Jerusalem';
+
+function localStamp(date: string, time: string) {
+  return `${date.replace(/-/g, '')}T${time.replace(':', '')}00`;
 }
 
 function range(e: FamilyEvent) {
@@ -146,7 +148,7 @@ function range(e: FamilyEvent) {
   }
   const [hh, mm] = e.time.split(':').map(Number);
   const endH = String(Math.min(hh + 1, 23)).padStart(2, '0');
-  return { allDay: false, start: toUtcStamp(e.date, e.time), end: toUtcStamp(lastDay(e), `${endH}:${String(mm).padStart(2, '0')}`) };
+  return { allDay: false, start: localStamp(e.date, e.time), end: localStamp(lastDay(e), `${endH}:${String(mm).padStart(2, '0')}`) };
 }
 
 function rrule(e: FamilyEvent) {
@@ -157,6 +159,7 @@ function rrule(e: FamilyEvent) {
 export function googleCalendarLink(e: FamilyEvent, free = true) {
   const r = range(e);
   const params = new URLSearchParams({ action: 'TEMPLATE', text: e.title, dates: `${r.start}/${r.end}` });
+  if (!r.allDay) params.set('ctz', TZ);
   // trp covers timed events, crm covers all-day ones.
   params.set('trp', String(!free));
   params.set('crm', free ? 'AVAILABLE' : 'BUSY');
@@ -165,18 +168,40 @@ export function googleCalendarLink(e: FamilyEvent, free = true) {
   return `https://calendar.google.com/calendar/render?${params}`;
 }
 
-export function downloadIcs(e: FamilyEvent, free = true) {
+// Israel: summer time from the Friday before the last Sunday of March, until the last Sunday of October.
+const JERUSALEM = [
+  'BEGIN:VTIMEZONE',
+  `TZID:${TZ}`,
+  'BEGIN:DAYLIGHT',
+  'DTSTART:19700327T020000',
+  'TZOFFSETFROM:+0200',
+  'TZOFFSETTO:+0300',
+  'TZNAME:IDT',
+  'RRULE:FREQ=YEARLY;BYMONTH=3;BYMONTHDAY=23,24,25,26,27,28,29;BYDAY=FR',
+  'END:DAYLIGHT',
+  'BEGIN:STANDARD',
+  'DTSTART:19701025T020000',
+  'TZOFFSETFROM:+0300',
+  'TZOFFSETTO:+0200',
+  'TZNAME:IST',
+  'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+  'END:STANDARD',
+  'END:VTIMEZONE',
+];
+
+export function icsText(e: FamilyEvent, free = true) {
   const r = range(e);
   const esc = (s: string) => s.replace(/[\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//family-app//HE',
+    ...(r.allDay ? [] : JERUSALEM),
     'BEGIN:VEVENT',
     `UID:${e.id}@family-app`,
     `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')}`,
-    r.allDay ? `DTSTART;VALUE=DATE:${r.start}` : `DTSTART:${r.start}`,
-    r.allDay ? `DTEND;VALUE=DATE:${r.end}` : `DTEND:${r.end}`,
+    r.allDay ? `DTSTART;VALUE=DATE:${r.start}` : `DTSTART;TZID=${TZ}:${r.start}`,
+    r.allDay ? `DTEND;VALUE=DATE:${r.end}` : `DTEND;TZID=${TZ}:${r.end}`,
     `SUMMARY:${esc(e.title)}`,
     `TRANSP:${free ? 'TRANSPARENT' : 'OPAQUE'}`,
     ...(free ? ['X-MICROSOFT-CDO-BUSYSTATUS:FREE'] : []),
@@ -185,7 +210,11 @@ export function downloadIcs(e: FamilyEvent, free = true) {
     'END:VEVENT',
     'END:VCALENDAR',
   ];
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar' });
+  return lines.join('\r\n');
+}
+
+export function downloadIcs(e: FamilyEvent, free = true) {
+  const blob = new Blob([icsText(e, free)], { type: 'text/calendar' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'event.ics';

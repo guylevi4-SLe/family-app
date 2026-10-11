@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/firebase', () => ({ auth: {}, db: {} }));
-import { expandEvents, type FamilyEvent } from '../src/data/events';
+import { expandEvents, googleCalendarLink, icsText, type FamilyEvent } from '../src/data/events';
 
 const base: FamilyEvent = { id: 'e', title: 'שיעור פרטי', date: '2026-10-15', time: '16:00', location: '', people: [], deleted: false, pending: false };
 
@@ -17,5 +17,24 @@ describe('weekly events', () => {
   });
   it('leaves one-off events alone', () => {
     expect(expandEvents([base], '2026-01-01', '2026-02-01')).toEqual([base]);
+  });
+});
+
+describe('calendar export', () => {
+  const lesson = {
+    id: 'e1', title: 'שיעור פרטי', date: '2026-10-15', endDate: '', time: '16:00', location: '', people: [],
+    repeat: 'weekly', repeatUntil: '2026-11-26', deleted: false,
+  } as unknown as FamilyEvent;
+  it('uses Israeli local time with a time zone, not UTC', () => {
+    const ics = icsText(lesson);
+    expect(ics).toContain('DTSTART;TZID=Asia/Jerusalem:20261015T160000');
+    expect(ics).toContain('DTEND;TZID=Asia/Jerusalem:20261015T170000');
+    expect(ics).toContain('BEGIN:VTIMEZONE');
+    expect(ics).toContain('RRULE:FREQ=WEEKLY;UNTIL=20261126T235959Z');
+  });
+  it('google link carries the time zone', () => {
+    const url = new URL(googleCalendarLink(lesson));
+    expect(url.searchParams.get('dates')).toBe('20261015T160000/20261015T170000');
+    expect(url.searchParams.get('ctz')).toBe('Asia/Jerusalem');
   });
 });
