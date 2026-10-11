@@ -266,6 +266,20 @@ async function main() {
     await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' }).locator('.notified', { hasText: 'kid' }).waitFor({ timeout: 15000 });
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat.png` });
     ok('Dad wrote in the family chat for the daughter; her notification link opens the chat');
+    {
+      const bubble = dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' });
+      await bubble.getByRole('button', { name: 'עריכת הודעה' }).click();
+      await dad.page.getByLabel('עריכת ההודעה').fill('ארוחת ערב ב־8');
+      await dad.page.locator('.comment-edit').getByRole('button', { name: 'שמירה' }).click();
+      await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByText('נערך').waitFor({ timeout: 15000 });
+      assert.equal(await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'עריכת הודעה' }).count(), 0, 'only the author can edit');
+      if (process.env.SCREENSHOT_DIR) {
+        await dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'עריכת הודעה' }).click();
+        await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-edit.png` });
+        await dad.page.locator('.comment-edit').getByRole('button', { name: 'ביטול' }).click();
+      }
+    }
+    ok('Dad edited his chat message; the daughter sees the new text marked as edited');
     await kid.page.locator('.chat-ref').first().click();
     await kid.page.getByRole('dialog', { name: /תגובות על/ }).waitFor();
     await kid.page.getByRole('dialog').getByLabel('סגירה').click();

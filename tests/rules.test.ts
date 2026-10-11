@@ -284,7 +284,11 @@ describe('shopping list and comments', () => {
     const c = { targetType: 'item', targetId: 'חלב', text: 'לא צריך!', authorName: 'בת', createdAt: serverTimestamp() };
     await assertSucceeds(setDoc(doc(db('daughter'), 'families', 'levi', 'comments', 'c1'), { ...c, authorUid: 'daughter' }));
     await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'comments', 'c2'), { ...c, authorUid: 'dad' }));
-    await assertFails(updateDoc(doc(db('dad'), 'families', 'levi', 'comments', 'c1'), { text: 'כן צריך' }));
+    await assertFails(updateDoc(doc(db('dad'), 'families', 'levi', 'comments', 'c1'), { text: 'כן צריך', editedAt: serverTimestamp() }));
+    const mine = doc(db('daughter'), 'families', 'levi', 'comments', 'c1');
+    await assertSucceeds(updateDoc(mine, { text: 'בעצם כן צריך', editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(mine, { text: '', editedAt: serverTimestamp() }));
+    await assertFails(updateDoc(mine, { text: 'x', authorName: 'אבא', editedAt: serverTimestamp() }));
     await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'comments', 'c1')));
   });
   it('comments: may carry a small JPEG photo, nothing else', async () => {

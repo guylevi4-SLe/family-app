@@ -369,7 +369,12 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .comment.mine { background: var(--accent-soft); justify-self: end; }
 .comment p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .comment-meta { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-.comment-meta .link { min-height: 28px; font-size: 0.8rem; margin-inline-start: auto; }
+.comment-meta .link { min-height: 28px; font-size: 0.8rem; }
+.comment-meta .link:first-of-type { margin-inline-start: auto; }
+.comment-edit { display: grid; gap: 6px; margin-top: 6px; }
+.comment-edit textarea { width: 100%; min-width: 220px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--surface); resize: vertical; }
+.comment-edit-actions { display: flex; gap: 8px; }
+.comment-edit-actions button { min-height: 38px; }
 .comment-box { position: static; padding: 0; }
 
 /* ---------- add box at the bottom of the shopping list ---------- */

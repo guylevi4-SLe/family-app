@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, type Timestamp } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, type Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -17,6 +17,7 @@ export interface Comment {
   authorUid: string;
   authorName: string;
   createdAt?: Timestamp | null;
+  editedAt?: Timestamp | null;
   pending: boolean;
 }
 
@@ -40,6 +41,14 @@ export function addComment(
     authorUid: u.uid,
     authorName: (u.displayName || u.email || '').split(' ')[0].slice(0, 80),
     createdAt: serverTimestamp(),
+  }).catch(reportWriteError);
+}
+
+/** Authors can fix what they wrote; the bubble then shows "נערך". */
+export function editComment(fid: string, id: string, text: string) {
+  updateDoc(doc(db, 'families', fid, 'comments', id), {
+    text: text.trim().slice(0, 1000),
+    editedAt: serverTimestamp(),
   }).catch(reportWriteError);
 }
 

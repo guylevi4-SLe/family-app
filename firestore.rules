@@ -221,7 +221,9 @@ service cloud.firestore {
           && data().authorUid == me();
         allow update: if isMember(fid) && resource.data.authorUid == me()
           && changedKeys().hasOnly(['text', 'editedAt'])
-          && shortString(data().text, 1000) && data().text.size() > 0;
+          && data().editedAt == request.time
+          && shortString(data().text, 1000)
+          && (data().text.size() > 0 || 'image' in resource.data);
         allow delete: if isMember(fid) && resource.data.authorUid == me() || isAdmin(fid);
       }
     }

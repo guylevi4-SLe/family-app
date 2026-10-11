@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { addComment, deleteComment, shrinkPhoto, type Comment, type TargetType } from '../data/comments';
+import { addComment, deleteComment, editComment, shrinkPhoto, type Comment, type TargetType } from '../data/comments';
 import { useFamily } from './FamilyContext';
 import { Icon } from './Icon';
 
@@ -49,14 +49,28 @@ export function CommentsSheet({
 
 export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: string) => void }) {
   const { familyId, me, members } = useFamily();
+  const [draft, setDraft] = useState<string | null>(null);
+  const mine = c.authorUid === me.id;
+  const save = () => {
+    if (draft === null) return;
+    const t = draft.trim();
+    if (t !== c.text && (t || c.image)) editComment(familyId, c.id, t);
+    setDraft(null);
+  };
   return (
-    <div className={`comment ${c.authorUid === me.id ? 'mine' : ''}`}>
+    <div className={`comment ${mine ? 'mine' : ''}`}>
       <div className="comment-meta">
         <strong>{c.authorName}</strong>
         <span className="muted">
           {c.pending ? 'ממתין לשליחה' : c.createdAt?.toDate().toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          {c.editedAt !== undefined && ' · נערך'}
         </span>
-        {(c.authorUid === me.id || me.role === 'admin') && (
+        {mine && draft === null && (
+          <button className="link muted" aria-label="עריכת הודעה" onClick={() => setDraft(c.text)}>
+            עריכה
+          </button>
+        )}
+        {(mine || me.role === 'admin') && draft === null && (
           <button className="link muted" aria-label="מחיקת הודעה" onClick={() => deleteComment(familyId, c.id)}>
             מחיקה
           </button>
@@ -67,7 +81,26 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
           <img src={c.image} alt="תמונה שצורפה" />
         </button>
       )}
-      {c.text && <p>{c.text}</p>}
+      {draft !== null ? (
+        <div className="comment-edit">
+          <textarea
+            aria-label="עריכת ההודעה"
+            value={draft}
+            maxLength={1000}
+            rows={Math.min(6, Math.max(2, draft.split('\n').length))}
+            autoFocus
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <div className="comment-edit-actions">
+            <button className="primary" disabled={!draft.trim() && !c.image} onClick={save}>
+              שמירה
+            </button>
+            <button onClick={() => setDraft(null)}>ביטול</button>
+          </div>
+        </div>
+      ) : (
+        c.text && <p>{c.text}</p>
+      )}
       {c.notify && c.notify.length > 0 && (
         <span className="notified">🔔 {c.notify.map((u) => members.find((m) => m.id === u)?.displayName.split(' ')[0]).filter(Boolean).join(', ')}</span>
       )}
