@@ -16,6 +16,7 @@ import {
   type ListEntry,
 } from '../data/lists';
 import { useFamily } from './FamilyContext';
+import { Icon } from './Icon';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -326,6 +327,9 @@ function ListDetail({
       })}
 
       <div className="list-tools">
+        <button className="whatsapp" disabled={entries.length === 0} onClick={() => shareList(list, sections)}>
+          <Icon name="whatsapp" size={20} /> שליחת הרשימה לוואטסאפ
+        </button>
         <button disabled={done.length === 0} onClick={() => confirm('לנקות את כל הסימונים ולהתחיל מחדש?') && resetList(familyId, entries)}>
           ↺ ניקוי סימונים
         </button>
@@ -343,4 +347,19 @@ function ListDetail({
       </div>
     </>
   );
+}
+
+/** Text for WhatsApp: the title, then each section; ticked lines get ✅. */
+export function listText(list: FamilyList, sections: { name: string; rows: ListEntry[] }[]) {
+  const lines = [`${list.emoji} *${list.title}*`];
+  for (const sec of sections) {
+    if (sec.rows.length === 0) continue;
+    if (sec.name) lines.push('', `*${sec.name}*`);
+    for (const e of sec.rows) lines.push(`${e.done ? '✅' : '▫️'} ${e.text}`);
+  }
+  return lines.join('\n');
+}
+
+function shareList(list: FamilyList, sections: { name: string; rows: ListEntry[] }[]) {
+  window.open(`https://wa.me/?text=${encodeURIComponent(listText(list, sections))}`, '_blank', 'noopener');
 }

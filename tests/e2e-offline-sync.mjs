@@ -396,6 +396,10 @@ async function main() {
     await lists.getByText('1 מתוך 7 מסומנים').waitFor();
     const gap = await lists.locator('.list-section', { hasText: 'ביגוד' }).locator('.entry').evaluateAll((els) => els[1].getBoundingClientRect().top - els[0].getBoundingClientRect().bottom);
     assert.ok(gap <= 2, `lines sit right under each other (gap ${gap}px)`);
+    await dad.page.evaluate(() => { window.open = (u) => { window.__opened = u; return null; }; });
+    await lists.getByRole('button', { name: 'שליחת הרשימה לוואטסאפ' }).click();
+    const sent = decodeURIComponent(new URL(await dad.page.evaluate(() => window.__opened)).searchParams.get('text'));
+    assert.ok(sent.includes('*ציוד לטיול*') && sent.includes('*ביגוד*') && sent.includes('✅ אוהל') && sent.includes('▫️ משחה'), `WhatsApp text: ${sent}`);
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-detail.png` });
     await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).getByText('1 מתוך 7').waitFor();
