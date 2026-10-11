@@ -695,23 +695,14 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .list-card-main strong { font-size: 1.08rem; }
 .list-card-main .muted { font-size: 0.88rem; }
 .list-emoji { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--accent-soft); font-size: 1.5rem; }
-.list-emoji.big { width: 64px; height: 64px; border-radius: 18px; font-size: 2.1rem; }
 .progress { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
 .progress > span { display: block; height: 100%; border-radius: inherit; background: var(--grad); transition: width 0.25s ease; }
-.list-hero { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 4px 0 6px; }
-.list-hero .progress { width: 100%; max-width: 320px; }
-.list-title { font-size: 1.45rem; }
 .link-plain { border: 0; background: none; padding: 0 4px; min-height: 0; font: inherit; color: inherit; }
 .list-rename { display: flex; gap: 8px; width: 100%; max-width: 360px; }
 .list-rename input { flex: 1; }
 .list-sum { margin: 0; font-size: 0.92rem; }
 .lists-sheet .add-box { position: static; padding: 0; background: none; }
 .lists-sheet .add-box input { flex: 1; min-height: 52px; font-size: 1.05rem; }
-.list-rows { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-.list-rows.done { opacity: 0.85; }
-.list-section { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin: 4px 4px 0; }
-.entry-edit { gap: 6px; padding: 6px 10px; }
-.entry-edit input { flex: 1; min-width: 0; }
 .list-tools { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 6px; }
 .list-tools button { min-height: 42px; }
 .lists-tile { display: grid; gap: 8px; }
@@ -719,3 +710,26 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .tile-lists { list-style: none; margin: 0; padding: 0; display: grid; }
 .tile-lists button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 0 2px; text-align: start; }
 .tile-list-name { flex: 1; font-weight: 600; }
+.list-hero { display: flex; align-items: center; gap: 12px; }
+.list-hero-main { flex: 1; display: grid; gap: 4px; min-width: 0; }
+.list-title { font-size: 1.3rem; }
+.list-target { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -4px; }
+.list-target label { display: flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; }
+.list-target select { min-height: 36px; padding: 0 8px; width: auto; max-width: 45vw; }
+/* Tight, borderless lines so long packing lists fit on screen. */
+.list-section { display: grid; gap: 0; }
+.list-section-head { display: flex; align-items: center; gap: 6px; border-bottom: 2px solid var(--accent-soft); padding: 6px 2px 2px; }
+.list-section-head h3 { flex: 1; font-size: 0.95rem; color: var(--accent); font-weight: 800; }
+.list-section-head .link { min-height: 32px; padding: 0 8px; font-size: 1.1rem; }
+.list-section-empty { margin: 4px 2px; font-size: 0.88rem; }
+.entries { list-style: none; margin: 0; padding: 0; }
+.entry { display: flex; align-items: center; }
+.entry-check { flex: 1; display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 2px 2px; border: 0; border-radius: 8px; background: none; text-align: start; }
+.entry-check .box { width: 20px; height: 20px; border-radius: 6px; font-size: 0.8rem; }
+.entry-check .name { font-size: 1rem; line-height: 1.3; }
+.entry.checked .box { background: var(--grad); border-color: transparent; color: var(--accent-ink); }
+.entry.checked .name { text-decoration: line-through; color: var(--muted); }
+.entry-more { flex: none; min-height: 32px; width: 32px; padding: 0; border: 0; background: none; color: var(--muted); opacity: 0.6; }
+.entry-edit { display: grid; gap: 6px; padding: 6px 0; }
+.entry-edit select { min-height: 38px; }
+.entry-edit-actions { display: flex; gap: 6px; }

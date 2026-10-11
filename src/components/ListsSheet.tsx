@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   LIST_EMOJIS,
   LIST_IDEAS,
   addEntries,
+  changeCategory,
+  moveEntry,
   createList,
   deleteEntry,
   deleteList,
@@ -157,51 +159,88 @@ function ListDetail({
 }) {
   const { familyId } = useFamily();
   const [text, setText] = useState('');
+  const [target, setTarget] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
-  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
-  const todo = entries.filter((e) => !e.done);
+  const [editing, setEditing] = useState<{ id: string; text: string; category: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cats = list.categories ?? [];
+  const catOf = (e: ListEntry) => (e.category && cats.includes(e.category) ? e.category : '');
   const done = entries.filter((e) => e.done);
   const last = entries.reduce((m, e) => Math.max(m, e.order), 0);
+  const sections = ['', ...cats]
+    .map((c) => ({ name: c, rows: entries.filter((e) => catOf(e) === c) }))
+    .filter((sec) => sec.name !== '' || sec.rows.length > 0);
 
   const add = () => {
     if (!text.trim()) return;
-    addEntries(familyId, list.id, text, last);
+    addEntries(familyId, list.id, text, last, cats.includes(target) ? target : '');
     setText('');
   };
+  const addTo = (c: string) => {
+    setTarget(c);
+    inputRef.current?.focus();
+  };
+  const newCategory = () => {
+    const name = prompt('שם הקטגוריה (למשל: ביגוד, רחצה)')?.trim().slice(0, 40);
+    if (!name) return;
+    if (!cats.includes(name)) updateList(familyId, list.id, { categories: [...cats, name] });
+    addTo(name);
+  };
+  const editCategory = (c: string) => {
+    const name = prompt(`שם חדש לקטגוריה "${c}". כדי למחוק אותה, מחקו את השם`, c);
+    if (name === null) return;
+    const t = name.trim().slice(0, 40);
+    if (!t) {
+      if (confirm(`למחוק את הקטגוריה "${c}"? מה שבתוכה יישאר ברשימה, בלי קטגוריה`)) changeCategory(familyId, list, entries, c, null);
+    } else if (t !== c && !cats.includes(t)) changeCategory(familyId, list, entries, c, t);
+  };
   const saveEdit = () => {
-    if (editing && editing.text.trim()) renameEntry(familyId, editing.id, editing.text);
+    if (editing && editing.text.trim()) {
+      const e = entries.find((x) => x.id === editing.id);
+      if (e && editing.text.trim() !== e.text) renameEntry(familyId, e.id, editing.text);
+      if (e && editing.category !== catOf(e)) moveEntry(familyId, e.id, editing.category);
+    }
     setEditing(null);
   };
 
   const row = (e: ListEntry) =>
     editing?.id === e.id ? (
-      <li key={e.id} className="row entry-edit">
+      <li key={e.id} className="entry-edit">
         <input
           aria-label="עריכת שורה"
           value={editing.text}
           maxLength={120}
           autoFocus
-          onChange={(ev) => setEditing({ id: e.id, text: ev.target.value })}
+          onChange={(ev) => setEditing({ ...editing, text: ev.target.value })}
           onKeyDown={(ev) => ev.key === 'Enter' && saveEdit()}
         />
-        <button className="small primary" onClick={saveEdit}>שמירה</button>
-        <button
-          className="small danger"
-          onClick={() => {
-            if (confirm(`למחוק את "${e.text}" מהרשימה?`)) deleteEntry(familyId, e.id);
-            setEditing(null);
-          }}
-        >
-          מחיקה
-        </button>
+        {cats.length > 0 && (
+          <select aria-label="קטגוריה" value={editing.category} onChange={(ev) => setEditing({ ...editing, category: ev.target.value })}>
+            <option value="">בלי קטגוריה</option>
+            {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
+        <div className="entry-edit-actions">
+          <button className="small primary" onClick={saveEdit}>שמירה</button>
+          <button className="small" onClick={() => setEditing(null)}>ביטול</button>
+          <button
+            className="small danger"
+            onClick={() => {
+              if (confirm(`למחוק את "${e.text}" מהרשימה?`)) deleteEntry(familyId, e.id);
+              setEditing(null);
+            }}
+          >
+            מחיקה
+          </button>
+        </div>
       </li>
     ) : (
-      <li key={e.id} className={`row ${e.done ? 'checked' : ''}`}>
-        <button className="check-area" aria-pressed={e.done} onClick={() => setEntryDone(familyId, e.id, !e.done)}>
+      <li key={e.id} className={`entry ${e.done ? 'checked' : ''}`}>
+        <button className="entry-check" aria-pressed={e.done} onClick={() => setEntryDone(familyId, e.id, !e.done)}>
           <span className="box" aria-hidden="true">{e.done ? '✓' : ''}</span>
           <span className="name">{e.text}</span>
         </button>
-        <button className="icon-button edit" aria-label={`עריכת ${e.text}`} onClick={() => setEditing({ id: e.id, text: e.text })}>
+        <button className="entry-more" aria-label={`עריכת ${e.text}`} onClick={() => setEditing({ id: e.id, text: e.text, category: catOf(e) })}>
           ✎
         </button>
       </li>
@@ -217,46 +256,74 @@ function ListDetail({
       </div>
 
       <div className="list-hero">
-        <span className="list-emoji big" aria-hidden="true">{list.emoji}</span>
-        {renaming !== null ? (
-          <form
-            className="list-rename"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (renaming.trim()) updateList(familyId, list.id, { title: renaming.trim().slice(0, 60) });
-              setRenaming(null);
-            }}
-          >
-            <input aria-label="שם הרשימה" value={renaming} maxLength={60} autoFocus onChange={(e) => setRenaming(e.target.value)} />
-            <button className="small primary">שמירה</button>
-          </form>
-        ) : (
-          <h2 className="list-title">
-            <button className="link-plain" aria-label="שינוי שם הרשימה" onClick={() => setRenaming(list.title)}>
-              {list.title}
-            </button>
-          </h2>
-        )}
-        <p className="muted list-sum">
-          {entries.length === 0 ? 'אין עדיין שורות' : done.length === entries.length ? `הכול מסומן ✓ ${entries.length} מתוך ${entries.length}` : `${done.length} מתוך ${entries.length} מסומנים`}
-        </p>
-        {entries.length > 0 && <Progress done={done.length} total={entries.length} />}
+        <span className="list-emoji" aria-hidden="true">{list.emoji}</span>
+        <div className="list-hero-main">
+          {renaming !== null ? (
+            <form
+              className="list-rename"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (renaming.trim()) updateList(familyId, list.id, { title: renaming.trim().slice(0, 60) });
+                setRenaming(null);
+              }}
+            >
+              <input aria-label="שם הרשימה" value={renaming} maxLength={60} autoFocus onChange={(e) => setRenaming(e.target.value)} />
+              <button className="small primary">שמירה</button>
+            </form>
+          ) : (
+            <h2 className="list-title">
+              <button className="link-plain" aria-label="שינוי שם הרשימה" onClick={() => setRenaming(list.title)}>
+                {list.title}
+              </button>
+            </h2>
+          )}
+          <p className="muted list-sum">
+            {entries.length === 0 ? 'אין עדיין שורות' : done.length === entries.length ? `הכול מסומן ✓ ${entries.length} מתוך ${entries.length}` : `${done.length} מתוך ${entries.length} מסומנים`}
+          </p>
+          {entries.length > 0 && <Progress done={done.length} total={entries.length} />}
+        </div>
       </div>
 
       <form className="add-box list-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <input value={text} placeholder="מה להוסיף? אפשר כמה, עם פסיק" aria-label="הוספת שורות" enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
+        <input ref={inputRef} value={text} placeholder="מה להוסיף? אפשר כמה, עם פסיק" aria-label="הוספת שורות" enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
         <button className="primary add-button" aria-label="הוספה לרשימה" disabled={!text.trim()}>
           +
         </button>
       </form>
+      <div className="list-target">
+        {cats.length > 0 && (
+          <label>
+            <span className="muted">מוסיפים ל:</span>
+            <select aria-label="להוסיף לקטגוריה" value={cats.includes(target) ? target : ''} onChange={(e) => setTarget(e.target.value)}>
+              <option value="">בלי קטגוריה</option>
+              {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+        )}
+        <button type="button" className="link" onClick={newCategory}>+ קטגוריה</button>
+      </div>
 
-      {todo.length > 0 && <ul className="list-rows">{todo.map(row)}</ul>}
-      {done.length > 0 && (
-        <>
-          <h3 className="list-section">מסומנים ({done.length})</h3>
-          <ul className="list-rows done">{done.map(row)}</ul>
-        </>
-      )}
+      {sections.map((sec) => {
+        const todo = sec.rows.filter((e) => !e.done);
+        const ticked = sec.rows.filter((e) => e.done);
+        return (
+          <section key={sec.name || '-'} className="list-section">
+            {sec.name && (
+              <div className="list-section-head">
+                <h3>{sec.name}</h3>
+                <span className="muted">{sec.rows.length ? `${ticked.length}/${sec.rows.length}` : ''}</span>
+                <button className="link" aria-label={`הוספה ל${sec.name}`} onClick={() => addTo(sec.name)}>+</button>
+                <button className="link muted" aria-label={`עריכת הקטגוריה ${sec.name}`} onClick={() => editCategory(sec.name)}>✎</button>
+              </div>
+            )}
+            {sec.rows.length === 0 ? (
+              <p className="muted list-section-empty">ריקה. לחיצה על + כדי להוסיף לכאן</p>
+            ) : (
+              <ul className="entries">{[...todo, ...ticked].map(row)}</ul>
+            )}
+          </section>
+        );
+      })}
 
       <div className="list-tools">
         <button disabled={done.length === 0} onClick={() => confirm('לנקות את כל הסימונים ולהתחיל מחדש?') && resetList(familyId, entries)}>

@@ -197,16 +197,18 @@ service cloud.firestore {
       match /lists/{listId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['title', 'emoji', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && onlyKeys(['title', 'emoji', 'categories', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
           && shortString(data().title, 60) && data().title.size() > 0
           && shortString(data().emoji, 16)
+          && (!('categories' in data()) || (data().categories is list && data().categories.size() <= 30))
           && data().updatedBy == me();
         allow delete: if isMember(fid);
       }
       match /listEntries/{entryId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['listId', 'text', 'done', 'order', 'updatedAt', 'updatedBy'])
+          && onlyKeys(['listId', 'text', 'done', 'order', 'category', 'updatedAt', 'updatedBy'])
+          && (!('category' in data()) || shortString(data().category, 40))
           && shortString(data().listId, 64)
           && exists(/databases/$(database)/documents/families/$(fid)/lists/$(data().listId))
           && shortString(data().text, 120) && data().text.size() > 0

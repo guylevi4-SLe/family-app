@@ -7,6 +7,8 @@ export interface FamilyList {
   id: string;
   title: string;
   emoji: string;
+  /** Section names in order ("ביגוד", "רחצה"); lines without one show first. */
+  categories?: string[];
   createdBy: string;
   createdAt?: Timestamp | null;
   pending: boolean;
@@ -18,6 +20,7 @@ export interface ListEntry {
   text: string;
   done: boolean;
   order: number;
+  category?: string;
   pending: boolean;
 }
 
@@ -48,7 +51,7 @@ export function createList(fid: string, title: string, emoji: string) {
   return ref.id;
 }
 
-export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji'>>) {
+export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories'>>) {
   updateDoc(doc(listsCol(fid), id), { ...fields, ...stamp() }).catch(reportWriteError);
 }
 
@@ -61,11 +64,25 @@ export function deleteList(fid: string, id: string, entries: ListEntry[]) {
 }
 
 /** Adds one line per comma or new line, after the existing ones. */
-export function addEntries(fid: string, listId: string, text: string, after: number) {
+export function addEntries(fid: string, listId: string, text: string, after: number, category = '') {
   const parts = text.split(/[\n,]/).map((t) => t.trim()).filter(Boolean);
   parts.forEach((t, i) =>
-    setDoc(doc(entriesCol(fid)), { listId, text: t.slice(0, 120), done: false, order: after + i + 1, ...stamp() }).catch(reportWriteError),
+    setDoc(doc(entriesCol(fid)), { listId, text: t.slice(0, 120), done: false, order: after + i + 1, category, ...stamp() }).catch(reportWriteError),
   );
+}
+
+export function moveEntry(fid: string, id: string, category: string) {
+  updateDoc(doc(entriesCol(fid), id), { category, ...stamp() }).catch(reportWriteError);
+}
+
+/** Renames a section, or removes it (newName null) and moves its lines to the top, unsectioned. */
+export function changeCategory(fid: string, list: FamilyList, entries: ListEntry[], oldName: string, newName: string | null) {
+  const b = writeBatch(db);
+  const cats = list.categories ?? [];
+  const next = newName === null ? cats.filter((c) => c !== oldName) : cats.map((c) => (c === oldName ? newName : c));
+  b.update(doc(listsCol(fid), list.id), { categories: next, ...stamp() });
+  for (const e of entries) if ((e.category ?? '') === oldName) b.update(doc(entriesCol(fid), e.id), { category: newName ?? '', ...stamp() });
+  b.commit().catch(reportWriteError);
 }
 
 export function setEntryDone(fid: string, id: string, done: boolean) {
