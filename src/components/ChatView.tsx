@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { addComment, CHAT_ID, deleteComment, type Comment, type TargetType } from '../data/comments';
-import { addItems, parseItems, type Item } from '../data/items';
-import { addTask, type Task } from '../data/tasks';
+import { addItems, parseItems, updateItem, type Item } from '../data/items';
+import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
-import { addEntries, createList, deleteList, type FamilyList, type ListEntry } from '../data/lists';
-import { COMMANDS, expandCommand, findList, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
+import { addEntries, createList, deleteEntry, deleteList, restoreEntry, type FamilyList, type ListEntry } from '../data/lists';
+import { COMMANDS, expandCommand, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
 import { byTime, CommentBubble, Composer, PhotoViewer } from './CommentsSheet';
@@ -66,11 +66,64 @@ export function ChatView({
     const firstName = (uid: string) => members.find((m) => m.id === uid)?.displayName.split(' ')[0] ?? '';
 
     if (cmd.kind === 'shop') {
-      const parsed = parseItems(cmd.body);
-      if (!parsed.length) return fail('לא זיהיתי מוצרים.');
-      addItems(familyId, parsed, new Map((items ?? []).map((i) => [i.id, i])), overrides);
-      say(`🛒 לקניות: ${parsed.map((p) => (p.qty ? `${p.name} (${p.qty})` : p.name)).join(', ')}`);
-      setNotice({ ok: true, text: parsed.length === 1 ? `נוסף לקניות: ${parsed[0].name}` : `נוספו ${parsed.length} מוצרים לקניות`, open: () => go('list') });
+      const { add, remove } = splitRemovals(cmd.body);
+      const parsed = parseItems(add);
+      if (!parsed.length && !remove.length) return fail('לא זיהיתי מוצרים.');
+      const onList = (items ?? []).filter((i) => !i.checked && !i.deleted);
+      const { found, missing } = pick(remove, onList, (i) => i.name);
+      if (!parsed.length && !found.length) return fail(`${missing.join(', ')} לא ברשימת הקניות.`);
+      if (parsed.length) addItems(familyId, parsed, new Map((items ?? []).map((i) => [i.id, i])), overrides);
+      for (const i of found) updateItem(familyId, i.id, { deleted: true });
+      const line = say(
+        [
+          parsed.length && `🛒 לקניות: ${parsed.map((p) => (p.qty ? `${p.name} (${p.qty})` : p.name)).join(', ')}`,
+          found.length && `🗑️ הוסר מהקניות: ${found.map((i) => i.name).join(', ')}`,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+      );
+      const text = [
+        parsed.length === 1 ? `נוסף לקניות: ${parsed[0].name}` : parsed.length ? `נוספו ${parsed.length} מוצרים לקניות` : '',
+        found.length ? `הוסר: ${found.map((i) => i.name).join(', ')}` : '',
+        missing.length ? `לא נמצא ברשימה: ${missing.join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      setNotice({
+        ok: true,
+        text,
+        open: () => go('list'),
+        // Undo is offered when the command only removed, so it never half-reverts a mix.
+        undo:
+          found.length && !parsed.length
+            ? () => {
+                for (const i of found) updateItem(familyId, i.id, { deleted: false });
+                deleteComment(familyId, line);
+                setNotice({ ok: true, text: `הוחזר לקניות: ${found.map((i) => i.name).join(', ')}` });
+              }
+            : undefined,
+      });
+      return 'done';
+    }
+
+    if (cmd.kind === 'task' && /^[-−–]/.test(cmd.body)) {
+      const { remove } = splitRemovals(cmd.body);
+      const open = (tasks ?? []).filter((t) => !t.done && !t.deleted);
+      const { found, missing } = pick(remove, open, (t) => t.title);
+      if (!found.length) return fail(`לא מצאתי משימה פתוחה בשם ${missing.join(', ')}.`);
+      for (const t of found) updateTask(familyId, t.id, { done: true });
+      const names = found.map((t) => t.title).join(', ');
+      const line = say(`☑️ בוצע: ${names}`);
+      setNotice({
+        ok: true,
+        text: `סומן כבוצע: ${names}${missing.length ? ` · לא נמצא: ${missing.join(', ')}` : ''}`,
+        open: () => go('tasks'),
+        undo: () => {
+          for (const t of found) updateTask(familyId, t.id, { done: false });
+          deleteComment(familyId, line);
+          setNotice({ ok: true, text: `המשימה חזרה לפתוחות: ${names}` });
+        },
+      });
       return 'done';
     }
 
@@ -108,6 +161,35 @@ export function ChatView({
     const parts = splitListCommand(cmd.body);
     if (!parts) return fail('כותבים את שם הרשימה, נקודתיים, ואז הפריטים.');
     const existing = findList(lists ?? [], parts.listName);
+    const { add, remove } = splitRemovals(parts.items);
+    if (remove.length) {
+      if (!existing) return fail(`לא מצאתי רשימה בשם "${parts.listName}".`);
+      const inList = (listEntries ?? []).filter((e) => e.listId === existing.id);
+      const { found, missing } = pick(remove, inList, (e) => e.text);
+      if (!found.length) return fail(`${missing.join(', ')} לא ברשימה "${existing.title}".`);
+      for (const e of found) deleteEntry(familyId, e.id);
+      const last = Math.max(0, ...inList.map((e) => e.order));
+      const added = add ? addEntries(familyId, existing.id, add, last) : [];
+      const names = found.map((e) => e.text).join(', ');
+      const line = say(
+        `📋 "${existing.title}": ${[add && `נוסף ${add}`, `הוסר ${names}`].filter(Boolean).join(' · ')}`,
+      );
+      setNotice({
+        ok: true,
+        text: [added.length && `נוספו ${added.length}`, `הוסר מ"${existing.title}": ${names}`, missing.length && `לא נמצא: ${missing.join(', ')}`]
+          .filter(Boolean)
+          .join(' · '),
+        open: () => openList(existing.id),
+        undo: added.length
+          ? undefined
+          : () => {
+              for (const e of found) restoreEntry(familyId, e);
+              deleteComment(familyId, line);
+              setNotice({ ok: true, text: `הוחזר ל"${existing.title}": ${names}` });
+            },
+      });
+      return 'done';
+    }
     const listId = existing?.id ?? createList(familyId, parts.listName, '📋');
     const last = Math.max(0, ...(listEntries ?? []).filter((e) => e.listId === listId).map((e) => e.order));
     const ids = addEntries(familyId, listId, parts.items, last);
@@ -192,4 +274,16 @@ interface Notice {
   text: string;
   open?: () => void;
   undo?: () => void;
+}
+
+/** The rows named in `names`, and the names that matched nothing. */
+function pick<T>(names: string[], rows: T[], nameOf: (r: T) => string) {
+  const found: T[] = [];
+  const missing: string[] = [];
+  for (const n of names) {
+    const r = findByName(rows, n, nameOf);
+    if (r && !found.includes(r)) found.push(r);
+    else if (!r) missing.push(n);
+  }
+  return { found, missing };
 }

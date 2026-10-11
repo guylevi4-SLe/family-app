@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/firebase', () => ({ auth: {}, db: {} }));
-import { expandCommand, findList, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../src/data/commands';
+import { expandCommand, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../src/data/commands';
 
 // Sunday 11 October 2026.
 const today = new Date(2026, 9, 11);
@@ -108,5 +108,25 @@ describe('lists', () => {
   it('does not guess a different list', () => {
     expect(findList(lists, 'ציוד לסקי')).toBeNull();
     expect(findList(lists, 'ים')).toBeNull();
+  });
+});
+
+describe('removing with a minus', () => {
+  it('splits additions from removals', () => {
+    expect(splitRemovals('במבה, -חלב, - ביצים')).toEqual({ add: 'במבה', remove: ['חלב', 'ביצים'] });
+    expect(splitRemovals('-חלב')).toEqual({ add: '', remove: ['חלב'] });
+    expect(splitRemovals('כוסות חד-פעמיות')).toEqual({ add: 'כוסות חד-פעמיות', remove: [] });
+  });
+
+  const rows = [{ n: 'חלב 3%' }, { n: 'ביצים' }, { n: 'לחם אחיד' }, { n: 'לחם פרוס' }, { n: 'שמן זית' }];
+  const find = (name: string) => findByName(rows, name, (r) => r.n)?.n ?? null;
+  it.each([
+    ['ביצים', 'ביצים'],
+    ['חלב', 'חלב 3%'],
+    ['זית', 'שמן זית'],
+    ['לחם', null],
+    ['גבינה', null],
+  ])('"%s" → %s', (name, found) => {
+    expect(find(name)).toBe(found);
   });
 });

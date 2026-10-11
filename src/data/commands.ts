@@ -181,3 +181,43 @@ export function findList<T extends { title: string }>(lists: T[], name: string):
   const close = lists.filter((l) => distance(listKey(l.title), k) <= 1);
   return close.length === 1 ? close[0] : null;
 }
+
+// ---------- removing with a minus ("@קניות: במבה, -חלב") ----------
+
+/** Splits lines written with a leading minus (to remove) from the rest (to add). */
+export function splitRemovals(text: string): { add: string; remove: string[] } {
+  const add: string[] = [];
+  const remove: string[] = [];
+  for (const raw of text.split(/[\n,،;]+/)) {
+    const part = raw.trim();
+    const m = part.match(/^[-−–]\s*(.+)$/);
+    if (m) remove.push(m[1].trim());
+    else if (part) add.push(part);
+  }
+  return { add: add.join(', '), remove };
+}
+
+const plain = (s: string) =>
+  s
+    .replace(/[֑-ׇ]/g, '')
+    .replace(/["'״׳`]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
+/**
+ * The one row the person named: the same name, else the only row whose name
+ * starts with it ("חלב" → "חלב 3%"), else the only one containing it as a word.
+ * Null when nothing fits or the name is ambiguous.
+ */
+export function findByName<T>(rows: T[], name: string, nameOf: (r: T) => string): T | null {
+  const k = plain(name);
+  if (!k) return null;
+  const exact = rows.filter((r) => plain(nameOf(r)) === k);
+  if (exact.length) return exact[0];
+  const starts = rows.filter((r) => plain(nameOf(r)).startsWith(`${k} `));
+  if (starts.length === 1) return starts[0];
+  if (starts.length > 1) return null;
+  const words = rows.filter((r) => ` ${plain(nameOf(r))} `.includes(` ${k} `));
+  return words.length === 1 ? words[0] : null;
+}

@@ -105,3 +105,15 @@ export function resetList(fid: string, entries: ListEntry[]) {
   for (const e of entries) if (e.done) b.update(doc(entriesCol(fid), e.id), { done: false, ...stamp() });
   b.commit().catch(reportWriteError);
 }
+
+/** Puts back a line removed by mistake (same id, so the undo is exact). */
+export function restoreEntry(fid: string, e: ListEntry) {
+  setDoc(doc(entriesCol(fid), e.id), {
+    listId: e.listId,
+    text: e.text,
+    done: e.done,
+    order: e.order,
+    category: e.category ?? '',
+    ...stamp(),
+  }).catch(reportWriteError);
+}

@@ -380,6 +380,31 @@ async function main() {
       await p.getByRole('navigation').getByRole('button', { name: 'קניות' }).click();
       await p.getByText('במבה').first().waitFor();
       await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+
+      await send('@קניות: -במבה');
+      await notice.filter({ hasText: 'הוסר: במבה' }).waitFor();
+      await notice.getByRole('button', { name: 'ביטול' }).click();
+      await notice.filter({ hasText: 'הוחזר לקניות: במבה' }).waitFor();
+      await p.waitForTimeout(500);
+      await send('@קניות: -גבינה');
+      await notice.filter({ hasText: 'גבינה לא ברשימת הקניות' }).waitFor();
+      assert.equal(await box.inputValue(), '@קניות: -גבינה', 'removing something not on the list stays in the box');
+      await send('@קניות: -במבה');
+      await notice.filter({ hasText: 'הוסר: במבה' }).waitFor();
+      await p.locator('.comment', { hasText: '🗑️ הוסר מהקניות: במבה' }).waitFor();
+      await p.getByRole('navigation').getByRole('button', { name: 'קניות' }).click();
+      await p.getByText('חלב').first().waitFor();
+      assert.equal(await p.locator('main').getByText('במבה', { exact: true }).count(), 0, 'במבה left the shopping list');
+      await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+      ok('"@קניות: -במבה" removes from shopping, with undo; an unknown product is explained');
+
+      await send('@משימה: -להחליף נורה');
+      await notice.filter({ hasText: 'סומן כבוצע: להחליף נורה' }).waitFor();
+      await send('@רשימה: ציוד סקי: -משקפת');
+      await notice.filter({ hasText: 'הוסר מ"ציוד לסקי": משקפת' }).waitFor();
+      await notice.getByRole('button', { name: 'ביטול' }).click();
+      await notice.filter({ hasText: 'הוחזר ל"ציוד לסקי": משקפת' }).waitFor();
+      ok('a minus also ticks off a task and removes a list line (with undo)');
     }
 
     step('Swipe between screens');
