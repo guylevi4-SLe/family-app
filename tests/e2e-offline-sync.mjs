@@ -305,6 +305,25 @@ async function main() {
     const overflow = await kid.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     assert.ok(overflow <= 1, 'chat page has no sideways scroll');
 
+    {
+      // Newer desktop browsers return a promise from scrollIntoView; an effect that
+      // hands it back to React crashed the screen when leaving the chat.
+      await kid.page.evaluate(() => {
+        const orig = Element.prototype.scrollIntoView;
+        Element.prototype.scrollIntoView = function (...a) {
+          orig.apply(this, a);
+          return Promise.resolve();
+        };
+      });
+      await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+      await kid.page.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+      await kid.page.locator('.chat-compose').waitFor();
+      await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+      await kid.page.waitForTimeout(300);
+      assert.equal(await kid.page.locator('.crash').count(), 0, 'leaving the chat never crashes the screen');
+      ok('leaving the chat is safe where scrolling returns a promise');
+    }
+
     step('Swipe between screens');
     {
       const cdp = await kid.page.context().newCDPSession(kid.page);

@@ -22,7 +22,9 @@ export function CommentsSheet({
   const endRef = useRef<HTMLDivElement>(null);
   const list = comments.filter((c) => c.targetType === type && c.targetId === targetId).sort(byTime);
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [list.length]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [list.length]);
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>

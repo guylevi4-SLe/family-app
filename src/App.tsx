@@ -65,7 +65,9 @@ export function App() {
   // The local cache can still hold a membership that was revoked, so when a
   // read is denied, ask the server directly.
   const [revoked, setRevoked] = useState(false);
-  useEffect(() => setRevoked(false), [familyId]);
+  useEffect(() => {
+    setRevoked(false);
+  }, [familyId]);
   useEffect(() => {
     if (!user || !familyId || !membership) return;
     const recheck = () =>

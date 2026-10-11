@@ -28,7 +28,9 @@ export function ChatView({
   const endRef = useRef<HTMLDivElement>(null);
   const list = [...(comments ?? [])].sort(byTime);
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [list.length]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [list.length]);
 
   const titleOf = (c: Comment) => {
     const rows: { id: string; name?: string; title?: string }[] =
