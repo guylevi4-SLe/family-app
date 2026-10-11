@@ -193,6 +193,29 @@ service cloud.firestore {
         allow delete: if isMember(fid);
       }
 
+      // ---------- checklists ("תיק למכון") and their lines ----------
+      match /lists/{listId} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['title', 'emoji', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && shortString(data().title, 60) && data().title.size() > 0
+          && shortString(data().emoji, 16)
+          && data().updatedBy == me();
+        allow delete: if isMember(fid);
+      }
+      match /listEntries/{entryId} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['listId', 'text', 'done', 'order', 'updatedAt', 'updatedBy'])
+          && shortString(data().listId, 64)
+          && exists(/databases/$(database)/documents/families/$(fid)/lists/$(data().listId))
+          && shortString(data().text, 120) && data().text.size() > 0
+          && data().done is bool
+          && data().order is number
+          && data().updatedBy == me();
+        allow delete: if isMember(fid);
+      }
+
       // ---------- weekly timetables: one image per member ----------
       match /schedules/{uid} {
         allow read: if isMember(fid);

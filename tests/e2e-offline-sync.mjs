@@ -361,6 +361,38 @@ async function main() {
     await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('heading', { name: /של kid/ }).waitFor();
     await dad.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('Dad sees the children\'s timetable on his own home screen too');
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
+    await dad.page.getByRole('button', { name: '📚 מערכת שעות' }).click();
+    await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('heading', { name: /של kid/ }).waitFor();
+    assert.equal(await dad.page.getByRole('group', { name: 'של מי' }).locator('[aria-pressed=true]').innerText().then((t) => t.includes('kid')), true, 'only the daughter is selected');
+    await dad.page.getByRole('dialog').getByLabel('סגירה').click();
+    ok('from the calendar, the timetable opens on the only member who has one');
+
+    step('Checklists');
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+    await dad.page.locator('.lists-tile').getByRole('button').first().click();
+    const lists = dad.page.getByRole('dialog', { name: 'רשימות' });
+    await lists.getByRole('button', { name: '+ רשימה חדשה' }).click();
+    await lists.getByRole('group', { name: 'רעיונות' }).getByRole('button', { name: /ציוד לטיול/ }).click();
+    await lists.getByRole('button', { name: 'יצירת הרשימה' }).click();
+    await lists.getByLabel('הוספת שורות').fill('אוהל, שק שינה, פנס, בקבוק מים');
+    await lists.getByLabel('הוספת שורות').press('Enter');
+    await lists.locator('.row', { hasText: 'בקבוק מים' }).waitFor();
+    await lists.locator('.row', { hasText: 'פנס' }).locator('.check-area').click();
+    await lists.getByText('1 מתוך 4 מסומנים').waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-detail.png` });
+    await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
+    await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).getByText('1 מתוך 4').waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/lists.png` });
+    await lists.getByLabel('סגירה').click();
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+    await kid.page.locator('.lists-tile').getByRole('button', { name: /ציוד לטיול/ }).click();
+    await kid.page.getByRole('dialog', { name: 'רשימות' }).locator('.row.checked', { hasText: 'פנס' }).waitFor({ timeout: 10000 });
+    await kid.page.getByRole('dialog', { name: 'רשימות' }).getByRole('button', { name: '↺ ניקוי סימונים' }).click();
+    await kid.page.getByRole('dialog', { name: 'רשימות' }).getByText('0 מתוך 4 מסומנים').waitFor();
+    await kid.page.getByRole('dialog', { name: 'רשימות' }).getByLabel('סגירה').click();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-lists.png`, fullPage: true });
+    ok('Dad made a trip packing list; the daughter opens it from home and resets the ticks');
 
     await dad.page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();

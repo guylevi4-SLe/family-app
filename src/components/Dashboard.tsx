@@ -4,22 +4,29 @@ import { dayLabel, expandEvents, lastDay, untilLabel, isoDate, type FamilyEvent 
 import { memberName, useFamily } from './FamilyContext';
 import type { View } from './Home';
 import { Icon } from './Icon';
-import type { Schedule } from '../data/schedules';
+import { defaultScheduleUid, type Schedule } from '../data/schedules';
+import type { FamilyList, ListEntry } from '../data/lists';
 
 export function Dashboard({
   items,
   tasks,
   events,
   schedules,
+  lists,
+  listEntries,
   go,
   openSchedule,
+  openLists,
 }: {
   items: Item[] | undefined;
   tasks: Task[] | undefined;
   events: FamilyEvent[] | undefined;
   schedules: Schedule[] | undefined;
+  lists: FamilyList[] | undefined;
+  listEntries: ListEntry[] | undefined;
   go: (v: View) => void;
   openSchedule: (uid: string) => void;
+  openLists: (id: string | null) => void;
 }) {
   const { me, members } = useFamily();
   const toBuy = (items ?? []).filter((i) => !i.deleted && !i.checked);
@@ -33,7 +40,8 @@ export function Dashboard({
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
 
   const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
-  const shown = live.find((s) => s.id === me.id) ?? live[0];
+  const shown = live.find((s) => s.id === defaultScheduleUid(schedules, members.map((m) => m.id), me.id));
+  const sortedLists = [...(lists ?? [])].sort((a, b) => a.title.localeCompare(b.title, 'he'));
   const others = live.filter((s) => s.id !== me.id).map((s) => memberName(members, s.id));
 
   return (
@@ -105,6 +113,37 @@ export function Dashboard({
           )}
         </div>
       </button>
+      <section className="tile lists-tile">
+        <button className="tile-head tile-link" onClick={() => openLists(null)}>
+          <span className="tile-icon"><Icon name="list" /></span>
+          <h2>רשימות</h2>
+          {sortedLists.length > 0 && <span className="tile-count">{sortedLists.length}</span>}
+        </button>
+        {sortedLists.length === 0 ? (
+          <button className="tile-body tile-link muted" onClick={() => openLists(null)}>
+            רשימה לכל דבר: תיק למכון, ציוד לטיול, דברים לטיסה. לחיצה ליצירה
+          </button>
+        ) : (
+          <ul className="tile-lists">
+            {sortedLists.slice(0, 4).map((l) => {
+              const mine = (listEntries ?? []).filter((e) => e.listId === l.id);
+              const done = mine.filter((e) => e.done).length;
+              return (
+                <li key={l.id}>
+                  <button onClick={() => openLists(l.id)}>
+                    <span aria-hidden="true">{l.emoji}</span>
+                    <span className="tile-list-name">{l.title}</span>
+                    <span className="muted">{mine.length ? `${done}/${mine.length}` : ''}</span>
+                  </button>
+                </li>
+              );
+            })}
+            {sortedLists.length > 4 && (
+              <li><button className="muted" onClick={() => openLists(null)}>ועוד {sortedLists.length - 4}…</button></li>
+            )}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }

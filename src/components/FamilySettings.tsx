@@ -305,7 +305,7 @@ async function exportFamily(familyId: string) {
     exportedAt: new Date().toISOString(),
     family: { id: familyId, ...family.data() },
   };
-  for (const sub of ['members', 'items', 'tasks', 'events', 'categoryOverrides', 'comments', 'schedules']) {
+  for (const sub of ['members', 'items', 'tasks', 'events', 'categoryOverrides', 'comments', 'schedules', 'lists', 'listEntries']) {
     const snap = await getDocs(collection(db, ...base, sub));
     out[sub] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }

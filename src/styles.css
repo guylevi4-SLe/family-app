@@ -680,3 +680,42 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .topbar h1.with-logo { display: flex; align-items: center; gap: 10px; }
 .title-logo { width: 1.05em; height: 1.05em; border-radius: 22%; flex: none; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .version { text-align: center; }
+
+/* ---------- checklists (רשימות) ---------- */
+.lists-sheet { gap: 12px; }
+.lists-sheet .back { min-height: 40px; font-weight: 600; }
+.new-list { min-height: 52px; font-size: 1.05rem; }
+.list-new input.full { width: 100%; }
+.emoji-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.emoji-pick button { min-height: 42px; width: 42px; padding: 0; font-size: 1.3rem; border-radius: 12px; }
+.emoji-pick button.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent); }
+.list-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.list-card { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 76px; border-radius: var(--radius); background: var(--surface); text-align: start; box-shadow: var(--shadow); }
+.list-card-main { flex: 1; display: grid; gap: 4px; min-width: 0; }
+.list-card-main strong { font-size: 1.08rem; }
+.list-card-main .muted { font-size: 0.88rem; }
+.list-emoji { flex: none; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--accent-soft); font-size: 1.5rem; }
+.list-emoji.big { width: 64px; height: 64px; border-radius: 18px; font-size: 2.1rem; }
+.progress { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.progress > span { display: block; height: 100%; border-radius: inherit; background: var(--grad); transition: width 0.25s ease; }
+.list-hero { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 4px 0 6px; }
+.list-hero .progress { width: 100%; max-width: 320px; }
+.list-title { font-size: 1.45rem; }
+.link-plain { border: 0; background: none; padding: 0 4px; min-height: 0; font: inherit; color: inherit; }
+.list-rename { display: flex; gap: 8px; width: 100%; max-width: 360px; }
+.list-rename input { flex: 1; }
+.list-sum { margin: 0; font-size: 0.92rem; }
+.lists-sheet .add-box { position: static; padding: 0; background: none; }
+.lists-sheet .add-box input { flex: 1; min-height: 52px; font-size: 1.05rem; }
+.list-rows { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.list-rows.done { opacity: 0.85; }
+.list-section { font-size: 0.85rem; color: var(--muted); font-weight: 600; margin: 4px 4px 0; }
+.entry-edit { gap: 6px; padding: 6px 10px; }
+.entry-edit input { flex: 1; min-width: 0; }
+.list-tools { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 6px; }
+.list-tools button { min-height: 42px; }
+.lists-tile { display: grid; gap: 8px; }
+.tile-link { border: 0; background: none; padding: 0; min-height: 0; width: 100%; text-align: start; font: inherit; color: inherit; }
+.tile-lists { list-style: none; margin: 0; padding: 0; display: grid; }
+.tile-lists button { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 44px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; padding: 0 2px; text-align: start; }
+.tile-list-name { flex: 1; font-weight: 600; }

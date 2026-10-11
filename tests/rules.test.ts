@@ -340,6 +340,27 @@ describe('weekly timetables', () => {
   });
 });
 
+describe('checklists', () => {
+  it('members create lists and lines; outsiders cannot; lines need a real list', async () => {
+    const L = { title: 'ציוד לטיול', emoji: '🏕️', createdBy: 'dad', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const list = doc(db('dad'), 'families', 'levi', 'lists', 'trip');
+    await assertSucceeds(setDoc(list, L));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...L, title: '' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...L, evil: 1 }));
+    await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'lists', 'x'), { ...L, updatedBy: 'neighbor' }));
+    const E = { listId: 'trip', text: 'פנס', done: false, order: 1, updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const entry = doc(db('dad'), 'families', 'levi', 'listEntries', 'e1');
+    await assertSucceeds(setDoc(entry, E));
+    await assertSucceeds(updateDoc(entry, { done: true, updatedAt: serverTimestamp(), updatedBy: 'dad' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'listEntries', 'e2'), { ...E, listId: 'nope' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'listEntries', 'e2'), { ...E, text: '' }));
+    await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'listEntries', 'e1')));
+    await assertFails(deleteDoc(doc(db('neighbor'), 'families', 'levi', 'lists', 'trip')));
+    await assertSucceeds(deleteDoc(entry));
+    await assertSucceeds(deleteDoc(list));
+  });
+});
+
 describe('notification devices', () => {
   it('only the owner registers or reads their phones', async () => {
     const d = { token: 'fcm-token', platform: 'ios', createdAt: serverTimestamp() };

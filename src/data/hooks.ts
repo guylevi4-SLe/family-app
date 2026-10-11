@@ -14,6 +14,7 @@ import type { Item } from './items';
 import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
+import type { FamilyList, ListEntry } from './lists';
 import type { Schedule } from './schedules';
 import type { Invite, JoinRequest, Member } from './family';
 
@@ -153,6 +154,23 @@ export function useComments(fid: string) {
     `comments/${fid}`,
     () => collection(db, 'families', fid, 'comments'),
     (id, d, pending) => ({ id, ...(d as Omit<Comment, 'id' | 'pending'>), pending }),
+  );
+}
+
+/** Checklists and their lines (a family has few enough to keep in memory). */
+export function useLists(fid: string) {
+  return useQuery<FamilyList>(
+    `lists/${fid}`,
+    () => collection(db, 'families', fid, 'lists'),
+    (id, d, pending) => ({ id, ...(d as Omit<FamilyList, 'id' | 'pending'>), pending }),
+  );
+}
+
+export function useListEntries(fid: string) {
+  return useQuery<ListEntry>(
+    `listEntries/${fid}`,
+    () => collection(db, 'families', fid, 'listEntries'),
+    (id, d, pending) => ({ id, ...(d as Omit<ListEntry, 'id' | 'pending'>), pending }),
   );
 }
 

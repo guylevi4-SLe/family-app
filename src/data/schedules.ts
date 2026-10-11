@@ -11,6 +11,12 @@ export interface Schedule {
   pending: boolean;
 }
 
+/** Whose timetable to show first: mine if I uploaded one, else the first member who has one. */
+export function defaultScheduleUid(schedules: Schedule[] | undefined, memberIds: string[], me: string) {
+  const live = (schedules ?? []).filter((s) => memberIds.includes(s.id));
+  return (live.find((s) => s.id === me) ?? live[0])?.id ?? me;
+}
+
 const MAX_CHARS = 900_000; // stays well inside Firestore's 1 MB document limit
 const MAX_PAGES = 3;
 
