@@ -304,9 +304,9 @@ async function main() {
       await dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־8' }).getByRole('button', { name: 'אפשרויות להודעה' }).click();
       await dad.page.getByRole('menuitem', { name: /שיתוף/ }).click();
       await dad.page.waitForFunction(() => window.__shared);
-      assert.equal((await dad.page.evaluate(() => window.__shared)).text, 'dad: ארוחת ערב ב־8', 'shares "author: text"');
+      assert.equal((await dad.page.evaluate(() => window.__shared)).text, 'ארוחת ערב ב־8', 'shares just the text');
       assert.equal(await dad.page.getByRole('menu').count(), 0, 'the menu closes after choosing');
-      ok('the ⋯ menu shares a message through the phone share sheet, with who wrote it');
+      ok('the ⋯ menu shares a message through the phone share sheet');
     }
     {
       const size = dad.page.viewportSize();

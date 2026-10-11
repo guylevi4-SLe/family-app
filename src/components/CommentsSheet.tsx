@@ -176,7 +176,8 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
  * touch devices, WhatsApp with the text ready on a computer.
  */
 async function shareMessage(c: Comment) {
-  const text = [c.authorName && c.text ? `${c.authorName}: ${c.text}` : c.text].filter(Boolean).join('');
+  // Only the words: WhatsApp already shows who is sending them.
+  const text = c.text;
   const touch = window.matchMedia?.('(pointer: coarse)').matches;
   if (touch && navigator.share) {
     try {
