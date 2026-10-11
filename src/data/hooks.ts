@@ -15,6 +15,7 @@ import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
 import type { FamilyList, ListEntry } from './lists';
+import type { Birthday } from './birthdays';
 import type { Schedule } from './schedules';
 import type { Invite, JoinRequest, Member } from './family';
 
@@ -171,6 +172,15 @@ export function useListEntries(fid: string) {
     `listEntries/${fid}`,
     () => collection(db, 'families', fid, 'listEntries'),
     (id, d, pending) => ({ id, ...(d as Omit<ListEntry, 'id' | 'pending'>), pending }),
+  );
+}
+
+/** Birthdays the family keeps (relatives, friends). */
+export function useBirthdays(fid: string) {
+  return useQuery<Birthday>(
+    `birthdays/${fid}`,
+    () => collection(db, 'families', fid, 'birthdays'),
+    (id, d, pending) => ({ id, ...(d as Omit<Birthday, 'id' | 'pending'>), pending }),
   );
 }
 

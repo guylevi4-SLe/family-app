@@ -15,6 +15,8 @@ import {
   type FamilyEvent,
 } from '../data/events';
 import { addTask, toggleDone, type Task } from '../data/tasks';
+import { birthdaysBetween, birthdayTitle, type Birthday, type BirthdayOn } from '../data/birthdays';
+import { whenLabel } from './BirthdaysSheet';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 
@@ -32,11 +34,15 @@ function readMode(): Mode {
 export function CalendarView({
   events,
   tasks,
+  birthdays,
   openSchedule,
+  openBirthdays,
 }: {
   events: FamilyEvent[] | undefined;
   tasks: Task[] | undefined;
+  birthdays: Birthday[] | undefined;
   openSchedule: () => void;
+  openBirthdays: (id: string | null) => void;
 }) {
   const { members } = useFamily();
   const [editing, setEditing] = useState<FamilyEvent | 'new' | null>(null);
@@ -72,11 +78,13 @@ export function CalendarView({
   const dated = (tasks ?? []).filter((t) => !t.deleted && t.due) as (Task & { due: string })[];
   const openDated = dated.filter((t) => !t.done && t.due >= today);
 
-  const byDay = new Map<string, { events: FamilyEvent[]; tasks: Task[] }>();
+  const monthBirthdays = birthdaysBetween(birthdays ?? [], shift(-370), shift(370));
+  const byDay = new Map<string, { events: FamilyEvent[]; tasks: Task[]; birthdays: BirthdayOn[] }>();
   const slot = (d: string) => {
-    if (!byDay.has(d)) byDay.set(d, { events: [], tasks: [] });
+    if (!byDay.has(d)) byDay.set(d, { events: [], tasks: [], birthdays: [] });
     return byDay.get(d)!;
   };
+  for (const b of birthdaysBetween(birthdays ?? [], today, shift(92))) slot(b.date).birthdays.push(b);
   // A trip that already started is listed under today.
   for (const e of upcoming) slot(e.date < today ? today : e.date).events.push(e);
   for (const t of openDated) slot(t.due).tasks.push(t);
@@ -89,9 +97,14 @@ export function CalendarView({
 
   return (
     <div className="planner-body">
-      <button className="small schedule-open" onClick={openSchedule}>
-        📚 מערכת שעות
-      </button>
+      <div className="calendar-tools">
+        <button className="small" onClick={openSchedule}>
+          📚 מערכת שעות
+        </button>
+        <button className="small" onClick={() => openBirthdays(null)}>
+          🎂 ימי הולדת
+        </button>
+      </div>
       <div className="segmented" role="group" aria-label="תצוגה">
         <button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>
           רשימה
@@ -105,6 +118,8 @@ export function CalendarView({
         <MonthView
           events={monthEvents}
           tasks={dated}
+          birthdays={monthBirthdays}
+          onOpenBirthday={openBirthdays}
           selected={selected}
           onSelect={setSelected}
           onOpenEvent={setEditing}
@@ -126,6 +141,9 @@ export function CalendarView({
             <section key={date} className="dept">
               <h2>{dayLabel(date)}</h2>
               <ul>
+                {list.birthdays.map((b) => (
+                  <BirthdayRow key={b.birthday.id} on={b} onOpen={() => openBirthdays(b.birthday.id)} />
+                ))}
                 {list.events.map((e) => (
                   <EventRow key={`${e.id}:${e.date}`} event={e} members={members} onOpen={() => setEditing(e)} />
                 ))}
@@ -170,6 +188,8 @@ const WEEKDAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 function MonthView({
   events,
   tasks,
+  birthdays,
+  onOpenBirthday,
   selected,
   onSelect,
   onOpenEvent,
@@ -178,6 +198,8 @@ function MonthView({
 }: {
   events: FamilyEvent[];
   tasks: (Task & { due: string })[];
+  birthdays: BirthdayOn[];
+  onOpenBirthday: (id: string) => void;
   selected: string;
   onSelect: (d: string) => void;
   onOpenEvent: (e: FamilyEvent) => void;
@@ -202,6 +224,7 @@ function MonthView({
     .filter((e) => coversDay(e, selected))
     .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
   const dayTasks = tasks.filter((t) => t.due === selected);
+  const dayBirthdays = birthdays.filter((b) => b.date === selected);
 
   return (
     <div className="month">
@@ -224,28 +247,33 @@ function MonthView({
           if (!d) return <span key={i} />;
           const ev = events.filter((e) => coversDay(e, d)).length;
           const tk = tasks.filter((t) => t.due === d && !t.done).length;
+          const bd = birthdays.filter((b) => b.date === d).length;
           const cls = ['day', d === today ? 'today' : '', d === selected ? 'sel' : ''].join(' ');
           return (
-            <button key={d} className={cls} aria-label={`${dayLabel(d)}: ${ev} אירועים, ${tk} משימות`} onClick={() => onSelect(d)}>
+            <button key={d} className={cls} aria-label={`${dayLabel(d)}: ${ev} אירועים, ${tk} משימות${bd ? `, ${bd} ימי הולדת` : ''}`} onClick={() => onSelect(d)}>
               <span className="num">{Number(d.slice(8))}</span>
               <span className="marks">
                 {ev > 0 && <i className="mark ev" />}
                 {tk > 0 && <i className="mark tk" />}
+                {bd > 0 && <i className="mark bd" />}
               </span>
             </button>
           );
         })}
       </div>
       <p className="legend">
-        <i className="mark ev" /> אירוע <i className="mark tk" /> משימה
+        <i className="mark ev" /> אירוע <i className="mark tk" /> משימה <i className="mark bd" /> יום הולדת
       </p>
 
       <section className="dept">
         <h2>{dayLabel(selected)}</h2>
-        {dayEvents.length + dayTasks.length === 0 ? (
+        {dayEvents.length + dayTasks.length + dayBirthdays.length === 0 ? (
           <p className="muted day-empty">אין כלום ביום הזה</p>
         ) : (
           <ul>
+            {dayBirthdays.map((b) => (
+              <BirthdayRow key={b.birthday.id} on={b} onOpen={() => onOpenBirthday(b.birthday.id)} />
+            ))}
             {dayEvents.map((e) => (
               <EventRow key={e.id} event={e} members={members} onOpen={() => onOpenEvent(e)} />
             ))}
@@ -262,6 +290,23 @@ function MonthView({
         </div>
       </section>
     </div>
+  );
+}
+
+function BirthdayRow({ on, onOpen }: { on: BirthdayOn; onOpen: () => void }) {
+  return (
+    <li className="row birthday-row">
+      <button className="check-area" onClick={onOpen}>
+        <span className="time bday-icon" aria-hidden="true">🎂</span>
+        <span className="name">
+          {birthdayTitle(on.birthday).replace('🎂 ', '')}
+          <span className="sub">
+            <span className="kind-tag">יום הולדת</span>
+            <span>{whenLabel(on)}</span>
+          </span>
+        </span>
+      </button>
+    </li>
   );
 }
 

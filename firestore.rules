@@ -218,6 +218,20 @@ service cloud.firestore {
         allow delete: if isMember(fid);
       }
 
+      // ---------- birthdays of relatives and friends ----------
+      match /birthdays/{bid} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['name', 'day', 'month', 'year', 'group', 'updatedAt', 'updatedBy'])
+          && shortString(data().name, 60) && data().name.size() > 0
+          && data().day is int && data().day >= 1 && data().day <= 31
+          && data().month is int && data().month >= 1 && data().month <= 12
+          && (data().year == null || (data().year is int && data().year >= 1900 && data().year <= 2100))
+          && data().group in ['family', 'extended', 'friends', 'other']
+          && data().updatedBy == me();
+        allow delete: if isMember(fid);
+      }
+
       // ---------- weekly timetables: one image per member ----------
       match /schedules/{uid} {
         allow read: if isMember(fid);

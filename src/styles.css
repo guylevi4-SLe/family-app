@@ -741,3 +741,23 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .planner-tabs button.on .icon { color: var(--accent); }
 .planner-count { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--grad); color: var(--accent-ink); font-size: 0.78rem; font-weight: 800; display: inline-grid; place-items: center; }
 .lists-page .back { justify-self: start; }
+
+/* ---------- birthdays ---------- */
+.calendar-tools { display: flex; gap: 8px; margin: 2px 0 4px; }
+.calendar-tools button { flex: 1; }
+.mark.bd { background: #e0568a; }
+.birthday-row .bday-icon { font-style: normal; font-size: 1.3rem; text-align: center; }
+.birthdays-sheet { gap: 12px; }
+.bday-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bday { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 64px; border-radius: 16px; background: var(--surface); text-align: start; }
+.bday.soon { border-color: color-mix(in srgb, #e0568a 45%, var(--line)); }
+.bday.today { border-color: #e0568a; background: color-mix(in srgb, #e0568a 10%, var(--surface)); }
+.bday-date { flex: none; width: 54px; display: grid; justify-items: center; line-height: 1.1; padding: 6px 0; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.bday-date strong { font-size: 1.35rem; }
+.bday-date span { font-size: 0.72rem; }
+.bday-main { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.bday-main .muted { font-size: 0.86rem; }
+.bday-form { display: grid; gap: 12px; }
+.bday-form input, .bday-form select { width: 100%; }
+.bday-date-row { display: grid; grid-template-columns: 0.8fr 1.4fr 1.2fr; gap: 8px; }
+.export-card { gap: 6px; }

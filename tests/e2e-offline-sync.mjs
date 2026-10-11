@@ -375,6 +375,39 @@ async function main() {
     await dad.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('from the calendar, the timetable opens on the only member who has one');
 
+    step('Birthdays');
+    {
+      await planner(dad.page, 'schedule');
+      await dad.page.getByRole('button', { name: '🎂 ימי הולדת' }).click();
+      const book = dad.page.getByRole('dialog', { name: 'ימי הולדת' });
+      await book.getByRole('button', { name: '+ יום הולדת' }).click();
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      await book.getByPlaceholder('למשל: סבתא רחל').fill('סבתא רחל');
+      await book.getByLabel('חודש').selectOption(String(t.getMonth() + 1));
+      await book.getByLabel('יום').selectOption(String(t.getDate()));
+      await book.getByPlaceholder('למשל 1985').fill('1950');
+      await book.getByRole('button', { name: 'הוספה' }).click();
+      await book.locator('.bday', { hasText: 'סבתא רחל' }).getByText(`מחר · ימלאו ${t.getFullYear() - 1950}`).waitFor();
+      await book.getByRole('button', { name: '+ יום הולדת' }).click();
+      await book.getByPlaceholder('למשל: סבתא רחל').fill('דני');
+      await book.getByRole('group', { name: 'קבוצה' }).getByRole('button', { name: 'חברים' }).click();
+      await book.getByRole('button', { name: 'הוספה' }).click();
+      await book.locator('.bday', { hasText: 'דני' }).waitFor();
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/birthdays.png` });
+      await book.locator('.bday', { hasText: 'סבתא רחל' }).click();
+      const href = await book.getByRole('link', { name: 'יומן גוגל' }).getAttribute('href');
+      assert.equal(new URL(href).searchParams.get('recur'), 'RRULE:FREQ=YEARLY', 'Google copy repeats every year');
+      await book.getByRole('button', { name: 'ביטול' }).click();
+      await book.getByLabel('סגירה').click();
+      await dad.page.locator('.birthday-row', { hasText: 'סבתא רחל' }).waitFor();
+      await planner(kid.page, 'schedule');
+      await kid.page.locator('.birthday-row', { hasText: 'סבתא רחל' }).waitFor({ timeout: 10000 });
+      await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+      await kid.page.locator('.tile', { hasText: 'יומן' }).getByText('יום הולדת לסבתא רחל').waitFor();
+    }
+    ok('Dad added birthdays; they show in everyone\'s schedule and home screen, and export as yearly events');
+
     step('Checklists');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     await dad.page.locator('.lists-tile').getByRole('button').first().click();

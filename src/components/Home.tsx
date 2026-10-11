@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries } from '../data/hooks';
+import { useComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays } from '../data/hooks';
 import type { Member } from '../data/family';
 import { commentKey, type TargetType } from '../data/comments';
 import { ShoppingList } from './ShoppingList';
@@ -11,6 +11,7 @@ import { CommentsSheet } from './CommentsSheet';
 import { ChatView } from './ChatView';
 import { ScheduleSheet } from './ScheduleSheet';
 import { ListsView } from './ListsView';
+import { BirthdaysSheet } from './BirthdaysSheet';
 import { defaultScheduleUid } from '../data/schedules';
 import { Icon, type IconName } from './Icon';
 import { clearBadge, takePendingUrl } from '../push';
@@ -56,6 +57,9 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const lists = useLists(familyId);
   const listEntries = useListEntries(familyId);
   const [listId, setListId] = useState<string | null>(null);
+  const birthdays = useBirthdays(familyId);
+  // undefined: closed; null: the whole book; an id: that birthday.
+  const [birthdayOpen, setBirthdayOpen] = useState<string | null | undefined>(undefined);
   const members = useMembers(familyId);
   const online = useOnline();
   const isAdmin = me.role === 'admin';
@@ -117,7 +121,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   // Swipe sideways to move between the bottom-bar screens. Deliberately firm:
   // a long, fast, clearly horizontal swipe, never inside sheets, inputs or
   // things that scroll sideways, so scrolling a list never switches screens.
-  const overlayOpen = Boolean(thread || settingsOpen || scheduleFor);
+  const overlayOpen = Boolean(thread || settingsOpen || scheduleFor || birthdayOpen !== undefined);
   useEffect(() => {
     if (overlayOpen) return;
     let start: { x: number; y: number; t: number } | null = null;
@@ -186,7 +190,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   }, [comments]);
 
   const openTaskCount = (tasks ?? []).filter((t) => !t.deleted && !t.done).length;
-  const pendingCount = [items, tasks, events, comments, lists, listEntries].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
+  const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;
   const title = view === 'home' ? (family?.name ?? '') : VIEWS.find((v) => v.id === view)!.label;
 
@@ -224,7 +228,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           </button>
         )}
 
-        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); setView('lists'); }} />}
+        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} birthdays={birthdays} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); setView('lists'); }} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
           <main className="list-page planner">
@@ -240,7 +244,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
             {plan === 'tasks' ? (
               <TasksView tasks={tasks} />
             ) : (
-              <CalendarView events={events} tasks={tasks} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
+              <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={setBirthdayOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
             )}
           </main>
         )}
@@ -259,6 +263,8 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         {thread && (
           <CommentsSheet type={thread.type} targetId={thread.id} title={thread.title} comments={comments ?? []} onClose={() => setThread(null)} />
         )}
+
+        {birthdayOpen !== undefined && <BirthdaysSheet birthdays={birthdays} initialId={birthdayOpen} onClose={() => setBirthdayOpen(undefined)} />}
 
         {scheduleFor && <ScheduleSheet schedules={schedules} initialUid={scheduleFor} onClose={() => setScheduleFor(null)} />}
 

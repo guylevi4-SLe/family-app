@@ -361,6 +361,22 @@ describe('checklists', () => {
   });
 });
 
+describe('birthdays', () => {
+  it('members keep birthdays with a valid date; outsiders cannot', async () => {
+    const B = { name: 'סבתא רחל', day: 12, month: 3, year: 1950, group: 'family', updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const ref = (id: string, who: Who = 'dad') => doc(db(who), 'families', 'levi', 'birthdays', id);
+    await assertSucceeds(setDoc(ref('b1'), B));
+    await assertSucceeds(setDoc(ref('b2'), { ...B, year: null, group: 'friends' }));
+    await assertFails(setDoc(ref('x'), { ...B, month: 13 }));
+    await assertFails(setDoc(ref('x'), { ...B, day: 0 }));
+    await assertFails(setDoc(ref('x'), { ...B, group: 'enemies' }));
+    await assertFails(setDoc(ref('x'), { ...B, name: '' }));
+    await assertFails(setDoc(ref('x', 'neighbor'), { ...B, updatedBy: 'neighbor' }));
+    await assertFails(getDoc(ref('b1', 'neighbor')));
+    await assertSucceeds(deleteDoc(ref('b2')));
+  });
+});
+
 describe('notification devices', () => {
   it('only the owner registers or reads their phones', async () => {
     const d = { token: 'fcm-token', platform: 'ios', createdAt: serverTimestamp() };

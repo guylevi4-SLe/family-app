@@ -214,10 +214,15 @@ export function icsText(e: FamilyEvent, free = true) {
 }
 
 export function downloadIcs(e: FamilyEvent, free = true) {
-  const blob = new Blob([icsText(e, free)], { type: 'text/calendar' });
+  saveIcsFile(icsText(e, free));
+}
+
+/** Hands a calendar file to the phone, which offers to add it to the calendar app. */
+export function saveIcsFile(text: string, name = 'event.ics') {
+  const blob = new Blob([text], { type: 'text/calendar' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'event.ics';
+  a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

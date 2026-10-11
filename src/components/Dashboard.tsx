@@ -6,6 +6,7 @@ import type { Screen } from './Home';
 import { Icon } from './Icon';
 import { defaultScheduleUid, type Schedule } from '../data/schedules';
 import type { FamilyList, ListEntry } from '../data/lists';
+import { birthdaysBetween, type Birthday } from '../data/birthdays';
 
 export function Dashboard({
   items,
@@ -14,6 +15,7 @@ export function Dashboard({
   schedules,
   lists,
   listEntries,
+  birthdays,
   go,
   openSchedule,
   openList,
@@ -24,6 +26,7 @@ export function Dashboard({
   schedules: Schedule[] | undefined;
   lists: FamilyList[] | undefined;
   listEntries: ListEntry[] | undefined;
+  birthdays: Birthday[] | undefined;
   go: (s: Screen) => void;
   openSchedule: (uid: string) => void;
   openList: (id: string | null) => void;
@@ -38,6 +41,20 @@ export function Dashboard({
   const upcoming = expandEvents((events ?? []).filter((e) => !e.deleted), today, isoDate(inTwoMonths))
     .filter((e) => lastDay(e) >= today)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  // Events and the next two weeks' birthdays, in date order.
+  const inTwoWeeks = new Date();
+  inTwoWeeks.setDate(inTwoWeeks.getDate() + 14);
+  const agenda = [
+    ...upcoming.map((e) => ({ key: `${e.id}:${e.date}`, date: e.date < today ? today : e.date, time: e.time, title: e.title, until: untilLabel(e), now: e.date < today })),
+    ...birthdaysBetween(birthdays ?? [], today, isoDate(inTwoWeeks)).map((b) => ({
+      key: `bd:${b.birthday.id}`,
+      date: b.date,
+      time: '',
+      title: `🎂 יום הולדת ל${b.birthday.name}${b.age !== null ? ` (${b.age})` : ''}`,
+      until: '',
+      now: false,
+    })),
+  ].sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')));
 
   const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
   const shown = live.find((s) => s.id === defaultScheduleUid(schedules, members.map((m) => m.id), me.id));
@@ -95,18 +112,18 @@ export function Dashboard({
           <h2>יומן</h2>
         </div>
         <div className="tile-body">
-          {upcoming.length === 0 ? (
+          {agenda.length === 0 ? (
             'אין אירועים קרובים'
           ) : (
             <ul className="tile-events">
-              {upcoming.slice(0, 3).map((e) => (
-                <li key={`${e.id}:${e.date}`}>
+              {agenda.slice(0, 4).map((e) => (
+                <li key={e.key}>
                   <span className="muted">
-                    {e.date < today ? 'עכשיו' : dayLabel(e.date).replace(' · ', ' ')}
+                    {e.now ? 'עכשיו' : dayLabel(e.date).replace(' · ', ' ')}
                     {e.time ? ` ${e.time}` : ''}
                   </span>{' '}
                   {e.title}
-                  {untilLabel(e) && <span className="muted"> ({untilLabel(e)})</span>}
+                  {e.until && <span className="muted"> ({e.until})</span>}
                 </li>
               ))}
             </ul>
