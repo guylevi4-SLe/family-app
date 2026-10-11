@@ -432,7 +432,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
   stroke-width: 2.1;
 }
 .shopping .deleted .row { padding: 0 4px; }
-.shopping .list-actions { margin-bottom: 0; justify-content: flex-end; }
+.shopping .list-actions { margin-bottom: 0; justify-content: center; }
 .shopping .whatsapp { min-height: 30px; padding: 0 10px; font-size: 0.8rem; border-radius: 999px; }
 
 .topbar .icon-button { color: var(--muted); }

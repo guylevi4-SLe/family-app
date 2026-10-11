@@ -437,6 +437,18 @@ async function main() {
       ok('the logo next to each screen title leads back home');
     }
 
+    {
+      const p = dad.page;
+      await p.getByRole('navigation').getByRole('button', { name: 'קניות' }).click();
+      const off = await p.getByRole('button', { name: 'שליחת הרשימה לוואטסאפ' }).evaluate((b) => {
+        const r = b.getBoundingClientRect();
+        return Math.abs(r.left + r.width / 2 - document.documentElement.clientWidth / 2);
+      });
+      assert.ok(off <= 2, `the WhatsApp button is centred (off by ${off}px)`);
+      await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+      ok('the shopping list WhatsApp button is centred');
+    }
+
     step('Long chat history');
     {
       const p = dad.page;
