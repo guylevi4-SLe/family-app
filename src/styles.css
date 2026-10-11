@@ -777,3 +777,4 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .command-notice.error { color: var(--danger); }
 .command-notice .link { min-height: 32px; font-size: 0.9rem; }
 .command-notice .close { color: var(--muted); }
+.chat .older { align-self: center; margin: 4px auto 8px; display: block; }

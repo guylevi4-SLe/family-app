@@ -366,7 +366,6 @@ async function main() {
       await notice.getByRole('button', { name: 'ביטול' }).click();
       await notice.filter({ hasText: 'בוטלה' }).waitFor();
       await p.locator('.comment', { hasText: 'ציוד לסקי' }).waitFor({ state: 'detached' });
-      await p.waitForTimeout(500); // the lists listener catches up with the undo
       await send('@ר ציוד לסקי: כפפות');
       await notice.filter({ hasText: 'נוצרה רשימה חדשה' }).waitFor();
       await send('@ר ציוד סקי: משקפת');
@@ -405,6 +404,32 @@ async function main() {
       await notice.getByRole('button', { name: 'ביטול' }).click();
       await notice.filter({ hasText: 'הוחזר ל"ציוד לסקי": משקפת' }).waitFor();
       ok('a minus also ticks off a task and removes a list line (with undo)');
+    }
+
+    step('Long chat history');
+    {
+      const p = dad.page;
+      const box = p.getByLabel('כתיבת הודעה');
+      for (let i = 1; i <= 55; i++) {
+        await box.fill(`הודעה מספר ${i}`);
+        await box.press('Enter');
+      }
+      await p.locator('.comment', { hasText: 'הודעה מספר 55' }).waitFor();
+      await p.reload();
+      await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+      await p.locator('.comment', { hasText: 'הודעה מספר 55' }).waitFor();
+      const shown = await p.locator('.chat .comment, .chat .chat-ref').count();
+      assert.equal(shown, 50, 'the chat reads only the newest 50 messages');
+      assert.equal(await p.locator('.comment', { hasText: /^.*הודעה מספר 5$/ }).count(), 0, 'older messages wait for the button');
+      await p.getByRole('button', { name: 'הודעות קודמות' }).click();
+      await p.locator('.comment', { hasText: 'ארוחת ערב' }).waitFor();
+      assert.ok((await p.locator('.chat .comment, .chat .chat-ref').count()) > 50, '"הודעות קודמות" loads more');
+      ok('the chat loads the newest 50 messages, and older ones on request');
+      await planner(p, 'tasks');
+      await p.getByRole('button', { name: /^\d+ תגובות על לתלות כביסה/ }).first().click();
+      await p.getByRole('dialog', { name: 'תגובות על לתלות כביסה' }).locator('.comment', { hasText: 'תזכורת בשבילך' }).waitFor();
+      await p.getByRole('dialog').getByLabel('סגירה').click();
+      ok('an item still shows its whole comment thread, however old');
     }
 
     step('Swipe between screens');

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays } from '../data/hooks';
+import { useComments, useTargetComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays } from '../data/hooks';
 import type { Member } from '../data/family';
 import { commentKey, type TargetType } from '../data/comments';
 import { ShoppingList } from './ShoppingList';
@@ -27,6 +27,9 @@ export type View = 'home' | 'list' | 'calendar' | 'lists' | 'chat';
 /** Where a screen can be opened: the bottom-bar screens, plus the calendar's tasks side. */
 export type Screen = View | 'tasks';
 
+/** How many chat messages are read at a time (the rest load on request). */
+const CHAT_PAGE = 50;
+
 const VIEWS: { id: View; label: string; icon: IconName }[] = [
   { id: 'home', label: 'בית', icon: 'home' },
   { id: 'list', label: 'קניות', icon: 'cart' },
@@ -52,7 +55,9 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const items = useItems(familyId);
   const tasks = useTasks(familyId);
   const events = useEvents(familyId);
-  const comments = useComments(familyId);
+  const [chatSize, setChatSize] = useState(CHAT_PAGE);
+  const comments = useComments(familyId, chatSize);
+  const targetComments = useTargetComments(familyId);
   const schedules = useSchedules(familyId);
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
   const lists = useLists(familyId);
@@ -183,13 +188,13 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
 
   const commentCounts = useMemo(() => {
     const m = new Map<string, number>();
-    for (const c of comments ?? []) {
+    for (const c of targetComments ?? []) {
       if (c.targetType === 'chat') continue;
       const k = commentKey(c.targetType, c.targetId);
       m.set(k, (m.get(k) ?? 0) + 1);
     }
     return m;
-  }, [comments]);
+  }, [targetComments]);
 
   const openTaskCount = (tasks ?? []).filter((t) => !t.deleted && !t.done).length;
   const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
@@ -252,7 +257,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           </main>
         )}
         {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} />}
-        {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} lists={lists} listEntries={listEntries} go={go} openList={(id) => { setListId(id); setView('lists'); }} />}
+        {view === 'chat' && <ChatView comments={comments} hasOlder={(comments?.length ?? 0) >= chatSize} showOlder={() => setChatSize((n) => n + CHAT_PAGE)} items={items} tasks={tasks} events={events} lists={lists} listEntries={listEntries} go={go} openList={(id) => { setListId(id); setView('lists'); }} />}
         </ErrorBoundary>
 
         <nav className="bottom-nav" aria-label="ניווט">
@@ -265,7 +270,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         </nav>
 
         {thread && (
-          <CommentsSheet type={thread.type} targetId={thread.id} title={thread.title} comments={comments ?? []} onClose={() => setThread(null)} />
+          <CommentsSheet type={thread.type} targetId={thread.id} title={thread.title} comments={targetComments ?? []} onClose={() => setThread(null)} />
         )}
 
         {birthdayOpen !== undefined && <BirthdaysSheet birthdays={birthdays} initialId={birthdayOpen} onClose={() => setBirthdayOpen(undefined)} />}

@@ -18,6 +18,8 @@ const KIND: Record<Exclude<TargetType, 'chat'>, string> = { item: '🛒', task: 
  */
 export function ChatView({
   comments,
+  hasOlder,
+  showOlder,
   items,
   tasks,
   events,
@@ -27,6 +29,8 @@ export function ChatView({
   openList,
 }: {
   comments: Comment[] | undefined;
+  hasOlder: boolean;
+  showOlder: () => void;
   items: Item[] | undefined;
   tasks: Task[] | undefined;
   events: FamilyEvent[] | undefined;
@@ -39,12 +43,17 @@ export function ChatView({
   const overrides = useOverrides(familyId);
   const [viewing, setViewing] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  // Lists made or cancelled here a moment ago, before the lists listener catches up.
+  const made = useRef<{ id: string; title: string }[]>([]);
+  const cancelled = useRef(new Set<string>());
   const endRef = useRef<HTMLDivElement>(null);
   const list = [...(comments ?? [])].sort(byTime);
 
+  // Follow new messages, but stay in place when older ones are loaded above.
+  const newest = list.length ? list[list.length - 1].id : '';
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
-  }, [list.length]);
+  }, [newest]);
 
   const titleOf = (c: Comment) => {
     const rows: { id: string; name?: string; title?: string }[] =
@@ -160,7 +169,10 @@ export function ChatView({
 
     const parts = splitListCommand(cmd.body);
     if (!parts) return fail('כותבים את שם הרשימה, נקודתיים, ואז הפריטים.');
-    const existing = findList(lists ?? [], parts.listName);
+    const known = [...(lists ?? []), ...made.current.filter((m) => !lists?.some((l) => l.id === m.id))].filter(
+      (l) => !cancelled.current.has(l.id),
+    );
+    const existing = findList(known, parts.listName);
     const { add, remove } = splitRemovals(parts.items);
     if (remove.length) {
       if (!existing) return fail(`לא מצאתי רשימה בשם "${parts.listName}".`);
@@ -191,6 +203,7 @@ export function ChatView({
       return 'done';
     }
     const listId = existing?.id ?? createList(familyId, parts.listName, '📋');
+    if (!existing) made.current.push({ id: listId, title: parts.listName });
     const last = Math.max(0, ...(listEntries ?? []).filter((e) => e.listId === listId).map((e) => e.order));
     const ids = addEntries(familyId, listId, parts.items, last);
     const title = existing?.title ?? parts.listName;
@@ -204,6 +217,7 @@ export function ChatView({
             open: () => openList(listId),
             undo: () => {
               deleteList(familyId, listId, ids.map((id) => ({ id })));
+              cancelled.current.add(listId);
               deleteComment(familyId, line);
               setNotice({ ok: true, text: `הרשימה "${title}" בוטלה` });
             },
@@ -217,6 +231,11 @@ export function ChatView({
       <div className="comments chat">
         {comments === undefined && <p className="muted">טוען…</p>}
         {comments?.length === 0 && <p className="muted">עדיין אין הודעות. כתבו משהו למשפחה!</p>}
+        {hasOlder && (
+          <button type="button" className="link older" onClick={showOlder}>
+            הודעות קודמות
+          </button>
+        )}
         {list.map((c) => {
           if (c.targetType === 'chat') return <CommentBubble key={c.id} c={c} onPhoto={setViewing} />;
           const title = titleOf(c);

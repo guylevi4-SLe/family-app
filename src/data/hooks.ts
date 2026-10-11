@@ -3,7 +3,9 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import {
   collection,
   doc,
+  limit,
   onSnapshot,
+  orderBy,
   query,
   where,
   type DocumentData,
@@ -58,7 +60,13 @@ export function useDoc<T>(path: string[] | null) {
   return value;
 }
 
-function useQuery<T>(key: string, build: () => Query<DocumentData> | null, map: (id: string, d: DocumentData, pending: boolean) => T) {
+function useQuery<T>(
+  key: string,
+  build: () => Query<DocumentData> | null,
+  map: (id: string, d: DocumentData, pending: boolean) => T,
+  /** Keep showing the old rows while a wider query loads ("show older messages"). */
+  keepWhileLoading = false,
+) {
   const [rows, setRows] = useState<T[] | undefined>(undefined);
   useEffect(() => {
     const q = build();
@@ -66,7 +74,7 @@ function useQuery<T>(key: string, build: () => Query<DocumentData> | null, map: 
       setRows([]);
       return;
     }
-    setRows(undefined);
+    if (!keepWhileLoading) setRows(undefined);
     return onSnapshot(
       q,
       { includeMetadataChanges: true },
@@ -149,11 +157,27 @@ export function useEvents(fid: string) {
   );
 }
 
-/** All of the family's comments; a family has few enough to keep in memory. */
-export function useComments(fid: string) {
+/**
+ * The family's newest comments and chat messages. Only the latest `max` are
+ * read, so opening the app costs the same however long the chat history gets.
+ */
+export function useComments(fid: string, max: number) {
   return useQuery<Comment>(
-    `comments/${fid}`,
-    () => collection(db, 'families', fid, 'comments'),
+    `comments/${fid}/${max}`,
+    () => query(collection(db, 'families', fid, 'comments'), orderBy('createdAt', 'desc'), limit(max)),
+    (id, d, pending) => ({ id, ...(d as Omit<Comment, 'id' | 'pending'>), pending }),
+    true,
+  );
+}
+
+/**
+ * Every comment written on a product, task or event (not the chat itself):
+ * they feed the count bubbles and each item's thread, so none may be missing.
+ */
+export function useTargetComments(fid: string) {
+  return useQuery<Comment>(
+    `targetComments/${fid}`,
+    () => query(collection(db, 'families', fid, 'comments'), where('targetType', 'in', ['item', 'task', 'event'])),
     (id, d, pending) => ({ id, ...(d as Omit<Comment, 'id' | 'pending'>), pending }),
   );
 }
