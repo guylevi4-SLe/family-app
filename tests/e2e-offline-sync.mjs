@@ -336,7 +336,12 @@ async function main() {
       await box.fill('@');
       if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-command-hints.png` });
       await p.getByRole('group', { name: 'פקודות מהירות' }).getByRole('button', { name: /@ק/ }).click();
-      assert.equal(await box.inputValue(), '@ק ', 'picking a suggested command fills it in');
+      assert.equal(await box.inputValue(), '@קניות: ', 'picking a suggested command fills it in');
+      await box.fill('');
+      await box.pressSequentially('@ר');
+      assert.equal(await box.inputValue(), '@רשימה: ', 'typing @ר grows into @רשימה:');
+      for (let i = 0; i < 7; i++) await box.press('Backspace');
+      assert.equal(await box.inputValue(), '@', 'deleting back does not grow it again');
       await send('@ק במבה, 2 חלב');
       await notice.filter({ hasText: 'נוספו 2 מוצרים לקניות' }).waitFor();
       assert.equal(await box.inputValue(), '', 'a command clears the box');

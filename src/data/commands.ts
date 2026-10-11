@@ -24,6 +24,13 @@ export function parseCommand(text: string): { kind: CommandKind; body: string } 
   return c ? { kind: c.kind, body: m[2].trim() } : null;
 }
 
+/** "@ק" typed on its own becomes "@קניות: ", ready for the items. */
+export function expandCommand(text: string): string | null {
+  const m = text.match(/^@([\u0590-\u05FF])$/);
+  const c = m && COMMANDS.find((x) => x.key === m[1]);
+  return c ? `@${c.word}: ` : null;
+}
+
 /** Commands to offer while the person is typing "@…" at the start of a message. */
 export function suggestCommands(text: string) {
   const m = text.match(/^\s*@([֐-׿]*)$/);

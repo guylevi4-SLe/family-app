@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/firebase', () => ({ auth: {}, db: {} }));
-import { findList, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../src/data/commands';
+import { expandCommand, findList, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../src/data/commands';
 
 // Sunday 11 October 2026.
 const today = new Date(2026, 9, 11);
@@ -24,6 +24,14 @@ describe('parseCommand', () => {
 
   it.each(['קניתי חלב', 'מה עם @ק', '@קקק חלב', 'email@ק.com', '@ חלב'])('leaves "%s" as a message', (text) => {
     expect(parseCommand(text)).toBeNull();
+  });
+
+  it('grows a typed shortcut into its full form', () => {
+    expect(expandCommand('@ק')).toBe('@קניות: ');
+    expect(expandCommand('@ר')).toBe('@רשימה: ');
+    expect(expandCommand('@ק ')).toBeNull();
+    expect(expandCommand('@א')).toBeNull();
+    expect(parseCommand('@קניות: חלב')).toEqual({ kind: 'shop', body: 'חלב' });
   });
 
   it('offers commands while typing @', () => {

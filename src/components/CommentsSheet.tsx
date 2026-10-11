@@ -127,6 +127,7 @@ export function Composer({
   notifyLabel = 'הודעה ל',
   onCommand,
   hints,
+  autoComplete,
 }: {
   type: TargetType;
   targetId: string;
@@ -137,6 +138,8 @@ export function Composer({
   onCommand?: (text: string) => 'done' | 'keep' | null;
   /** Shortcuts offered above the box for what is being typed. */
   hints?: (text: string) => { label: string; insert: string }[];
+  /** Rewrites what was typed (a shortcut grown into its full form), or null to keep it. */
+  autoComplete?: (text: string) => string | null;
 }) {
   const { familyId, me, members } = useFamily();
   const [notify, setNotify] = useState<string[]>([]);
@@ -250,7 +253,11 @@ export function Composer({
           maxLength={1000}
           placeholder={placeholder}
           aria-label={label}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            // Only while typing forward, so deleting back past "@קניות: " is not undone.
+            setText((v.length > text.length && autoComplete?.(v)) || v);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();

@@ -4,7 +4,7 @@ import { addItems, parseItems, type Item } from '../data/items';
 import { addTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, deleteList, type FamilyList, type ListEntry } from '../data/lists';
-import { COMMANDS, findList, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
+import { COMMANDS, expandCommand, findList, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
 import { byTime, CommentBubble, Composer, PhotoViewer } from './CommentsSheet';
@@ -178,7 +178,8 @@ export function ChatView({
           label="כתיבת הודעה"
           notifyLabel="הודעה ל"
           onCommand={runCommand}
-          hints={(t) => suggestCommands(t).map((c) => ({ label: `@${c.key} ${c.emoji} ${c.label}`, insert: `@${c.key} ` }))}
+          hints={(t) => suggestCommands(t).map((c) => ({ label: `@${c.key} ${c.emoji} ${c.word}`, insert: `@${c.word}: ` }))}
+          autoComplete={expandCommand}
         />
       </div>
       {viewing && <PhotoViewer src={viewing} onClose={() => setViewing(null)} />}
