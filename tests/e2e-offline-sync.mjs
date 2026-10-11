@@ -406,6 +406,16 @@ async function main() {
       ok('a minus also ticks off a task and removes a list line (with undo)');
     }
 
+    {
+      const p = dad.page;
+      await p.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
+      await p.getByRole('button', { name: 'חזרה למסך הבית' }).click();
+      await p.locator('main.dashboard').waitFor();
+      assert.equal(await p.getByRole('button', { name: 'חזרה למסך הבית' }).count(), 0, 'the home screen shows the plain logo');
+      await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+      ok('the logo next to each screen title leads back home');
+    }
+
     step('Long chat history');
     {
       const p = dad.page;

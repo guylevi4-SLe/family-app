@@ -213,8 +213,15 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     >
       <div className="app">
         <header className="topbar">
-          <h1 className={view === 'home' ? 'with-logo' : undefined}>
-            {view === 'home' && <img className="title-logo" src="/icon-192.png" alt="" width="34" height="34" />}
+          <h1 className="with-logo">
+            {view === 'home' ? (
+              <img className="title-logo" src="/icon-192.png" alt="" width="34" height="34" />
+            ) : (
+              // On every other screen the logo is the way back home.
+              <button type="button" className="logo-home" aria-label="חזרה למסך הבית" onClick={() => go('home')}>
+                <img className="title-logo" src="/icon-192.png" alt="" width="34" height="34" />
+              </button>
+            )}
             {title}
           </h1>
           <SyncBadge online={online} pending={pendingCount} />

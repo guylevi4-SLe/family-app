@@ -778,3 +778,5 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .command-notice .link { min-height: 32px; font-size: 0.9rem; }
 .command-notice .close { color: var(--muted); }
 .chat .older { align-self: center; margin: 4px auto 8px; display: block; }
+.logo-home { display: inline-flex; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; line-height: 0; font-size: inherit; min-height: 0; }
+.logo-home:active .title-logo { transform: scale(0.92); }
