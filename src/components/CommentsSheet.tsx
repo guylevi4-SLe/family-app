@@ -125,12 +125,18 @@ export function Composer({
   placeholder,
   label,
   notifyLabel = 'הודעה ל',
+  onCommand,
+  hints,
 }: {
   type: TargetType;
   targetId: string;
   placeholder: string;
   label: string;
   notifyLabel?: string;
+  /** Handles a command instead of sending it: 'done' clears the box, 'keep' leaves it to fix, null sends it as written. */
+  onCommand?: (text: string) => 'done' | 'keep' | null;
+  /** Shortcuts offered above the box for what is being typed. */
+  hints?: (text: string) => { label: string; insert: string }[];
 }) {
   const { familyId, me, members } = useFamily();
   const [notify, setNotify] = useState<string[]>([]);
@@ -140,9 +146,16 @@ export function Composer({
   const [busy, setBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
 
   const send = () => {
     if (!text.trim() && !photo) return;
+    const handled = !photo && onCommand?.(text);
+    if (handled === 'keep') return;
+    if (handled === 'done') {
+      setText('');
+      return;
+    }
     addComment(familyId, type, targetId, text, photo ?? undefined, notify);
     setText('');
     setPhoto(null);
@@ -173,6 +186,18 @@ export function Composer({
         </div>
       )}
       {photoError && <p className="error">{photoError}</p>}
+      {hints && hints(text).length > 0 && (
+        <div className="command-hints" role="group" aria-label="פקודות מהירות">
+          {hints(text).map((h) => (
+            <button type="button" key={h.insert} className="chip" onClick={() => {
+                setText(h.insert);
+                boxRef.current?.focus();
+              }}>
+              {h.label}
+            </button>
+          ))}
+        </div>
+      )}
       {others.length > 0 && (
         <div className="notify-row">
           <span className="assign-label">🔔 {notifyLabel}:</span>
@@ -219,6 +244,7 @@ export function Composer({
           <Icon name="camera" size={22} />
         </button>
         <textarea
+          ref={boxRef}
           rows={1}
           value={text}
           maxLength={1000}

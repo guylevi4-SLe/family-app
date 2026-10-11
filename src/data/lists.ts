@@ -56,7 +56,7 @@ export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyL
 }
 
 /** Removes the list and every line in it. */
-export function deleteList(fid: string, id: string, entries: ListEntry[]) {
+export function deleteList(fid: string, id: string, entries: Pick<ListEntry, 'id'>[]) {
   const b = writeBatch(db);
   for (const e of entries) b.delete(doc(entriesCol(fid), e.id));
   b.delete(doc(listsCol(fid), id));
@@ -66,9 +66,11 @@ export function deleteList(fid: string, id: string, entries: ListEntry[]) {
 /** Adds one line per comma or new line, after the existing ones. */
 export function addEntries(fid: string, listId: string, text: string, after: number, category = '') {
   const parts = text.split(/[\n,]/).map((t) => t.trim()).filter(Boolean);
-  parts.forEach((t, i) =>
-    setDoc(doc(entriesCol(fid)), { listId, text: t.slice(0, 120), done: false, order: after + i + 1, category, ...stamp() }).catch(reportWriteError),
-  );
+  return parts.map((t, i) => {
+    const ref = doc(entriesCol(fid));
+    setDoc(ref, { listId, text: t.slice(0, 120), done: false, order: after + i + 1, category, ...stamp() }).catch(reportWriteError);
+    return ref.id;
+  });
 }
 
 export function moveEntry(fid: string, id: string, category: string) {

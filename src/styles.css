@@ -764,3 +764,16 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 
 .crash { display: grid; gap: 12px; justify-items: center; text-align: center; padding-top: 48px; }
 .crash-detail { font-size: 0.8rem; direction: ltr; }
+
+/* Chat commands: "@ק …" shortcuts and the line confirming what was added */
+.command-hints { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 6px; }
+.command-hints .chip { min-height: 34px; font-size: 0.9rem; }
+.command-notice {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px;
+  margin: 0 0 6px; padding: 4px 10px; border-radius: 12px;
+  background: var(--accent-soft); font-size: 0.9rem;
+}
+.command-notice > span { flex: 1 1 auto; min-width: 0; }
+.command-notice.error { color: var(--danger); }
+.command-notice .link { min-height: 32px; font-size: 0.9rem; }
+.command-notice .close { color: var(--muted); }

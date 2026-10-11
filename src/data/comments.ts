@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, type Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, serverTimestamp, setDoc, updateDoc, type Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -32,7 +32,8 @@ export function addComment(
   notify: string[] = [],
 ) {
   const u = auth.currentUser!;
-  addDoc(collection(db, 'families', fid, 'comments'), {
+  const ref = doc(collection(db, 'families', fid, 'comments'));
+  setDoc(ref, {
     targetType,
     targetId,
     text: text.trim().slice(0, 1000),
@@ -42,6 +43,7 @@ export function addComment(
     authorName: (u.displayName || u.email || '').split(' ')[0].slice(0, 80),
     createdAt: serverTimestamp(),
   }).catch(reportWriteError);
+  return ref.id;
 }
 
 /** Authors can fix what they wrote; the bubble then shows "נערך". */

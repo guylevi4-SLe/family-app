@@ -324,6 +324,59 @@ async function main() {
       ok('leaving the chat is safe where scrolling returns a promise');
     }
 
+    step('Chat commands');
+    {
+      const p = dad.page;
+      const box = p.getByLabel('כתיבת הודעה');
+      const notice = p.locator('.command-notice');
+      const send = async (text) => {
+        await box.fill(text);
+        await box.press('Enter');
+      };
+      await box.fill('@');
+      if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-command-hints.png` });
+      await p.getByRole('group', { name: 'פקודות מהירות' }).getByRole('button', { name: /@ק/ }).click();
+      assert.equal(await box.inputValue(), '@ק ', 'picking a suggested command fills it in');
+      await send('@ק במבה, 2 חלב');
+      await notice.filter({ hasText: 'נוספו 2 מוצרים לקניות' }).waitFor();
+      assert.equal(await box.inputValue(), '', 'a command clears the box');
+      await p.locator('.comment', { hasText: '🛒 לקניות: במבה, חלב (2)' }).waitFor();
+      ok('"@ק במבה, 2 חלב" adds to shopping and tells the family in the chat');
+
+      await send('@מ להחליף נורה מחר לkid');
+      await notice.filter({ hasText: 'נוספה משימה: להחליף נורה' }).waitFor();
+      await p.locator('.comment', { hasText: /✅ משימה: להחליף נורה · kid · מחר/ }).waitFor();
+      ok('"@מ … מחר לkid" adds a task due tomorrow, assigned to the daughter');
+
+      await send('@י חוג');
+      await notice.filter({ hasText: 'חסר יום או תאריך' }).waitFor();
+      assert.equal(await box.inputValue(), '@י חוג', 'a command missing its date stays in the box to fix');
+      await send('@י חוג ציור כל חמישי 17:00');
+      await notice.filter({ hasText: /נקבע ביומן: חוג ציור.*17:00 · כל שבוע/ }).waitFor();
+      ok('"@י … כל חמישי 17:00" adds a weekly event; a missing date is explained, not sent');
+
+      await send('@ר ציוד לסקי: כפפות, כובע');
+      await notice.filter({ hasText: 'נוצרה רשימה חדשה "ציוד לסקי" עם 2 פריטים' }).waitFor();
+      if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-command-done.png` });
+      await notice.getByRole('button', { name: 'ביטול' }).click();
+      await notice.filter({ hasText: 'בוטלה' }).waitFor();
+      await p.locator('.comment', { hasText: 'ציוד לסקי' }).waitFor({ state: 'detached' });
+      await p.waitForTimeout(500); // the lists listener catches up with the undo
+      await send('@ר ציוד לסקי: כפפות');
+      await notice.filter({ hasText: 'נוצרה רשימה חדשה' }).waitFor();
+      await send('@ר ציוד סקי: משקפת');
+      await notice.filter({ hasText: 'נוסף ל"ציוד לסקי": משקפת' }).waitFor();
+      await notice.getByRole('button', { name: 'פתיחה' }).click();
+      const page = p.getByRole('main', { name: 'רשימות' });
+      await page.getByText('משקפת').waitFor();
+      await page.getByText('כפפות').waitFor();
+      assert.equal(await page.getByText('כובע').count(), 0, 'the cancelled list left nothing behind');
+      ok('"@ר" creates a missing list (with undo) and finds an existing one despite a typo');
+      await p.getByRole('navigation').getByRole('button', { name: 'קניות' }).click();
+      await p.getByText('במבה').first().waitFor();
+      await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+    }
+
     step('Swipe between screens');
     {
       const cdp = await kid.page.context().newCDPSession(kid.page);

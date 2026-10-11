@@ -252,7 +252,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           </main>
         )}
         {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} />}
-        {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} />}
+        {view === 'chat' && <ChatView comments={comments} items={items} tasks={tasks} events={events} lists={lists} listEntries={listEntries} go={go} openList={(id) => { setListId(id); setView('lists'); }} />}
         </ErrorBoundary>
 
         <nav className="bottom-nav" aria-label="ניווט">
