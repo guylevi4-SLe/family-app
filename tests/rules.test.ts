@@ -336,6 +336,8 @@ describe('weekly timetables', () => {
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'dad'), { ...s('dad'), image: 'data:text/html;base64,PGgxPg==' }));
     await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'schedules', 'daughter')));
     await assertFails(deleteDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'dad')));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter'), { ...s('dad'), days: ['', 'חשבון\nאנגלית'] }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter'), { ...s('dad'), days: 'חשבון' }));
     await assertSucceeds(deleteDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'daughter')));
   });
 });

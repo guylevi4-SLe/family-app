@@ -558,6 +558,24 @@ async function main() {
     await dad.page.getByRole('button', { name: '📚 מערכת שעות' }).click();
     await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('heading', { name: /של kid/ }).waitFor();
     assert.equal(await dad.page.getByRole('group', { name: 'של מי' }).locator('[aria-pressed=true]').innerText().then((t) => t.includes('kid')), true, 'only the daughter is selected');
+    {
+      const sheet = dad.page.getByRole('dialog', { name: 'מערכת שעות' });
+      await sheet.getByRole('button', { name: /הוספת שיעורים לפי יום/ }).click();
+      for (const d of ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי']) await sheet.getByLabel(`יום ${d}`).fill(`חשבון ${d}\nאנגלית`);
+      await sheet.getByRole('button', { name: 'שמירה' }).click();
+      await dad.page.evaluate(() => {
+        window.__shared = null;
+        navigator.share = async (d) => { window.__shared = d.text; };
+        window.open = (u) => { window.__shared = decodeURIComponent(new URL(u).searchParams.get('text')); };
+      });
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/schedule-send.png` });
+      await sheet.getByRole('button', { name: /שליחת המערכת .* בוואטסאפ/ }).click();
+      const sent = await dad.page.waitForFunction(() => window.__shared).then((h) => h.jsonValue());
+      assert.match(sent, /^📚 המערכת של kid (למחר, יום|ליום) (ראשון|שני|שלישי|רביעי|חמישי) [\d.]+:\n1\. חשבון \S+\n2\. אנגלית$/);
+      const day = sent.match(/(?:יום|ליום) (\S+) /)[1];
+      assert.ok(sent.includes(`חשבון ${day}`), 'sends the lessons of that day only');
+      ok('Dad typed the lessons per day and sent the next school day on WhatsApp');
+    }
     await dad.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('from the calendar, the timetable opens on the only member who has one');
 
