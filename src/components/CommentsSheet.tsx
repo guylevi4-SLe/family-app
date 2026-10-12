@@ -226,7 +226,7 @@ export function Composer({
   targetId,
   placeholder,
   label,
-  notifyLabel = 'הודעה ל',
+  notifyLabel = 'לתייג את',
   onCommand,
   hints,
   autoComplete,
@@ -272,7 +272,7 @@ export function Composer({
   /** Sends the question on WhatsApp (with the photo) and keeps it in the item's notes. */
   const ask = () => {
     const q = text.trim();
-    const message = `שאלה על "${askAbout}" מרשימת הקניות${q ? `:\n${q}` : '?'}`;
+    const message = `שאלה על "${askAbout}" מרשימת הקניות:${q ? `\n${q}` : ''}`;
     shareText(message, photo ?? undefined);
     addComment(familyId, type, targetId, `❓ ${q || 'נשלחה שאלה בוואטסאפ'}`, photo ?? undefined, notify);
     setText('');
