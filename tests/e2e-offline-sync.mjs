@@ -236,7 +236,7 @@ async function main() {
       ok('marking a task done asks for confirmation');
       await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
     }
-    await dad.page.getByLabel('בחירת תמונה').setInputFiles('public/icon-512.png');
+    await dad.page.getByLabel('בחירת תמונה', { exact: true }).setInputFiles('public/icon-512.png');
     await dad.page.locator('.photo-preview img').waitFor();
     await dad.page.getByRole('dialog').getByRole('button', { name: 'שליחה' }).click();
     await kid.page.locator('.comment-photo img').waitFor({ timeout: 10000 });
@@ -451,14 +451,19 @@ async function main() {
       await p.evaluate(() => {
         window.__shared = null;
         navigator.share = async (d) => { window.__shared = d; };
+        navigator.canShare = () => true;
       });
       await p.getByRole('button', { name: /תגובה על חלב|תגובות על חלב/ }).first().click();
       const sheet = p.getByRole('dialog', { name: 'תגובות על חלב' });
       if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/item-notes.png` });
       await sheet.getByLabel('כתיבת תגובה').fill('איזה אחוז שומן?');
+      await sheet.getByLabel('בחירת תמונה לשאלה').setInputFiles('public/icon-512.png');
+      await sheet.getByRole('img', { name: 'התמונה שתצורף לשאלה' }).waitFor();
+      assert.equal(await sheet.getByRole('img', { name: 'התמונה שתישלח' }).count(), 0, 'the note itself has no photo');
+      if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/ask-photo.png` });
       await sheet.getByRole('button', { name: /לשלוח כשאלה בוואטסאפ/ }).click();
       await p.waitForFunction(() => window.__shared);
-      assert.equal((await p.evaluate(() => window.__shared)).text, 'שאלה על "חלב" מרשימת הקניות:\nאיזה אחוז שומן?');
+      assert.deepEqual(await p.evaluate(() => ({ text: window.__shared.text, files: (window.__shared.files ?? []).length })), { text: 'שאלה על "חלב" מרשימת הקניות:\nאיזה אחוז שומן?', files: 1 });
       await sheet.locator('.comment', { hasText: '❓ איזה אחוז שומן?' }).waitFor();
       await sheet.getByLabel('סגירה').click();
       await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();

@@ -254,9 +254,12 @@ export function Composer({
   const others = members.filter((m) => m.id !== me.id);
   const [text, setText] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
+  /** A photo for the WhatsApp question only, separate from the note's photo. */
+  const [askPhoto, setAskPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const askFileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   const send = () => {
@@ -272,27 +275,27 @@ export function Composer({
     setPhoto(null);
   };
 
-  /** Sends the question on WhatsApp (with the photo) and keeps it in the item's notes. */
+  /** Sends the question on WhatsApp (with its own photo) and keeps it in the item's notes. */
   const ask = () => {
     const q = text.trim();
     const message = `שאלה על "${askAbout}" מרשימת הקניות:${q ? `\n${q}` : ''}`;
-    shareText(message, photo ?? undefined);
-    addComment(familyId, type, targetId, `❓ ${q || 'נשלחה שאלה בוואטסאפ'}`, photo ?? undefined, notify);
+    shareText(message, askPhoto ?? undefined);
+    addComment(familyId, type, targetId, `❓ ${q || 'נשלחה שאלה בוואטסאפ'}`, askPhoto ?? undefined, notify);
     setText('');
-    setPhoto(null);
+    setAskPhoto(null);
   };
 
-  const pick = async (file: File | undefined) => {
+  const pick = async (file: File | undefined, set: (p: string) => void, input: HTMLInputElement | null) => {
     if (!file) return;
     setPhotoError('');
     setBusy(true);
     try {
-      setPhoto(await shrinkPhoto(file));
+      set(await shrinkPhoto(file));
     } catch {
       setPhotoError('לא הצלחנו לטעון את התמונה. נסו תמונה אחרת');
     } finally {
       setBusy(false);
-      if (fileRef.current) fileRef.current.value = '';
+      if (input) input.value = '';
     }
   };
 
@@ -355,7 +358,7 @@ export function Composer({
           accept="image/*"
           hidden
           aria-label="בחירת תמונה"
-          onChange={(e) => pick(e.target.files?.[0])}
+          onChange={(e) => pick(e.target.files?.[0], setPhoto, fileRef.current)}
         />
         <button
           type="button"
@@ -391,9 +394,38 @@ export function Composer({
       </form>
       {!notifyFirst && tagRow}
       {askAbout && (
-        <button type="button" className="ask-whatsapp" onClick={ask}>
-          <Icon name="whatsapp" size={18} /> {text.trim() || photo ? 'לשלוח כשאלה בוואטסאפ' : 'שאלה על המוצר בוואטסאפ'}
-        </button>
+        <div className="ask-row">
+          {askPhoto && (
+            <div className="photo-preview">
+              <img src={askPhoto} alt="התמונה שתצורף לשאלה" />
+              <button type="button" className="small" onClick={() => setAskPhoto(null)}>
+                הסרת התמונה מהשאלה
+              </button>
+            </div>
+          )}
+          <div className="ask-buttons">
+            <input
+              ref={askFileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              aria-label="בחירת תמונה לשאלה"
+              onChange={(e) => pick(e.target.files?.[0], setAskPhoto, askFileRef.current)}
+            />
+            <button type="button" className="ask-whatsapp" onClick={ask}>
+              <Icon name="whatsapp" size={18} /> {text.trim() || askPhoto ? 'לשלוח כשאלה בוואטסאפ' : 'שאלה על המוצר בוואטסאפ'}
+            </button>
+            <button
+              type="button"
+              className="ask-photo"
+              aria-label="צירוף תמונה לשאלה בוואטסאפ"
+              disabled={busy}
+              onClick={() => askFileRef.current?.click()}
+            >
+              <Icon name="image" size={20} />
+            </button>
+          </div>
+        </div>
       )}
     </>
   );
