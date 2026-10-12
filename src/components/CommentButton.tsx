@@ -7,11 +7,14 @@ import { Icon } from './Icon';
 export function CommentButton({ type, id, title, always = false }: { type: TargetType; id: string; title: string; always?: boolean }) {
   const { commentCounts, openComments } = useFamily();
   const count = commentCounts.get(commentKey(type, id)) ?? 0;
+  // Shopping items have "notes"; tasks and events have "comments".
+  const [many, one] = type === 'item' ? ['הערות', 'הערה'] : ['תגובות', 'תגובה'];
+  const label = count ? `${count} ${many} על ${title}` : `הוספת ${one} על ${title}`;
   if (!always) {
     return (
       <button
         className={count ? 'comment-chip has' : 'comment-chip'}
-        aria-label={count ? `${count} תגובות על ${title}` : `הוספת תגובה על ${title}`}
+        aria-label={label}
         onClick={(e) => {
           e.stopPropagation();
           openComments(type, id, title);
@@ -25,13 +28,13 @@ export function CommentButton({ type, id, title, always = false }: { type: Targe
   return (
     <button
       className="small"
-      aria-label={count ? `${count} תגובות על ${title}` : `הוספת תגובה על ${title}`}
+      aria-label={label}
       onClick={(e) => {
         e.stopPropagation();
         openComments(type, id, title);
       }}
     >
-      💬{count ? ` ${count}` : ' תגובות'}
+      💬{count ? ` ${count}` : ` ${many}`}
     </button>
   );
 }

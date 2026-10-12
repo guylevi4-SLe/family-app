@@ -122,6 +122,7 @@ async function main() {
     await add(kid, 'במבה');
     await row(kid, 'במבה').waitFor();
     await row(kid, 'חלב').locator('.check-area').click();
+    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.deleted) .name')].some((n) => n.textContent === 'חלב'));
     await kid.page.locator('.sync.offline', { hasText: 'ממתינים' }).waitFor();
     ok(`offline badge: "${(await kid.page.locator('.sync').textContent()).trim()}"`);
 
@@ -453,7 +454,7 @@ async function main() {
         navigator.share = async (d) => { window.__shared = d; };
         navigator.canShare = () => true;
       });
-      await p.getByRole('button', { name: /תגובה על חלב|תגובות על חלב/ }).first().click();
+      await p.getByRole('button', { name: /(הערה|הערות) על חלב/ }).first().click();
       const sheet = p.getByRole('dialog', { name: 'תגובות על חלב' });
       if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/item-notes.png` });
       await sheet.getByLabel('כתיבת תגובה').fill('איזה אחוז שומן?');
