@@ -254,7 +254,9 @@ export function Composer({
   const others = members.filter((m) => m.id !== me.id);
   const [text, setText] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
-  /** A photo for the WhatsApp question only, separate from the note's photo. */
+  /** The WhatsApp question window: its own text and photo, separate from the note. */
+  const [asking, setAsking] = useState(false);
+  const [askText, setAskText] = useState('');
   const [askPhoto, setAskPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [photoError, setPhotoError] = useState('');
@@ -275,14 +277,21 @@ export function Composer({
     setPhoto(null);
   };
 
-  /** Sends the question on WhatsApp (with its own photo) and keeps it in the item's notes. */
+  const openAsk = () => {
+    setAskText(text.trim());
+    setAsking(true);
+  };
+
+  /** Sends the question on WhatsApp (with its photo) and keeps it in the item's notes. */
   const ask = () => {
-    const q = text.trim();
+    const q = askText.trim();
     const message = `שאלה על "${askAbout}" מרשימת הקניות:${q ? `\n${q}` : ''}`;
     shareText(message, askPhoto ?? undefined);
     addComment(familyId, type, targetId, `❓ ${q || 'נשלחה שאלה בוואטסאפ'}`, askPhoto ?? undefined, notify);
-    setText('');
+    if (q && text.trim() === q) setText('');
+    setAskText('');
     setAskPhoto(null);
+    setAsking(false);
   };
 
   const pick = async (file: File | undefined, set: (p: string) => void, input: HTMLInputElement | null) => {
@@ -394,8 +403,29 @@ export function Composer({
       </form>
       {!notifyFirst && tagRow}
       {askAbout && (
-        <div className="ask-row">
-          <div className="ask-buttons">
+        <button type="button" className="ask-whatsapp" onClick={openAsk}>
+          <Icon name="whatsapp" size={18} /> שאלה על המוצר בוואטסאפ
+        </button>
+      )}
+      {asking && (
+        <div className="sheet-backdrop ask-backdrop" onClick={() => setAsking(false)}>
+          <div className="sheet ask-sheet" role="dialog" aria-label="שאלה בוואטסאפ" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-head">
+              <h2>❓ שאלה על {askAbout}</h2>
+              <button type="button" className="icon-button" aria-label="סגירת השאלה" onClick={() => setAsking(false)}>
+                ✕
+              </button>
+            </div>
+            <textarea
+              className="ask-text"
+              rows={3}
+              value={askText}
+              maxLength={1000}
+              autoFocus
+              placeholder="למשל: איזה סוג לקנות?"
+              aria-label="השאלה"
+              onChange={(e) => setAskText(e.target.value)}
+            />
             <input
               ref={askFileRef}
               type="file"
@@ -404,27 +434,26 @@ export function Composer({
               aria-label="בחירת תמונה לשאלה"
               onChange={(e) => pick(e.target.files?.[0], setAskPhoto, askFileRef.current)}
             />
-            <button type="button" className="ask-whatsapp" onClick={ask}>
-              <Icon name="whatsapp" size={18} /> {text.trim() || askPhoto ? 'לשלוח כשאלה בוואטסאפ' : 'שאלה על המוצר בוואטסאפ'}
-            </button>
-            <button
-              type="button"
-              className="ask-photo"
-              aria-label="צירוף תמונה לשאלה בוואטסאפ"
-              disabled={busy}
-              onClick={() => askFileRef.current?.click()}
-            >
-              <Icon name="camera" size={18} /> {askPhoto ? 'החלפת תמונה' : 'תמונה'}
+            {askPhoto ? (
+              <div className="photo-preview">
+                <img src={askPhoto} alt="התמונה שתצורף לשאלה" />
+                <button type="button" className="small" onClick={() => askFileRef.current?.click()}>
+                  החלפה
+                </button>
+                <button type="button" className="small" onClick={() => setAskPhoto(null)}>
+                  הסרה
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="ask-photo" disabled={busy} onClick={() => askFileRef.current?.click()}>
+                <Icon name="camera" size={18} /> {busy ? 'טוען תמונה…' : 'הוספת תמונה'}
+              </button>
+            )}
+            {photoError && <p className="error">{photoError}</p>}
+            <button type="button" className="primary ask-send" disabled={busy} onClick={ask}>
+              <Icon name="whatsapp" size={20} /> שליחה בוואטסאפ
             </button>
           </div>
-          {askPhoto && (
-            <div className="photo-preview">
-              <img src={askPhoto} alt="התמונה שתצורף לשאלה" />
-              <button type="button" className="small" onClick={() => setAskPhoto(null)}>
-                הסרת התמונה מהשאלה
-              </button>
-            </div>
-          )}
         </div>
       )}
     </>
