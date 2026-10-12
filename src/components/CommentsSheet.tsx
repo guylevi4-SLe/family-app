@@ -36,13 +36,23 @@ export function CommentsSheet({
           </button>
         </div>
         <div className="comments">
-          {list.length === 0 && <p className="muted">אין עדיין תגובות. מה דעתך?</p>}
+          {list.length === 0 && (
+            <p className="muted">
+              {type === 'item' ? 'אין עדיין הערות. אפשר לכתוב הערה, לצרף תמונה, או לשאול מישהו בוואטסאפ.' : 'אין עדיין תגובות. מה דעתך?'}
+            </p>
+          )}
           {list.map((c) => (
             <CommentBubble key={c.id} c={c} onPhoto={setViewing} />
           ))}
           <div ref={endRef} />
         </div>
-        <Composer type={type} targetId={targetId} placeholder="כתיבת תגובה…" label="כתיבת תגובה" />
+        <Composer
+          type={type}
+          targetId={targetId}
+          placeholder={type === 'item' ? 'הערה על המוצר…' : 'כתיבת תגובה…'}
+          label="כתיבת תגובה"
+          askAbout={type === 'item' ? title : undefined}
+        />
       </div>
       {viewing && <PhotoViewer src={viewing} onClose={() => setViewing(null)} />}
     </div>
@@ -175,27 +185,31 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
  * Passes a message on: the phone's share sheet (WhatsApp, with its photo) on
  * touch devices, WhatsApp with the text ready on a computer.
  */
-async function shareMessage(c: Comment) {
+function shareMessage(c: Comment) {
   // Only the words: WhatsApp already shows who is sending them.
-  const text = c.text;
+  return shareText(c.text, c.image, 'תמונה מהצ׳אט המשפחתי');
+}
+
+/** Phone share sheet (with the photo) on touch devices, WhatsApp on a computer. */
+async function shareText(text: string, image?: string, fallback = '📷 תמונה') {
   const touch = window.matchMedia?.('(pointer: coarse)').matches;
   if (touch && navigator.share) {
     try {
-      if (c.image) {
-        const blob = await (await fetch(c.image)).blob();
+      if (image) {
+        const blob = await (await fetch(image)).blob();
         const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
         if (navigator.canShare?.({ files: [file] })) {
           await navigator.share({ files: [file], ...(text ? { text } : {}) });
           return;
         }
       }
-      await navigator.share({ text: text || 'תמונה מהצ׳אט המשפחתי' });
+      await navigator.share({ text: text || fallback });
     } catch {
       /* the person closed the share sheet */
     }
     return;
   }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text || '📷 תמונה')}`, '_blank', 'noopener');
+  window.open(`https://wa.me/?text=${encodeURIComponent(text || fallback)}`, '_blank', 'noopener');
 }
 
 export function PhotoViewer({ src, onClose }: { src: string; onClose: () => void }) {
@@ -216,6 +230,7 @@ export function Composer({
   onCommand,
   hints,
   autoComplete,
+  askAbout,
 }: {
   type: TargetType;
   targetId: string;
@@ -228,6 +243,8 @@ export function Composer({
   hints?: (text: string) => { label: string; insert: string }[];
   /** Rewrites what was typed (a shortcut grown into its full form), or null to keep it. */
   autoComplete?: (text: string) => string | null;
+  /** A product's name: offers to ask about it on WhatsApp ("which washing-up liquid?"). */
+  askAbout?: string;
 }) {
   const { familyId, me, members } = useFamily();
   const [notify, setNotify] = useState<string[]>([]);
@@ -248,6 +265,16 @@ export function Composer({
       return;
     }
     addComment(familyId, type, targetId, text, photo ?? undefined, notify);
+    setText('');
+    setPhoto(null);
+  };
+
+  /** Sends the question on WhatsApp (with the photo) and keeps it in the item's notes. */
+  const ask = () => {
+    const q = text.trim();
+    const message = `שאלה על "${askAbout}" מרשימת הקניות${q ? `:\n${q}` : '?'}`;
+    shareText(message, photo ?? undefined);
+    addComment(familyId, type, targetId, `❓ ${q || 'נשלחה שאלה בוואטסאפ'}`, photo ?? undefined, notify);
     setText('');
     setPhoto(null);
   };
@@ -357,6 +384,11 @@ export function Composer({
           ↑
         </button>
       </form>
+      {askAbout && (
+        <button type="button" className="ask-whatsapp" onClick={ask}>
+          <Icon name="whatsapp" size={18} /> {text.trim() || photo ? 'לשלוח כשאלה בוואטסאפ' : 'שאלה על המוצר בוואטסאפ'}
+        </button>
+      )}
     </>
   );
 }

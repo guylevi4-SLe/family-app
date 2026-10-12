@@ -447,6 +447,21 @@ async function main() {
       assert.ok(off <= 2, `the WhatsApp button is centred (off by ${off}px)`);
       await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
       ok('the shopping list WhatsApp button is centred');
+      await p.getByRole('navigation').getByRole('button', { name: 'קניות' }).click();
+      await p.evaluate(() => {
+        window.__shared = null;
+        navigator.share = async (d) => { window.__shared = d; };
+      });
+      await p.getByRole('button', { name: /תגובה על חלב|תגובות על חלב/ }).first().click();
+      const sheet = p.getByRole('dialog', { name: 'תגובות על חלב' });
+      await sheet.getByLabel('כתיבת תגובה').fill('איזה אחוז שומן?');
+      await sheet.getByRole('button', { name: /לשלוח כשאלה בוואטסאפ/ }).click();
+      await p.waitForFunction(() => window.__shared);
+      assert.equal((await p.evaluate(() => window.__shared)).text, 'שאלה על "חלב" מרשימת הקניות:\nאיזה אחוז שומן?');
+      await sheet.locator('.comment', { hasText: '❓ איזה אחוז שומן?' }).waitFor();
+      await sheet.getByLabel('סגירה').click();
+      await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
+      ok('a product note can be sent as a WhatsApp question, and stays in its notes');
     }
 
     step('Long chat history');
