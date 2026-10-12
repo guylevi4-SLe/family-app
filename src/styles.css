@@ -637,6 +637,7 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 
 /* ---------- notifications ---------- */
 .notify-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.comment-box + .notify-row { margin-top: 10px; }
 .notified { display: block; margin-top: 4px; font-size: 0.8rem; color: var(--muted); }
 
 /* ---------- family chat ---------- */

@@ -278,6 +278,7 @@ export function ChatView({
           placeholder="הודעה, או @ לפקודה…"
           label="כתיבת הודעה"
           notifyLabel="הודעה ל"
+          notifyFirst
           onCommand={runCommand}
           hints={(t) => suggestCommands(t).map((c) => ({ label: `@${c.key} ${c.emoji} ${c.word}`, insert: `@${c.word}: ` }))}
           autoComplete={expandCommand}

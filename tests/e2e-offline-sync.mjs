@@ -454,6 +454,7 @@ async function main() {
       });
       await p.getByRole('button', { name: /תגובה על חלב|תגובות על חלב/ }).first().click();
       const sheet = p.getByRole('dialog', { name: 'תגובות על חלב' });
+      if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/item-notes.png` });
       await sheet.getByLabel('כתיבת תגובה').fill('איזה אחוז שומן?');
       await sheet.getByRole('button', { name: /לשלוח כשאלה בוואטסאפ/ }).click();
       await p.waitForFunction(() => window.__shared);

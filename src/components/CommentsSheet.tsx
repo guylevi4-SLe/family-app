@@ -227,6 +227,7 @@ export function Composer({
   placeholder,
   label,
   notifyLabel = 'לתייג את',
+  notifyFirst = false,
   onCommand,
   hints,
   autoComplete,
@@ -237,6 +238,8 @@ export function Composer({
   placeholder: string;
   label: string;
   notifyLabel?: string;
+  /** Show the tag chips above the text box (the chat) instead of below it. */
+  notifyFirst?: boolean;
   /** Handles a command instead of sending it: 'done' clears the box, 'keep' leaves it to fix, null sends it as written. */
   onCommand?: (text: string) => 'done' | 'keep' | null;
   /** Shortcuts offered above the box for what is being typed. */
@@ -293,6 +296,28 @@ export function Composer({
     }
   };
 
+  const tagRow = others.length > 0 && (
+        <div className="notify-row">
+          <span className="assign-label">{notifyFirst ? '🔔' : '🏷️'} {notifyLabel}:</span>
+          <div className="chips" role="group" aria-label={notifyLabel}>
+            {others.map((m) => {
+              const on = notify.includes(m.id);
+              return (
+                <button
+                  type="button"
+                  key={m.id}
+                  className={on ? 'chip on' : 'chip'}
+                  aria-pressed={on}
+                  onClick={() => setNotify(on ? notify.filter((x) => x !== m.id) : [...notify, m.id])}
+                >
+                  {m.displayName.split(' ')[0]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+  );
+
   return (
     <>
       {photo && (
@@ -316,27 +341,7 @@ export function Composer({
           ))}
         </div>
       )}
-      {others.length > 0 && (
-        <div className="notify-row">
-          <span className="assign-label">🔔 {notifyLabel}:</span>
-          <div className="chips" role="group" aria-label={notifyLabel}>
-            {others.map((m) => {
-              const on = notify.includes(m.id);
-              return (
-                <button
-                  type="button"
-                  key={m.id}
-                  className={on ? 'chip on' : 'chip'}
-                  aria-pressed={on}
-                  onClick={() => setNotify(on ? notify.filter((x) => x !== m.id) : [...notify, m.id])}
-                >
-                  {m.displayName.split(' ')[0]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {notifyFirst && tagRow}
       <form
         className="add-box comment-box"
         onSubmit={(e) => {
@@ -384,6 +389,7 @@ export function Composer({
           ↑
         </button>
       </form>
+      {!notifyFirst && tagRow}
       {askAbout && (
         <button type="button" className="ask-whatsapp" onClick={ask}>
           <Icon name="whatsapp" size={18} /> {text.trim() || photo ? 'לשלוח כשאלה בוואטסאפ' : 'שאלה על המוצר בוואטסאפ'}
