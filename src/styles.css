@@ -405,8 +405,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .shopping .dept { margin-top: 12px; }
 .shopping .dept h2 { font-size: 0.8rem; color: var(--accent); margin: 0 4px 2px; letter-spacing: 0.01em; }
 .shopping .dept ul { background: none; border: 0; border-radius: 0; }
-.shopping .row { min-height: 40px; border-bottom: 1px solid var(--line); }
-.shopping .row:last-child { border-bottom: 0; }
+.shopping .row { min-height: 40px; border-bottom: 0; }
 .shopping .check-area { min-height: 40px; gap: 10px; padding: 0 4px; }
 .shopping .box { width: 22px; height: 22px; border-radius: 6px; font-size: 0.8rem; }
 .shopping .name { flex: 0 1 auto; font-size: 1rem; }
