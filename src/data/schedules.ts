@@ -1,4 +1,4 @@
-import { deleteDoc, deleteField, doc, serverTimestamp, setDoc, updateDoc, type Timestamp } from 'firebase/firestore';
+import { deleteDoc, doc, serverTimestamp, setDoc, type Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -8,42 +8,7 @@ export interface Schedule {
   image: string;
   updatedAt?: Timestamp | null;
   updatedBy: string;
-  /** Lessons for Sunday…Friday, one per line, so a single day can be sent on its own. */
-  days?: string[];
-  /** Lessons per day as Claude read them from the image, waiting for a parent to check. */
-  suggested?: string[];
-  readStatus?: 'reading' | 'done' | 'failed';
   pending: boolean;
-}
-
-export const SCHOOL_DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי'];
-
-/** The next school day after `now`: tomorrow, or Sunday when tomorrow is Saturday. */
-export function nextSchoolDay(now: Date) {
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  if (d.getDay() === 6) d.setDate(d.getDate() + 1);
-  return d;
-}
-
-/** "📚 המערכת של רומי למחר, יום שלישי 13.10:" and the numbered lessons, ready to share. */
-export function dayMessage(name: string, days: string[] | undefined, now: Date) {
-  const d = nextSchoolDay(now);
-  const tomorrow = d.getDay() === (now.getDay() + 1) % 7;
-  const when = `${tomorrow ? 'למחר, יום' : 'ליום'} ${SCHOOL_DAYS[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}`;
-  const lines = (days?.[d.getDay()] ?? '').split('\n').map((l) => l.trim()).filter(Boolean);
-  if (!lines.length) return { day: d, text: `📚 אין שיעורים במערכת של ${name} ${when}` };
-  const numbered = lines.map((l, i) => (/^\d/.test(l) ? l : `${i + 1}. ${l}`));
-  return { day: d, text: `📚 המערכת של ${name} ${when}:\n${numbered.join('\n')}` };
-}
-
-export function saveScheduleDays(fid: string, uid: string, days: string[]) {
-  return updateDoc(doc(db, 'families', fid, 'schedules', uid), {
-    days: days.map((d) => d.trim().slice(0, 1000)),
-    suggested: deleteField(),
-    readStatus: deleteField(),
-    updatedAt: serverTimestamp(),
-    updatedBy: auth.currentUser!.uid,
-  }).catch(reportWriteError);
 }
 
 /** Whose timetable to show first: mine if I uploaded one, else the first member who has one. */

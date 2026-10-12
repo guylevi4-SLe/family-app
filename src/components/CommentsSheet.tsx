@@ -191,7 +191,7 @@ function shareMessage(c: Comment) {
 }
 
 /** Phone share sheet (with the photo) on touch devices, WhatsApp on a computer. */
-export async function shareText(text: string, image?: string, fallback = '📷 תמונה') {
+async function shareText(text: string, image?: string, fallback = '📷 תמונה') {
   const touch = window.matchMedia?.('(pointer: coarse)').matches;
   if (touch && navigator.share) {
     try {

@@ -2,7 +2,6 @@
 const functions = require('firebase-functions/v1');
 const admin = require('firebase-admin');
 const { TARGET_COLLECTION, recipients, message, link } = require('./notify');
-const { readTimetable } = require('./readSchedule');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -49,29 +48,4 @@ exports.notifyOnComment = functions
       .map((r, i) => (!r.success && /registration-token-not-registered|invalid-registration-token|invalid-argument/.test(r.error?.code || '') ? devices[i].ref : null))
       .filter(Boolean);
     await Promise.all(dead.map((ref) => ref.delete()));
-  });
-
-// When a new timetable image is uploaded, Claude reads it into lessons per day.
-// The app shows them as a suggestion that a parent checks before saving.
-// Runs only when ANTHROPIC_API_KEY is configured (functions/.env, written by the deploy).
-exports.readScheduleOnUpload = functions
-  .region('europe-west1')
-  .runWith({ memory: '256MB', timeoutSeconds: 120 })
-  .firestore.document('families/{fid}/schedules/{uid}')
-  .onWrite(async (change) => {
-    const after = change.after.exists ? change.after.data() : null;
-    if (!after || !after.image) return;
-    if (change.before.exists && change.before.get('image') === after.image) return;
-    if (!process.env.ANTHROPIC_API_KEY) return;
-    const ref = change.after.ref;
-    const stillSame = async () => (await ref.get()).get('image') === after.image;
-    await ref.update({ readStatus: 'reading' });
-    try {
-      const Anthropic = require('@anthropic-ai/sdk');
-      const days = await readTimetable(new Anthropic(), after.image);
-      if (await stillSame()) await ref.update({ suggested: days, readStatus: 'done' });
-    } catch (err) {
-      console.error('reading the timetable failed', err);
-      if (await stillSame()) await ref.update({ readStatus: 'failed' });
-    }
   });
