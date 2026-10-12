@@ -395,14 +395,6 @@ export function Composer({
       {!notifyFirst && tagRow}
       {askAbout && (
         <div className="ask-row">
-          {askPhoto && (
-            <div className="photo-preview">
-              <img src={askPhoto} alt="התמונה שתצורף לשאלה" />
-              <button type="button" className="small" onClick={() => setAskPhoto(null)}>
-                הסרת התמונה מהשאלה
-              </button>
-            </div>
-          )}
           <div className="ask-buttons">
             <input
               ref={askFileRef}
@@ -422,9 +414,17 @@ export function Composer({
               disabled={busy}
               onClick={() => askFileRef.current?.click()}
             >
-              <Icon name="image" size={20} />
+              <Icon name="camera" size={18} /> {askPhoto ? 'החלפת תמונה' : 'תמונה'}
             </button>
           </div>
+          {askPhoto && (
+            <div className="photo-preview">
+              <img src={askPhoto} alt="התמונה שתצורף לשאלה" />
+              <button type="button" className="small" onClick={() => setAskPhoto(null)}>
+                הסרת התמונה מהשאלה
+              </button>
+            </div>
+          )}
         </div>
       )}
     </>
