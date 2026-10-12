@@ -80,7 +80,10 @@ export function ScheduleSheet({
             </p>
             {draft ? (
               <div className="schedule-days">
-                <p className="muted small-print">שיעור בכל שורה. אפשר לכתוב גם שעה, למשל "8:00 חשבון".</p>
+                <p className="muted small-print">
+                  {!hasDays && schedule.suggested?.some((d) => d.trim()) ? 'Claude קרא את זה מהמערכת. כדאי לבדוק ולתקן לפני השמירה. ' : ''}
+                  שיעור בכל שורה. אפשר לכתוב גם שעה, למשל "8:00 חשבון".
+                </p>
                 {SCHOOL_DAYS.map((name, i) => (
                   <label key={name}>
                     <span>יום {name}</span>
@@ -107,11 +110,22 @@ export function ScheduleSheet({
                   </button>
                 )}
               </div>
+            ) : schedule.readStatus === 'reading' ? (
+              <p className="muted schedule-reading">⏳ Claude קורא את המערכת…</p>
+            ) : canEdit && schedule.suggested?.some((d) => d.trim()) ? (
+              <div className="schedule-send">
+                <button type="button" className="ask-whatsapp" onClick={() => setDraft(SCHOOL_DAYS.map((_, i) => schedule.suggested?.[i] ?? ''))}>
+                  ✨ Claude קרא את המערכת. לבדוק ולאשר
+                </button>
+              </div>
             ) : (
               canEdit && (
-                <button type="button" className="ask-whatsapp" onClick={() => setDraft(SCHOOL_DAYS.map(() => ''))}>
-                  📝 הוספת שיעורים לפי יום, כדי לשלוח יום אחד בוואטסאפ
-                </button>
+                <div className="schedule-send">
+                  {schedule.readStatus === 'failed' && <p className="muted small-print">לא הצלחנו לקרוא את המערכת אוטומטית.</p>}
+                  <button type="button" className="ask-whatsapp" onClick={() => setDraft(SCHOOL_DAYS.map(() => ''))}>
+                    📝 הוספת שיעורים לפי יום, כדי לשלוח יום אחד בוואטסאפ
+                  </button>
+                </div>
               )
             )}
             {zoom && <ZoomViewer src={schedule.image} alt={`מערכת השעות ${whose}`} onClose={() => setZoom(false)} />}

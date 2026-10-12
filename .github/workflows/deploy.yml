@@ -50,7 +50,12 @@ jobs:
       - name: Deploy hosting, security rules and notification function
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          # Optional: lets the timetable be read automatically. Without it the app asks to type the lessons.
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            printf 'ANTHROPIC_API_KEY=%s\n' "$ANTHROPIC_API_KEY" > functions/.env
+          fi
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
             echo "::error::Missing repository secret FIREBASE_SERVICE_ACCOUNT (see setup instructions, step 5)."
             exit 1
@@ -58,4 +63,4 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
           npx firebase deploy --only hosting,firestore:rules,functions --project family-app-7ceae --non-interactive --force
-          rm -f "$RUNNER_TEMP/sa.json"
+          rm -f "$RUNNER_TEMP/sa.json" functions/.env

@@ -237,7 +237,7 @@ service cloud.firestore {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid) && (uid == me() || isAdmin(fid))
           && exists(memberPath(fid, uid))
-          && onlyKeys(['image', 'updatedAt', 'updatedBy', 'days'])
+          && onlyKeys(['image', 'updatedAt', 'updatedBy', 'days', 'suggested', 'readStatus'])
           && shortString(data().image, 950000)
           && (!('days' in data()) || (data().days is list && data().days.size() <= 7))
           && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')

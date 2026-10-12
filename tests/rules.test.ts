@@ -338,6 +338,7 @@ describe('weekly timetables', () => {
     await assertFails(deleteDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'dad')));
     await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter'), { ...s('dad'), days: ['', 'חשבון\nאנגלית'] }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter'), { ...s('dad'), days: 'חשבון' }));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'schedules', 'daughter'), { ...s('dad'), suggested: ['חשבון'], readStatus: 'done' }));
     await assertSucceeds(deleteDoc(doc(db('daughter'), 'families', 'levi', 'schedules', 'daughter')));
   });
 });

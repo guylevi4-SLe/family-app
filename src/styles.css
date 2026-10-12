@@ -804,3 +804,4 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .schedule-days { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
 .schedule-days label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; }
 .schedule-days textarea { font: inherit; font-weight: 400; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); resize: vertical; }
+.schedule-reading { text-align: center; margin: 4px 0 10px; }

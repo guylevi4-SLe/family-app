@@ -1,4 +1,4 @@
-import { deleteDoc, doc, serverTimestamp, setDoc, updateDoc, type Timestamp } from 'firebase/firestore';
+import { deleteDoc, deleteField, doc, serverTimestamp, setDoc, updateDoc, type Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -10,6 +10,9 @@ export interface Schedule {
   updatedBy: string;
   /** Lessons for Sunday…Friday, one per line, so a single day can be sent on its own. */
   days?: string[];
+  /** Lessons per day as Claude read them from the image, waiting for a parent to check. */
+  suggested?: string[];
+  readStatus?: 'reading' | 'done' | 'failed';
   pending: boolean;
 }
 
@@ -36,6 +39,8 @@ export function dayMessage(name: string, days: string[] | undefined, now: Date) 
 export function saveScheduleDays(fid: string, uid: string, days: string[]) {
   return updateDoc(doc(db, 'families', fid, 'schedules', uid), {
     days: days.map((d) => d.trim().slice(0, 1000)),
+    suggested: deleteField(),
+    readStatus: deleteField(),
     updatedAt: serverTimestamp(),
     updatedBy: auth.currentUser!.uid,
   }).catch(reportWriteError);
