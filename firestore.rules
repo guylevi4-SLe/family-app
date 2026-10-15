@@ -218,8 +218,45 @@ service cloud.firestore {
           && shortString(data().image, 950000)
           && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
           && shortString(data().name, 120)
-          && data().createdBy == me();
+          && shortString(data().createdBy, 128);
         allow delete: if isMember(fid);
+      }
+
+      // A private note: only the members in `viewers` can read, edit or delete
+      // it, and only its creator (always a viewer) can change who they are.
+      match /privateNotes/{noteId} {
+        allow read, delete: if isMember(fid) && me() in resource.data.viewers;
+        allow create: if isMember(fid) && data().createdBy == me() && validPrivateNote();
+        allow update: if isMember(fid) && me() in resource.data.viewers && validPrivateNote()
+          && data().createdBy == resource.data.createdBy
+          && (data().viewers == resource.data.viewers || resource.data.createdBy == me());
+
+        function validPrivateNote() {
+          return onlyKeys(['title', 'emoji', 'kind', 'body', 'pinned', 'parentId', 'viewers', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+            && data().kind == 'note'
+            && shortString(data().title, 60) && data().title.size() > 0
+            && shortString(data().emoji, 16)
+            && shortString(data().body, 5000)
+            && data().pinned is bool
+            && shortString(data().parentId, 64)
+            && data().viewers is list && data().viewers.size() >= 1 && data().viewers.size() <= 20
+            && data().createdBy in data().viewers
+            && data().updatedBy == me();
+        }
+
+        match /files/{fileId} {
+          function canSee() {
+            return isMember(fid)
+              && me() in get(/databases/$(database)/documents/families/$(fid)/privateNotes/$(noteId)).data.viewers;
+          }
+          allow read, delete: if canSee();
+          allow create: if canSee()
+            && onlyKeys(['image', 'name', 'createdBy', 'createdAt'])
+            && shortString(data().image, 950000)
+            && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+            && shortString(data().name, 120)
+            && shortString(data().createdBy, 128);
+        }
       }
       match /listEntries/{entryId} {
         allow read: if isMember(fid);

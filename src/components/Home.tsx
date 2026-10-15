@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useComments, useTargetComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays } from '../data/hooks';
+import { useComments, useTargetComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays, usePrivateNotes } from '../data/hooks';
 import type { Member } from '../data/family';
 import { commentKey, type TargetType } from '../data/comments';
 import { ShoppingList } from './ShoppingList';
@@ -60,7 +60,13 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const targetComments = useTargetComments(familyId);
   const schedules = useSchedules(familyId);
   const [scheduleFor, setScheduleFor] = useState<string | null>(null);
-  const lists = useLists(familyId);
+  const familyLists = useLists(familyId);
+  const privateNotes = usePrivateNotes(familyId, me.id);
+  // Private notes join the family's lists and notes; each viewer gets only their own.
+  const lists = useMemo(
+    () => (familyLists ? [...familyLists, ...(privateNotes ?? []).filter((p) => !familyLists.some((l) => l.id === p.id))] : familyLists),
+    [familyLists, privateNotes],
+  );
   const listEntries = useListEntries(familyId);
   const [listId, setListId] = useState<string | null>(null);
   // The lists screen remembers its last tab: checklists (null) or notes ('' or a folder).

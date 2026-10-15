@@ -16,7 +16,7 @@ import type { Item } from './items';
 import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
-import type { FamilyList, ListEntry, NoteFile } from './lists';
+import { noteFilesQuery, privateNotesQuery, type FamilyList, type ListEntry, type NoteFile } from './lists';
 import type { Birthday } from './birthdays';
 import type { Schedule } from './schedules';
 import type { Invite, JoinRequest, Member } from './family';
@@ -200,11 +200,20 @@ export function useListEntries(fid: string) {
 }
 
 /** Files attached to one note (each can be large, so only the open note's). */
-export function useNoteFiles(fid: string, noteId: string) {
+export function useNoteFiles(fid: string, note: Pick<FamilyList, 'id' | 'viewers'>) {
   return useQuery<NoteFile>(
-    `noteFiles/${fid}/${noteId}`,
-    () => query(collection(db, 'families', fid, 'noteFiles'), where('noteId', '==', noteId)),
-    (id, d, pending) => ({ id, ...(d as Omit<NoteFile, 'id' | 'pending'>), pending }),
+    `noteFiles/${fid}/${note.viewers ? 'private' : 'family'}/${note.id}`,
+    () => noteFilesQuery(fid, note),
+    (id, d, pending) => ({ id, ...(d as Omit<NoteFile, 'id' | 'pending'>), noteId: note.id, pending }),
+  );
+}
+
+/** Private notes this member may see (the rules hide the rest). */
+export function usePrivateNotes(fid: string, uid: string) {
+  return useQuery<FamilyList>(
+    `privateNotes/${fid}/${uid}`,
+    () => privateNotesQuery(fid, uid),
+    (id, d, pending) => ({ id, ...(d as Omit<FamilyList, 'id' | 'pending'>), pending }),
   );
 }
 

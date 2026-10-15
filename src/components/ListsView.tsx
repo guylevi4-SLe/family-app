@@ -12,6 +12,9 @@ import {
   deleteNoteFile,
   folderPath,
   saveNoteBody,
+  setNoteViewers,
+  updateNote,
+  deleteNote,
   changeCategory,
   moveEntry,
   createList,
@@ -23,10 +26,11 @@ import {
   updateList,
   type FamilyList,
   type ListEntry,
+  type NoteFile,
 } from '../data/lists';
 import { useNoteFiles } from '../data/hooks';
 import { scheduleImage } from '../data/schedules';
-import { useFamily } from './FamilyContext';
+import { memberName, useFamily } from './FamilyContext';
 import { Icon } from './Icon';
 import { ZoomViewer } from './ZoomViewer';
 
@@ -526,7 +530,7 @@ function Notebook({
               <button className="list-card note-card" onClick={() => onOpen(l.id)}>
                 <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
                 <span className="list-card-main">
-                  <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
+                  <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</strong>
                   <span className="muted note-preview">{where ? `📁 ${where}` : preview || 'פתק ריק'}</span>
                 </span>
               </button>
@@ -545,10 +549,83 @@ function Notebook({
   );
 }
 
+/** "מי רואה": the whole family, or chosen members; only the note's creator can change it. */
+function WhoSees({ note, files }: { note: FamilyList; files: NoteFile[] | undefined }) {
+  const { familyId, me, members } = useFamily();
+  const [editing, setEditing] = useState<string[] | null | undefined>(undefined);
+  const mine = note.createdBy === me.id;
+  const first = (uid: string) => (uid === me.id ? 'אני' : memberName(members, uid) || 'מישהו שעזב');
+  const label = !note.viewers
+    ? 'כל המשפחה'
+    : note.viewers.length === 1 && note.viewers[0] === me.id
+      ? 'רק אני'
+      : note.viewers.map(first).join(', ');
+  const toggle = (uid: string) =>
+    editing && setEditing(editing.includes(uid) ? editing.filter((u) => u !== uid) : [...editing, uid]);
+
+  if (editing === undefined) {
+    return (
+      <div className="who-sees">
+        <span>
+          <span className="muted">{note.viewers ? '🔒' : '👨‍👩‍👧'} רואים ועורכים: </span>
+          <strong>{label}</strong>
+        </span>
+        {mine ? (
+          <button className="link" onClick={() => setEditing(note.viewers ? [...note.viewers] : null)}>שינוי</button>
+        ) : (
+          <span className="muted who-owner">רק {first(note.createdBy)} יכול לשנות</span>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="card who-edit" role="group" aria-label="מי רואה את הפתק">
+      <div className="segmented">
+        <button className={editing === null ? 'on' : ''} aria-pressed={editing === null} onClick={() => setEditing(null)}>
+          כל המשפחה
+        </button>
+        <button className={editing !== null ? 'on' : ''} aria-pressed={editing !== null} onClick={() => setEditing(editing ?? [me.id])}>
+          🔒 רק מי שאבחר
+        </button>
+      </div>
+      {editing !== null && (
+        <div className="chips" role="group" aria-label="מי רואה">
+          {members.map((m) => {
+            const on = m.id === me.id || editing.includes(m.id);
+            return (
+              <button key={m.id} type="button" className={`chip ${on ? 'on' : ''}`} aria-pressed={on} disabled={m.id === me.id} onClick={() => toggle(m.id)}>
+                {on ? '✓ ' : ''}{first(m.id)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <p className="muted who-hint">
+        {editing === null
+          ? 'כל בני המשפחה, גם מי שיצטרף בעתיד, יראו ויוכלו לערוך.'
+          : 'רק מי שמסומן יראה את הפתק ואת הקבצים שבו. אחרים לא יוכלו לקרוא אותו גם מהשרת.'}
+      </p>
+      <div className="sheet-actions">
+        <button
+          className="primary"
+          onClick={() => {
+            const viewers = editing === null ? null : [me.id, ...editing.filter((u) => u !== me.id)];
+            setNoteViewers(familyId, note, files ?? [], viewers);
+            setEditing(undefined);
+          }}
+        >
+          שמירה
+        </button>
+        <button onClick={() => setEditing(undefined)}>ביטול</button>
+      </div>
+    </div>
+  );
+}
+
 /** A free-text note the whole family edits, with PDFs or photos attached. */
 function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]; onBack: () => void }) {
   const { familyId } = useFamily();
-  const files = useNoteFiles(familyId, note.id);
+  const files = useNoteFiles(familyId, note);
   const [body, setBody] = useState(note.body ?? '');
   const [saved, setSaved] = useState(true);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -574,7 +651,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
 
   const flush = () => {
     window.clearTimeout(timer.current);
-    if (!gone.current && latest.current !== remote.current) saveNoteBody(familyId, note.id, latest.current);
+    if (!gone.current && latest.current !== remote.current) saveNoteBody(familyId, note, latest.current);
     setSaved(true);
   };
   useEffect(() => () => flush(), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -593,7 +670,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
     setError('');
     for (const f of Array.from(list)) {
       try {
-        await addNoteFile(familyId, note.id, await scheduleImage(f), f.name);
+        await addNoteFile(familyId, note, await scheduleImage(f), f.name);
       } catch {
         setError(`לא הצלחנו לצרף את "${f.name}". אפשר PDF (עד 3 עמודים ראשונים) או תמונה.`);
       }
@@ -616,7 +693,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
               className="list-rename"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (renaming.trim()) updateList(familyId, note.id, { title: renaming.trim().slice(0, 60) });
+                if (renaming.trim()) updateNote(familyId, note, { title: renaming.trim().slice(0, 60) });
                 setRenaming(null);
               }}
             >
@@ -630,17 +707,19 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
               </button>
             </h2>
           )}
-          <p className="muted list-sum">{saved ? 'פתק משפחתי, כולם יכולים לערוך' : 'שומר…'}</p>
+          <p className="muted list-sum">{saved ? (note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך') : 'שומר…'}</p>
         </div>
         <button
           className={`pin ${note.pinned ? 'on' : ''}`}
           aria-pressed={!!note.pinned}
           aria-label={note.pinned ? 'ביטול נעיצה' : 'נעיצה למעלה'}
-          onClick={() => updateList(familyId, note.id, { pinned: !note.pinned })}
+          onClick={() => updateNote(familyId, note, { pinned: !note.pinned })}
         >
           📌
         </button>
       </div>
+
+      <WhoSees note={note} files={files} />
 
       <textarea
         className="note-body"
@@ -678,7 +757,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
                 <button
                   className="note-file-del"
                   aria-label={`מחיקת ${f.name}`}
-                  onClick={() => confirm(`למחוק את "${f.name}" מהפתק?`) && deleteNoteFile(familyId, f.id)}
+                  onClick={() => confirm(`למחוק את "${f.name}" מהפתק?`) && deleteNoteFile(familyId, note, f.id)}
                 >
                   ✕
                 </button>
@@ -702,7 +781,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
         <select
           aria-label="תיקיית הפתק"
           value={all.some((l) => l.id === note.parentId && l.kind === 'folder') ? note.parentId : ''}
-          onChange={(e) => updateList(familyId, note.id, { parentId: e.target.value })}
+          onChange={(e) => updateNote(familyId, note, { parentId: e.target.value })}
         >
           <option value="">בלי תיקייה (ראשי)</option>
           {all
@@ -720,7 +799,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
             if (confirm(`למחוק את הפתק "${note.title}" וכל הקבצים שבו?`)) {
               window.clearTimeout(timer.current);
               gone.current = true;
-              deleteList(familyId, note.id, [], files ?? []);
+              deleteNote(familyId, note, files ?? []);
               onBack();
             }
           }}

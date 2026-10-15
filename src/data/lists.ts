@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, serverTimestamp, setDoc, updateDoc, writeBatch, type Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, query, serverTimestamp, setDoc, updateDoc, where, writeBatch, type Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -17,6 +17,11 @@ export interface FamilyList {
   body?: string;
   /** Pinned notes and lists show first. */
   pinned?: boolean;
+  /**
+   * Only on private notes: who may see it (always including its creator).
+   * Private notes live in their own collection, guarded by the rules.
+   */
+  viewers?: string[];
   createdBy: string;
   createdAt?: Timestamp | null;
   pending: boolean;
@@ -119,13 +124,31 @@ export function folderPath(all: FamilyList[], id: string) {
   return names;
 }
 
-export function saveNoteBody(fid: string, id: string, body: string) {
-  return updateDoc(doc(listsCol(fid), id), { body: body.slice(0, MAX_NOTE), ...stamp() }).catch(reportWriteError);
+const privCol = (fid: string) => collection(db, 'families', fid, 'privateNotes');
+const privFilesCol = (fid: string, noteId: string) => collection(db, 'families', fid, 'privateNotes', noteId, 'files');
+type NoteRef = Pick<FamilyList, 'id' | 'viewers'>;
+const noteDoc = (fid: string, note: NoteRef) => doc(note.viewers ? privCol(fid) : listsCol(fid), note.id);
+const fileDoc = (fid: string, note: NoteRef, fileId: string) =>
+  doc(note.viewers ? privFilesCol(fid, note.id) : filesCol(fid), fileId);
+
+/** Private notes I am allowed to see. */
+export const privateNotesQuery = (fid: string, uid: string) => query(privCol(fid), where('viewers', 'array-contains', uid));
+
+/** One note's attached files (family notes share one collection, a private note keeps its own). */
+export const noteFilesQuery = (fid: string, note: NoteRef) =>
+  note.viewers ? query(privFilesCol(fid, note.id)) : query(filesCol(fid), where('noteId', '==', note.id));
+
+export function saveNoteBody(fid: string, note: NoteRef, body: string) {
+  return updateDoc(noteDoc(fid, note), { body: body.slice(0, MAX_NOTE), ...stamp() }).catch(reportWriteError);
 }
 
-export function addNoteFile(fid: string, noteId: string, image: string, name: string) {
-  return setDoc(doc(filesCol(fid)), {
-    noteId,
+export function updateNote(fid: string, note: NoteRef, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'pinned' | 'parentId'>>) {
+  updateDoc(noteDoc(fid, note), { ...fields, ...stamp() }).catch(reportWriteError);
+}
+
+export function addNoteFile(fid: string, note: NoteRef, image: string, name: string) {
+  return setDoc(doc(note.viewers ? privFilesCol(fid, note.id) : filesCol(fid)), {
+    ...(note.viewers ? {} : { noteId: note.id }),
     image,
     name: name.slice(0, 120),
     createdBy: auth.currentUser!.uid,
@@ -133,8 +156,52 @@ export function addNoteFile(fid: string, noteId: string, image: string, name: st
   }).catch(reportWriteError);
 }
 
-export function deleteNoteFile(fid: string, id: string) {
-  deleteDoc(doc(filesCol(fid), id)).catch(reportWriteError);
+export function deleteNoteFile(fid: string, note: NoteRef, id: string) {
+  deleteDoc(fileDoc(fid, note, id)).catch(reportWriteError);
+}
+
+export function deleteNote(fid: string, note: NoteRef, files: Pick<NoteFile, 'id'>[]) {
+  for (const f of files) deleteDoc(fileDoc(fid, note, f.id)).catch(reportWriteError);
+  deleteDoc(noteDoc(fid, note)).catch(reportWriteError);
+}
+
+/**
+ * Changes who sees a note: null for the whole family, or a list of members.
+ * Moving between family and private copies the note and its files to the
+ * other collection (same ids), then removes the originals. The writes go out
+ * in order, so each file copy is checked against a note that already exists.
+ */
+export function setNoteViewers(fid: string, note: FamilyList, files: NoteFile[], viewers: string[] | null) {
+  const fail = reportWriteError;
+  if (note.viewers && viewers) {
+    updateDoc(noteDoc(fid, note), { viewers, ...stamp() }).catch(fail);
+    return;
+  }
+  if (!note.viewers && !viewers) return;
+  const fields = {
+    title: note.title,
+    emoji: note.emoji,
+    kind: 'note',
+    body: note.body ?? '',
+    pinned: !!note.pinned,
+    parentId: note.parentId ?? '',
+    createdBy: note.createdBy,
+    createdAt: note.createdAt ?? serverTimestamp(),
+    ...stamp(),
+  };
+  const to: NoteRef = { id: note.id, viewers: viewers ?? undefined };
+  setDoc(noteDoc(fid, to), viewers ? { ...fields, viewers } : fields).catch(fail);
+  for (const f of files) {
+    setDoc(fileDoc(fid, to, f.id), {
+      ...(viewers ? {} : { noteId: note.id }),
+      image: f.image,
+      name: f.name,
+      createdBy: f.createdBy,
+      createdAt: f.createdAt ?? serverTimestamp(),
+    }).catch(fail);
+    deleteDoc(fileDoc(fid, note, f.id)).catch(fail);
+  }
+  deleteDoc(noteDoc(fid, note)).catch(fail);
 }
 
 export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories' | 'pinned' | 'parentId'>>) {

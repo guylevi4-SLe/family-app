@@ -383,12 +383,51 @@ describe('notes', () => {
     await assertFails(updateDoc(file, { name: 'אחר' }));
     await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, noteId: 'nope' }));
     await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, image: 'data:text/html;base64,PGgxPg==' }));
-    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, createdBy: 'dad' }));
     await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, createdBy: 'neighbor' }));
     await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'noteFiles', 'f1')));
     await assertFails(deleteDoc(doc(db('neighbor'), 'families', 'levi', 'noteFiles', 'f1')));
     await assertSucceeds(deleteDoc(doc(db('dad'), 'families', 'levi', 'noteFiles', 'f1')));
     await assertSucceeds(deleteDoc(note));
+  });
+});
+
+describe('private notes', () => {
+  it('only the chosen members read a private note and its files; only its creator changes who', async () => {
+    await createInvite('dad', 'levi', 'CODE21', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE21', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const P = { title: 'תעודות זהות', emoji: '📝', kind: 'note', body: '123456789', pinned: false, parentId: '', viewers: ['dad'], createdBy: 'dad', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const ref = (who: Who) => doc(db(who), 'families', 'levi', 'privateNotes', 'p1');
+    const file = (who: Who, id = 'f1') => doc(db(who), 'families', 'levi', 'privateNotes', 'p1', 'files', id);
+    const F = { image: 'data:image/jpeg;base64,/9j/4AAQ', name: 'ת״ז.pdf', createdBy: 'dad', createdAt: serverTimestamp() };
+    await assertSucceeds(setDoc(ref('dad'), P));
+    await assertSucceeds(setDoc(file('dad'), F));
+    await assertSucceeds(getDocs(query(collection(db('dad'), 'families', 'levi', 'privateNotes'), where('viewers', 'array-contains', 'dad'))));
+    // The daughter (a family member, not a viewer) cannot read, query, edit or delete it.
+    await assertFails(getDoc(ref('daughter')));
+    await assertFails(getDocs(collection(db('daughter'), 'families', 'levi', 'privateNotes')));
+    await assertSucceeds(getDocs(query(collection(db('daughter'), 'families', 'levi', 'privateNotes'), where('viewers', 'array-contains', 'daughter'))));
+    await assertFails(getDoc(file('daughter')));
+    await assertFails(getDocs(collection(db('daughter'), 'families', 'levi', 'privateNotes', 'p1', 'files')));
+    await assertFails(updateDoc(ref('daughter'), { body: 'x', updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertFails(deleteDoc(file('daughter')));
+    await assertFails(deleteDoc(ref('daughter')));
+    await assertFails(getDoc(ref('neighbor')));
+    // Nobody can make a private note in someone else's name, or leave its creator out.
+    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'privateNotes', 'p2'), { ...P, viewers: ['daughter'], updatedBy: 'daughter' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'privateNotes', 'p2'), { ...P, viewers: ['daughter'] }));
+    // Dad shares it with the daughter: now she reads and edits, but cannot change who sees it.
+    await assertSucceeds(updateDoc(ref('dad'), { viewers: ['dad', 'daughter'], updatedAt: serverTimestamp(), updatedBy: 'dad' }));
+    await assertSucceeds(getDoc(ref('daughter')));
+    await assertSucceeds(getDocs(collection(db('daughter'), 'families', 'levi', 'privateNotes', 'p1', 'files')));
+    await assertSucceeds(updateDoc(ref('daughter'), { body: '123456789\n987654321', updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertFails(updateDoc(ref('daughter'), { viewers: ['daughter'], updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertFails(updateDoc(ref('daughter'), { viewers: ['dad', 'daughter'], createdBy: 'daughter', updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertSucceeds(setDoc(file('daughter', 'f2'), { ...F, createdBy: 'daughter' }));
+    await assertFails(setDoc(file('daughter', 'f3'), { ...F, image: 'data:text/html;base64,PGgxPg==' }));
+    await assertSucceeds(deleteDoc(file('dad', 'f2')));
+    await assertSucceeds(deleteDoc(file('dad')));
+    await assertSucceeds(deleteDoc(ref('dad')));
   });
 });
 
