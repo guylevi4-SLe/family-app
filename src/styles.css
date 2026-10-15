@@ -886,3 +886,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .planner .planner-body { padding-bottom: 84px; }
 .tasks-bar { display: flex; align-items: center; justify-content: space-between; margin: 8px 2px 2px; font-size: 0.9rem; }
 .tasks-bar .chip { min-height: 32px; }
+
+/* "@שגב" in a chat message */
+.comment .tag, .bubble .tag, p .tag { color: var(--accent); font-weight: 700; }

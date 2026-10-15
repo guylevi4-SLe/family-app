@@ -279,11 +279,20 @@ async function main() {
     await dad.page.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
     await dad.page.locator('.chat-ref', { hasText: 'תזכורת בשבילך' }).waitFor({ timeout: 10000 });
     ok('family chat lists comments made on items and tasks');
-    await dad.page.locator('.chat-compose').getByRole('group', { name: 'הודעה ל' }).getByRole('button', { name: 'kid' }).click();
-    await dad.page.getByLabel('כתיבת הודעה').fill('ארוחת ערב ב־7');
+    // Typing "@k" offers the daughter's name; picking it tags her (and notifies her).
+    await dad.page.getByLabel('כתיבת הודעה').fill('@k');
+    await dad.page.getByRole('group', { name: 'פקודות מהירות' }).getByRole('button', { name: '@kid' }).click();
+    assert.equal(await dad.page.getByLabel('כתיבת הודעה').inputValue(), '@kid ');
+    await dad.page.getByLabel('כתיבת הודעה').pressSequentially('ארוחת ערב ב־7');
+    if (process.env.SCREENSHOT_DIR) {
+      await dad.page.getByLabel('כתיבת הודעה').fill('ארוחת ערב ב־7 @');
+      await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-tag.png` });
+      await dad.page.getByLabel('כתיבת הודעה').fill('@kid ארוחת ערב ב־7');
+    }
     await dad.page.getByLabel('כתיבת הודעה').press('Enter');
     await kid.page.goto(`${BASE}/?open=chat`);
     await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' }).locator('.notified', { hasText: 'kid' }).waitFor({ timeout: 15000 });
+    await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' }).locator('.tag', { hasText: '@kid' }).waitFor();
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat.png` });
     ok('Dad wrote in the family chat for the daughter; her notification link opens the chat');
     {

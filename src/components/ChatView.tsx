@@ -4,6 +4,7 @@ import { addItems, parseItems, updateItem, type Item } from '../data/items';
 import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, deleteEntry, deleteList, restoreEntry, type FamilyList, type ListEntry } from '../data/lists';
+import { suggestTags } from '../data/mentions';
 import { COMMANDS, expandCommand, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
@@ -39,7 +40,7 @@ export function ChatView({
   go: (s: Screen) => void;
   openList: (id: string) => void;
 }) {
-  const { familyId, members, openComments } = useFamily();
+  const { familyId, me, members, openComments } = useFamily();
   const overrides = useOverrides(familyId);
   const [viewing, setViewing] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -275,13 +276,13 @@ export function ChatView({
         <Composer
           type="chat"
           targetId={CHAT_ID}
-          placeholder="הודעה, או @ לפקודה…"
+          placeholder="הודעה, @ לפקודה או לתיוג…"
           label="כתיבת הודעה"
-          notifyLabel="הודעה ל"
-          notifyFirst
+          tagging
           onCommand={runCommand}
           hints={(t) => suggestCommands(t).map((c) => ({ label: `@${c.key} ${c.emoji} ${c.word}`, insert: `@${c.word}: ` }))}
-          autoComplete={expandCommand}
+          // "@ר" alone grows into "@רשימה: " only when no one's name starts with ר.
+          autoComplete={(t) => (suggestTags(t, members ?? [], me.id).length ? null : expandCommand(t))}
         />
       </div>
       {viewing && <PhotoViewer src={viewing} onClose={() => setViewing(null)} />}

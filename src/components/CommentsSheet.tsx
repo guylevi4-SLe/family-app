@@ -1,3 +1,4 @@
+import { completeTag, firstName, splitTags, suggestTags, taggedIds } from '../data/mentions';
 import { useEffect, useRef, useState } from 'react';
 import { addComment, deleteComment, editComment, shrinkPhoto, type Comment, type TargetType } from '../data/comments';
 import { useFamily } from './FamilyContext';
@@ -172,7 +173,13 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
           </div>
         </div>
       ) : (
-        c.text && <p>{c.text}</p>
+        c.text && (
+          <p>
+            {splitTags(c.text, members.map(firstName)).map((part, i) =>
+              part.tag ? <strong key={i} className="tag">{part.text}</strong> : part.text,
+            )}
+          </p>
+        )
       )}
       {c.notify && c.notify.length > 0 && (
         <span className="notified">🔔 {c.notify.map((u) => members.find((m) => m.id === u)?.displayName.split(' ')[0]).filter(Boolean).join(', ')}</span>
@@ -232,6 +239,7 @@ export function Composer({
   hints,
   autoComplete,
   askAbout,
+  tagging = false,
 }: {
   type: TargetType;
   targetId: string;
@@ -248,6 +256,8 @@ export function Composer({
   autoComplete?: (text: string) => string | null;
   /** A product's name: offers to ask about it on WhatsApp ("which washing-up liquid?"). */
   askAbout?: string;
+  /** Tag people by typing "@name" (the chat) instead of picking them on chips. */
+  tagging?: boolean;
 }) {
   const { familyId, me, members } = useFamily();
   const [notify, setNotify] = useState<string[]>([]);
@@ -272,7 +282,7 @@ export function Composer({
       setText('');
       return;
     }
-    addComment(familyId, type, targetId, text, photo ?? undefined, notify);
+    addComment(familyId, type, targetId, text, photo ?? undefined, tagging ? taggedIds(text, members, me.id) : notify);
     setText('');
     setPhoto(null);
   };
@@ -308,7 +318,12 @@ export function Composer({
     }
   };
 
-  const tagRow = others.length > 0 && (
+  const allHints = [
+    ...(hints?.(text) ?? []),
+    ...(tagging ? suggestTags(text, members, me.id).map((n) => ({ label: `@${n}`, insert: completeTag(text, n) })) : []),
+  ];
+
+  const tagRow = !tagging && others.length > 0 && (
         <div className="notify-row">
           <span className="assign-label">{notifyFirst ? '🔔' : '🏷️'} {notifyLabel}:</span>
           <div className="chips" role="group" aria-label={notifyLabel}>
@@ -341,9 +356,9 @@ export function Composer({
         </div>
       )}
       {photoError && <p className="error">{photoError}</p>}
-      {hints && hints(text).length > 0 && (
+      {allHints.length > 0 && (
         <div className="command-hints" role="group" aria-label="פקודות מהירות">
-          {hints(text).map((h) => (
+          {allHints.map((h) => (
             <button type="button" key={h.insert} className="chip" onClick={() => {
                 setText(h.insert);
                 boxRef.current?.focus();
