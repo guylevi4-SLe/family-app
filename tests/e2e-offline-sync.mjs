@@ -765,6 +765,79 @@ async function main() {
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
     ok('Dad made a private note the daughter cannot see, shared it with her (she cannot change who sees it), then made it a family note again');
 
+    step('Password-locked notes');
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await lists.getByRole('tab', { name: 'פתקים' }).click();
+    await lists.getByRole('button', { name: '+ פתק' }).click();
+    await lists.getByLabel('שם הפתק').fill('קוד אזעקה');
+    await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
+    await lists.getByLabel('תוכן הפתק').fill('אזעקה: 9876');
+    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-512.png');
+    await lists.locator('.note-file img').first().waitFor({ timeout: 20000 });
+    await lists.getByLabel('תוכן הפתק').blur();
+    await lists.getByRole('button', { name: '🔐 נעילה בסיסמה' }).click();
+    await lists.getByLabel('סיסמה חדשה').fill('levi1234');
+    await lists.getByLabel('אימות הסיסמה').fill('levi1234');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-lock.png` });
+    await lists.locator('.note-lock').getByRole('button', { name: 'נעילה' }).click();
+    await lists.getByText('🔐 נעול בסיסמה, פתוח כרגע').waitFor({ timeout: 15000 });
+    await lists.locator('.note-file img').first().waitFor({ timeout: 15000 });
+    assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אזעקה: 9876');
+    await lists.getByLabel('תוכן הפתק').fill('אזעקה: 9876\nכספת: 4321');
+    await lists.getByLabel('תוכן הפתק').blur();
+    await dad.page.waitForTimeout(1500);
+    // On the server: only ciphertext, for the text and the file.
+    const rest = async (path) => (await fetch(`http://127.0.0.1:8080/v1/projects/demo-family/databases/(default)/documents/${path}`, { headers: { Authorization: 'Bearer owner' } })).json();
+    const fams = (await rest('families')).documents ?? [];
+    let stored = null;
+    let storedFiles = [];
+    for (const f of fams) {
+      const fid = f.name.split('/').pop();
+      const docs = (await rest(`families/${fid}/lists?pageSize=300`)).documents ?? [];
+      const hit = docs.find((d) => d.fields?.title?.stringValue === 'קוד אזעקה');
+      if (hit) {
+        stored = hit.fields;
+        const id = hit.name.split('/').pop();
+        storedFiles = ((await rest(`families/${fid}/noteFiles?pageSize=300`)).documents ?? []).filter((d) => d.fields.noteId.stringValue === id).map((d) => d.fields);
+      }
+    }
+    assert.ok(stored, 'locked note found on the server');
+    assert.equal(stored.locked.booleanValue, true);
+    assert.ok(!stored.body.stringValue.includes('9876') && !stored.body.stringValue.includes('4321'), `server holds no plain text: ${stored.body.stringValue}`);
+    assert.equal(storedFiles.length, 1, 'one file');
+    assert.ok(storedFiles[0].secret && !storedFiles[0].image, 'the file is stored encrypted');
+    await lists.getByRole('button', { name: '🔐 נעילה עכשיו' }).click();
+    await lists.getByLabel('סיסמת הפתק').waitFor();
+    assert.equal(await lists.getByLabel('תוכן הפתק').count(), 0, 'locked: no text shown');
+    await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
+    await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).getByText('🔐 נעול בסיסמה').waitFor();
+    // The daughter needs the password; a wrong one is refused.
+    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await kidLists.getByRole('tab', { name: 'פתקים' }).click();
+    await kidLists.locator('.note-card', { hasText: 'קוד אזעקה' }).click({ timeout: 10000 });
+    await kidLists.getByLabel('סיסמת הפתק').fill('nope');
+    await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await kidLists.getByText('הסיסמה לא נכונה').waitFor({ timeout: 10000 });
+    if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-gate.png` });
+    await kidLists.getByLabel('סיסמת הפתק').fill('levi1234');
+    await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await kid.page.waitForFunction(() => document.querySelector('.note-body')?.value.includes('כספת: 4321'), null, { timeout: 15000 });
+    await kidLists.locator('.note-file img').first().waitFor({ timeout: 15000 });
+    assert.equal(await kidLists.getByRole('button', { name: '🔓 הסרת הסיסמה' }).count(), 0, 'only the creator removes the password');
+    await kidLists.getByRole('button', { name: '→ כל הפתקים' }).click();
+    // Dad opens it again and removes the password.
+    await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).click();
+    await lists.getByLabel('סיסמת הפתק').fill('levi1234');
+    await lists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await lists.getByRole('button', { name: '🔓 הסרת הסיסמה' }).click();
+    await lists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor({ timeout: 15000 });
+    await lists.locator('.note-file img').first().waitFor({ timeout: 15000 });
+    assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אזעקה: 9876\nכספת: 4321');
+    await lists.getByRole('button', { name: 'מחיקת הפתק' }).click();
+    await lists.getByRole('button', { name: '+ פתק' }).waitFor();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
+    ok('Dad locked a note with a password: the server holds only ciphertext; the daughter opens it with the password; only Dad removes it');
+
     await planner(dad.page, 'schedule');
     await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('חוג ציור');

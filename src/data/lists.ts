@@ -22,6 +22,9 @@ export interface FamilyList {
    * Private notes live in their own collection, guarded by the rules.
    */
   viewers?: string[];
+  /** Password-locked: `body` and the files are ciphertext, the key comes from the password and `salt`. */
+  locked?: boolean;
+  salt?: string;
   createdBy: string;
   createdAt?: Timestamp | null;
   pending: boolean;
@@ -50,7 +53,10 @@ export const LIST_IDEAS = [
 export interface NoteFile {
   id: string;
   noteId: string;
-  image: string;
+  /** A JPEG data URL, or (in a locked note) `secret` + `iv`: the encrypted JPEG. */
+  image?: string;
+  secret?: string;
+  iv?: string;
   name: string;
   createdBy: string;
   createdAt?: Timestamp | null;
@@ -138,18 +144,48 @@ export const privateNotesQuery = (fid: string, uid: string) => query(privCol(fid
 export const noteFilesQuery = (fid: string, note: NoteRef) =>
   note.viewers ? query(privFilesCol(fid, note.id)) : query(filesCol(fid), where('noteId', '==', note.id));
 
+/** Saves the text as given (a locked note's caller passes ciphertext). */
 export function saveNoteBody(fid: string, note: NoteRef, body: string) {
-  return updateDoc(noteDoc(fid, note), { body: body.slice(0, MAX_NOTE), ...stamp() }).catch(reportWriteError);
+  return updateDoc(noteDoc(fid, note), { body, ...stamp() }).catch(reportWriteError);
+}
+
+/** A file's stored content: a plain JPEG, or the encrypted one. */
+export type FileContent = { image: string } | { secret: string; iv: string };
+const contentOf = (f: NoteFile): FileContent => (f.secret ? { secret: f.secret, iv: f.iv! } : { image: f.image! });
+
+/**
+ * Locks a note (key given) or unlocks it (key null): the text and every file
+ * are rewritten in their new form, each file as a new document replacing the old.
+ */
+export function relockNote(
+  fid: string,
+  note: NoteRef,
+  lock: { salt: string; body: string } | { body: string },
+  files: { file: NoteFile; content: FileContent }[],
+) {
+  const fail = reportWriteError;
+  const salt = 'salt' in lock ? lock.salt : '';
+  updateDoc(noteDoc(fid, note), { locked: !!salt, salt, body: lock.body, ...stamp() }).catch(fail);
+  for (const { file, content } of files) {
+    setDoc(doc(note.viewers ? privFilesCol(fid, note.id) : filesCol(fid)), {
+      ...(note.viewers ? {} : { noteId: note.id }),
+      ...content,
+      name: file.name,
+      createdBy: file.createdBy,
+      createdAt: file.createdAt ?? serverTimestamp(),
+    }).catch(fail);
+    deleteDoc(fileDoc(fid, note, file.id)).catch(fail);
+  }
 }
 
 export function updateNote(fid: string, note: NoteRef, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'pinned' | 'parentId'>>) {
   updateDoc(noteDoc(fid, note), { ...fields, ...stamp() }).catch(reportWriteError);
 }
 
-export function addNoteFile(fid: string, note: NoteRef, image: string, name: string) {
+export function addNoteFile(fid: string, note: NoteRef, content: FileContent, name: string) {
   return setDoc(doc(note.viewers ? privFilesCol(fid, note.id) : filesCol(fid)), {
     ...(note.viewers ? {} : { noteId: note.id }),
-    image,
+    ...content,
     name: name.slice(0, 120),
     createdBy: auth.currentUser!.uid,
     createdAt: serverTimestamp(),
@@ -185,6 +221,7 @@ export function setNoteViewers(fid: string, note: FamilyList, files: NoteFile[],
     body: note.body ?? '',
     pinned: !!note.pinned,
     parentId: note.parentId ?? '',
+    ...(note.locked ? { locked: true, salt: note.salt ?? '' } : {}),
     createdBy: note.createdBy,
     createdAt: note.createdAt ?? serverTimestamp(),
     ...stamp(),
@@ -194,7 +231,7 @@ export function setNoteViewers(fid: string, note: FamilyList, files: NoteFile[],
   for (const f of files) {
     setDoc(fileDoc(fid, to, f.id), {
       ...(viewers ? {} : { noteId: note.id }),
-      image: f.image,
+      ...contentOf(f),
       name: f.name,
       createdBy: f.createdBy,
       createdAt: f.createdAt ?? serverTimestamp(),

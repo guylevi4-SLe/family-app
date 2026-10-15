@@ -26,6 +26,25 @@ service cloud.firestore {
     function validRole(r) { return r in ['admin', 'member', 'child']; }
     function shortString(v, max) { return v is string && v.size() <= max; }
 
+    // Password-locked notes: a flag and the password's salt; only the note's
+    // creator may lock, unlock or change the password.
+    function validLock() {
+      return (!('locked' in data()) || data().locked is bool)
+        && (!('salt' in data()) || shortString(data().salt, 64));
+    }
+    function sameLock() {
+      return data().get('locked', false) == resource.data.get('locked', false)
+        && data().get('salt', '') == resource.data.get('salt', '');
+    }
+    // A note's file: a JPEG, or (locked note) its encrypted bytes with their IV.
+    function validFileContent() {
+      return ('image' in data())
+        ? (!('secret' in data()) && shortString(data().image, 950000)
+            && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$'))
+        : (shortString(data().secret, 950000) && data().secret.matches('^[A-Za-z0-9+/=]+$')
+            && shortString(data().iv, 32));
+    }
+
     // ---------- personal profile ----------
     match /users/{userId} {
       allow read: if signedIn() && me() == userId;
@@ -197,14 +216,17 @@ service cloud.firestore {
       match /lists/{listId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['title', 'emoji', 'categories', 'kind', 'body', 'pinned', 'parentId', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && onlyKeys(['title', 'emoji', 'categories', 'kind', 'body', 'pinned', 'parentId', 'locked', 'salt', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
           && shortString(data().title, 60) && data().title.size() > 0
           && shortString(data().emoji, 16)
           && (!('categories' in data()) || (data().categories is list && data().categories.size() <= 30))
           && (!('kind' in data()) || data().kind in ['note', 'folder'])
           && (!('parentId' in data()) || shortString(data().parentId, 64))
-          && (!('body' in data()) || shortString(data().body, 5000))
+          && (!('body' in data()) || shortString(data().body, 20000))
           && (!('pinned' in data()) || data().pinned is bool)
+          && validLock()
+          && (data().get('locked', false) == false || data().get('kind', '') == 'note')
+          && (resource == null || sameLock() || resource.data.createdBy == me())
           && data().updatedBy == me();
         allow delete: if isMember(fid);
       }
@@ -212,11 +234,10 @@ service cloud.firestore {
       match /noteFiles/{fileId} {
         allow read: if isMember(fid);
         allow create: if isMember(fid)
-          && onlyKeys(['noteId', 'image', 'name', 'createdBy', 'createdAt'])
+          && onlyKeys(['noteId', 'image', 'secret', 'iv', 'name', 'createdBy', 'createdAt'])
           && shortString(data().noteId, 64)
           && exists(/databases/$(database)/documents/families/$(fid)/lists/$(data().noteId))
-          && shortString(data().image, 950000)
-          && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+          && validFileContent()
           && shortString(data().name, 120)
           && shortString(data().createdBy, 128);
         allow delete: if isMember(fid);
@@ -229,14 +250,16 @@ service cloud.firestore {
         allow create: if isMember(fid) && data().createdBy == me() && validPrivateNote();
         allow update: if isMember(fid) && me() in resource.data.viewers && validPrivateNote()
           && data().createdBy == resource.data.createdBy
-          && (data().viewers == resource.data.viewers || resource.data.createdBy == me());
+          && (data().viewers == resource.data.viewers || resource.data.createdBy == me())
+          && (sameLock() || resource.data.createdBy == me());
 
         function validPrivateNote() {
-          return onlyKeys(['title', 'emoji', 'kind', 'body', 'pinned', 'parentId', 'viewers', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          return onlyKeys(['title', 'emoji', 'kind', 'body', 'pinned', 'parentId', 'viewers', 'locked', 'salt', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
             && data().kind == 'note'
             && shortString(data().title, 60) && data().title.size() > 0
             && shortString(data().emoji, 16)
-            && shortString(data().body, 5000)
+            && shortString(data().body, 20000)
+            && validLock()
             && data().pinned is bool
             && shortString(data().parentId, 64)
             && data().viewers is list && data().viewers.size() >= 1 && data().viewers.size() <= 20
@@ -251,9 +274,8 @@ service cloud.firestore {
           }
           allow read, delete: if canSee();
           allow create: if canSee()
-            && onlyKeys(['image', 'name', 'createdBy', 'createdAt'])
-            && shortString(data().image, 950000)
-            && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+            && onlyKeys(['image', 'secret', 'iv', 'name', 'createdBy', 'createdAt'])
+            && validFileContent()
             && shortString(data().name, 120)
             && shortString(data().createdBy, 128);
         }

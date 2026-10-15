@@ -11,6 +11,7 @@ import {
   createNote,
   deleteNoteFile,
   folderPath,
+  relockNote,
   saveNoteBody,
   setNoteViewers,
   updateNote,
@@ -30,6 +31,19 @@ import {
 } from '../data/lists';
 import { useNoteFiles } from '../data/hooks';
 import { scheduleImage } from '../data/schedules';
+import {
+  decryptImage,
+  decryptText,
+  deriveKey,
+  encryptImage,
+  encryptText,
+  forgetKey,
+  keyAlive,
+  newSalt,
+  rememberKey,
+  rememberedKey,
+  touchKey,
+} from '../data/noteCrypto';
 import { memberName, useFamily } from './FamilyContext';
 import { Icon } from './Icon';
 import { ZoomViewer } from './ZoomViewer';
@@ -409,7 +423,7 @@ function Notebook({
   const folders = all.filter((l) => l.kind === 'folder' && at(l) === folder).sort(byPinThenTitle);
   const q = search.trim();
   const notes = all
-    .filter((l) => l.kind === 'note' && (q ? `${l.title}\n${l.body ?? ''}`.includes(q) : at(l) === folder))
+    .filter((l) => l.kind === 'note' && (q ? `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q) : at(l) === folder))
     .sort(byPinThenTitle);
   const path = folder ? folderPath(all, folder) : [];
   const ancestors: string[] = [];
@@ -523,7 +537,7 @@ function Notebook({
           </li>
         ))}
         {notes.map((l) => {
-          const preview = (l.body ?? '').trim().split('\n')[0];
+          const preview = l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0];
           const where = q && at(l) ? folderPath(all, at(l)).join(' › ') : '';
           return (
             <li key={l.id}>
@@ -622,36 +636,168 @@ function WhoSees({ note, files }: { note: FamilyList; files: NoteFile[] | undefi
   );
 }
 
-/** A free-text note the whole family edits, with PDFs or photos attached. */
+/** A note: its password gate when locked, then the editor. */
 function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]; onBack: () => void }) {
-  const { familyId } = useFamily();
+  const [key, setKey] = useState<CryptoKey | null>(() => (note.locked ? rememberedKey(note.id, note.salt) : null));
+  // A new password (or the lock removed) needs the key to match again.
+  const salt = note.locked ? note.salt ?? '' : '';
+  const [keySalt, setKeySalt] = useState(salt);
+  if (keySalt !== salt) {
+    setKeySalt(salt);
+    setKey(note.locked ? rememberedKey(note.id, note.salt) : null);
+  }
+  // Locks itself again after a while without use.
+  useEffect(() => {
+    if (!note.locked || !key) return;
+    const t = window.setInterval(() => !keyAlive(note.id) && setKey(null), 15_000);
+    return () => window.clearInterval(t);
+  }, [note.id, note.locked, key]);
+
+  if (note.locked && !key) return <NoteGate note={note} all={all} onBack={onBack} onOpen={setKey} />;
+  return (
+    <NoteEditor
+      key={`${note.id}:${salt}`}
+      note={note}
+      all={all}
+      cryptoKey={note.locked ? key : null}
+      onBack={onBack}
+      lockNow={() => { forgetKey(note.id); setKey(null); }}
+    />
+  );
+}
+
+const backLabel = (note: FamilyList, all: FamilyList[]) =>
+  (note.parentId && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'כל הפתקים';
+
+function NoteGate({ note, all, onBack, onOpen }: { note: FamilyList; all: FamilyList[]; onBack: () => void; onOpen: (k: CryptoKey) => void }) {
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const open = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const k = await deriveKey(password, note.salt ?? '');
+      await decryptText(k, note.body ?? '');
+      rememberKey(note.id, note.salt ?? '', k);
+      onOpen(k);
+    } catch {
+      setError('הסיסמה לא נכונה');
+      setBusy(false);
+    }
+  };
+  return (
+    <>
+      <button className="link back" onClick={onBack}>→ {backLabel(note, all)}</button>
+      <div className="list-hero">
+        <span className="list-emoji" aria-hidden="true">{note.emoji}</span>
+        <div className="list-hero-main">
+          <h2 className="list-title">{note.title}</h2>
+          <p className="muted list-sum">🔐 פתק נעול בסיסמה</p>
+        </div>
+      </div>
+      <form className="card note-gate" onSubmit={(e) => { e.preventDefault(); if (password) open(); }}>
+        <label>
+          <span className="field-label">הסיסמה של הפתק</span>
+          <input className="full" type="password" autoComplete="off" value={password} autoFocus aria-label="סיסמת הפתק" onChange={(e) => setPassword(e.target.value)} />
+        </label>
+        {error && <p className="error" role="alert">{error}</p>}
+        <button className="primary" disabled={!password || busy}>{busy ? 'פותח…' : '🔓 פתיחה'}</button>
+        <p className="muted note-hint">את הסיסמה מקבלים ממי שנעל את הפתק. היא לא נשמרת בשום מקום, וגם אנחנו לא יכולים לשחזר אותה.</p>
+      </form>
+    </>
+  );
+}
+
+/** The text of a note, decrypted when it is locked (undefined while working). */
+function usePlainBody(note: FamilyList, key: CryptoKey | null) {
+  const [plain, setPlain] = useState<string | undefined>(key ? undefined : note.body ?? '');
+  useEffect(() => {
+    if (!key) {
+      setPlain(note.body ?? '');
+      return;
+    }
+    let live = true;
+    decryptText(key, note.body ?? '').then((t) => live && setPlain(t), () => live && setPlain(undefined));
+    return () => { live = false; };
+  }, [note.body, key]);
+  return plain;
+}
+
+/** Each file's picture, decrypted when the note is locked. */
+function useFileImages(files: NoteFile[] | undefined, key: CryptoKey | null) {
+  const [images, setImages] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    let live = true;
+    const next = new Map<string, string>();
+    Promise.all(
+      (files ?? []).map(async (f) => {
+        if (f.image) next.set(f.id, f.image);
+        else if (key && f.secret && f.iv) {
+          const cached = images.get(f.id);
+          next.set(f.id, cached ?? (await decryptImage(key, f.secret, f.iv).catch(() => '')));
+        }
+      }),
+    ).then(() => live && setImages(next));
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [files, key]);
+  return images;
+}
+
+/** A free-text note the family edits, with PDFs or photos attached. */
+function NoteEditor({
+  note,
+  all,
+  cryptoKey,
+  onBack,
+  lockNow,
+}: {
+  note: FamilyList;
+  all: FamilyList[];
+  cryptoKey: CryptoKey | null;
+  onBack: () => void;
+  lockNow: () => void;
+}) {
+  const { familyId, me } = useFamily();
   const files = useNoteFiles(familyId, note);
-  const [body, setBody] = useState(note.body ?? '');
+  const images = useFileImages(files, cryptoKey);
+  const remotePlain = usePlainBody(note, cryptoKey);
+  const [body, setBody] = useState(remotePlain ?? '');
+  const [ready, setReady] = useState(remotePlain !== undefined);
   const [saved, setSaved] = useState(true);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [zoom, setZoom] = useState<string | null>(null);
+  const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const editing = useRef(false);
   const timer = useRef<number>();
   const latest = useRef(body);
-  const remote = useRef(note.body ?? '');
-  remote.current = note.body ?? '';
+  const remote = useRef(remotePlain ?? '');
+  if (remotePlain !== undefined) remote.current = remotePlain;
   const gone = useRef(false);
+  const mine = note.createdBy === me.id;
 
   // Someone else's change shows up unless I am in the middle of typing.
   useEffect(() => {
-    if (!editing.current && saved) {
-      setBody(note.body ?? '');
-      latest.current = note.body ?? '';
+    if (remotePlain === undefined) return;
+    if (!ready || (!editing.current && saved)) {
+      setBody(remotePlain);
+      latest.current = remotePlain;
+      setReady(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [note.body]);
+  }, [remotePlain]);
 
   const flush = () => {
     window.clearTimeout(timer.current);
-    if (!gone.current && latest.current !== remote.current) saveNoteBody(familyId, note, latest.current);
+    if (!gone.current && latest.current !== remote.current) {
+      const text = latest.current.slice(0, MAX_NOTE);
+      if (cryptoKey) encryptText(cryptoKey, text).then((c) => { if (!gone.current) saveNoteBody(familyId, note, c); });
+      else saveNoteBody(familyId, note, text);
+    }
     setSaved(true);
   };
   useEffect(() => () => flush(), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -660,6 +806,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
     setBody(v);
     latest.current = v;
     setSaved(false);
+    touchKey(note.id);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(flush, 800);
   };
@@ -670,7 +817,8 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
     setError('');
     for (const f of Array.from(list)) {
       try {
-        await addNoteFile(familyId, note, await scheduleImage(f), f.name);
+        const image = await scheduleImage(f);
+        await addNoteFile(familyId, note, cryptoKey ? await encryptImage(cryptoKey, image) : { image }, f.name);
       } catch {
         setError(`לא הצלחנו לצרף את "${f.name}". אפשר PDF (עד 3 עמודים ראשונים) או תמונה.`);
       }
@@ -679,11 +827,33 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
     if (fileRef.current) fileRef.current.value = '';
   };
 
+  const allImages = (files ?? []).every((f) => images.get(f.id));
+  const lock = async () => {
+    if (!locking || locking.a.length < 4 || locking.a !== locking.b || !files || !allImages) return;
+    setBusy(true);
+    const salt = newSalt();
+    const k = await deriveKey(locking.a, salt);
+    const text = await encryptText(k, latest.current.slice(0, MAX_NOTE));
+    const enc = await Promise.all(files.map(async (f) => ({ file: f, content: await encryptImage(k, images.get(f.id)!) })));
+    gone.current = true;
+    window.clearTimeout(timer.current);
+    rememberKey(note.id, salt, k);
+    relockNote(familyId, note, { salt, body: text }, enc);
+  };
+  const unlock = () => {
+    if (!files || !allImages) return;
+    if (!confirm('להסיר את הסיסמה? הפתק והקבצים יישמרו שוב בלי הצפנה.')) return;
+    gone.current = true;
+    window.clearTimeout(timer.current);
+    forgetKey(note.id);
+    relockNote(familyId, note, { body: latest.current.slice(0, MAX_NOTE) }, files.map((f) => ({ file: f, content: { image: images.get(f.id)! } })));
+  };
+
+  const zoomed = zoom ? files?.find((f) => f.id === zoom) : undefined;
+
   return (
     <>
-      <button className="link back" onClick={() => { flush(); onBack(); }}>
-        → {(note.parentId && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'כל הפתקים'}
-      </button>
+      <button className="link back" onClick={() => { flush(); onBack(); }}>→ {backLabel(note, all)}</button>
 
       <div className="list-hero">
         <span className="list-emoji" aria-hidden="true">{note.emoji}</span>
@@ -707,7 +877,9 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
               </button>
             </h2>
           )}
-          <p className="muted list-sum">{saved ? (note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך') : 'שומר…'}</p>
+          <p className="muted list-sum">
+            {!saved ? 'שומר…' : note.locked ? '🔐 נעול בסיסמה, פתוח כרגע' : note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך'}
+          </p>
         </div>
         <button
           className={`pin ${note.pinned ? 'on' : ''}`}
@@ -724,8 +896,9 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
       <textarea
         className="note-body"
         aria-label="תוכן הפתק"
-        placeholder="כותבים כאן כל מה שצריך: מספרי טלפון, הוראות, קודים…"
+        placeholder={ready ? 'כותבים כאן כל מה שצריך: מספרי טלפון, הוראות, קודים…' : 'פותח…'}
         value={body}
+        disabled={!ready}
         maxLength={MAX_NOTE}
         onFocus={() => { editing.current = true; }}
         onBlur={() => { editing.current = false; flush(); }}
@@ -750,8 +923,8 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
           <ul className="note-file-grid">
             {[...files].sort((a, b) => (a.createdAt?.toMillis() ?? Infinity) - (b.createdAt?.toMillis() ?? Infinity)).map((f) => (
               <li key={f.id} className="note-file">
-                <button className="note-thumb" aria-label={`הגדלת ${f.name}`} onClick={() => setZoom(f.id)}>
-                  <img src={f.image} alt="" />
+                <button className="note-thumb" aria-label={`הגדלת ${f.name}`} disabled={!images.get(f.id)} onClick={() => setZoom(f.id)}>
+                  {images.get(f.id) ? <img src={images.get(f.id)} alt="" /> : <span className="muted">🔐</span>}
                 </button>
                 <span className="note-file-name" title={f.name}>{f.name}</span>
                 <button
@@ -766,15 +939,13 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
           </ul>
         )}
         <button className="note-attach" disabled={busy} onClick={() => fileRef.current?.click()}>
-          {busy ? 'מצרף…' : '+ צירוף PDF או תמונה'}
+          {busy ? 'רגע…' : '+ צירוף PDF או תמונה'}
         </button>
         {error && <p className="error" role="alert">{error}</p>}
         <p className="muted note-hint">מקובץ PDF נשמרים 3 העמודים הראשונים, כתמונה.</p>
       </section>
 
-      {zoom && files?.find((f) => f.id === zoom) && (
-        <ZoomViewer src={files.find((f) => f.id === zoom)!.image} alt={files.find((f) => f.id === zoom)!.name} onClose={() => setZoom(null)} />
-      )}
+      {zoomed && images.get(zoomed.id) && <ZoomViewer src={images.get(zoomed.id)!} alt={zoomed.name} onClose={() => setZoom(null)} />}
 
       <label className="note-move">
         <span className="muted">📁 תיקייה:</span>
@@ -792,7 +963,32 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
         </select>
       </label>
 
+      {locking && (
+        <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lock(); }}>
+          <strong>🔐 נעילת הפתק בסיסמה</strong>
+          <input type="password" autoComplete="new-password" placeholder="סיסמה (לפחות 4 תווים)" aria-label="סיסמה חדשה" value={locking.a} autoFocus onChange={(e) => setLocking({ ...locking, a: e.target.value })} />
+          <input type="password" autoComplete="new-password" placeholder="שוב, לאימות" aria-label="אימות הסיסמה" value={locking.b} onChange={(e) => setLocking({ ...locking, b: e.target.value })} />
+          {locking.b && locking.a !== locking.b && <p className="error">הסיסמאות לא זהות</p>}
+          <p className="muted note-hint">
+            הטקסט והקבצים יוצפנו כבר בטלפון. כדי שבני משפחה יוכלו לפתוח את הפתק, צריך למסור להם את הסיסמה.
+            <strong> סיסמה שנשכחה אי אפשר לשחזר, והפתק יאבד.</strong> שם הפתק לא מוצפן.
+          </p>
+          <div className="sheet-actions">
+            <button className="primary" disabled={busy || locking.a.length < 4 || locking.a !== locking.b || !allImages}>{busy ? 'מצפין…' : 'נעילה'}</button>
+            <button type="button" onClick={() => setLocking(null)}>ביטול</button>
+          </div>
+        </form>
+      )}
+
       <div className="list-tools">
+        {note.locked ? (
+          <>
+            <button onClick={() => { flush(); lockNow(); }}>🔐 נעילה עכשיו</button>
+            {mine && <button disabled={!allImages} onClick={unlock}>🔓 הסרת הסיסמה</button>}
+          </>
+        ) : (
+          mine && !locking && <button onClick={() => setLocking({ a: '', b: '' })}>🔐 נעילה בסיסמה</button>
+        )}
         <button
           className="danger"
           onClick={() => {

@@ -374,7 +374,7 @@ describe('notes', () => {
     await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'home'), { ...N, kind: 'folder', emoji: '📁', title: 'בית', parentId: '' }));
     await assertSucceeds(updateDoc(note, { parentId: 'home', updatedAt: serverTimestamp(), updatedBy: 'dad' }));
     await assertFails(updateDoc(note, { parentId: 'x'.repeat(65), updatedAt: serverTimestamp(), updatedBy: 'dad' }));
-    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, body: 'א'.repeat(5001) }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, body: 'א'.repeat(20001) }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, pinned: 'yes' }));
     const F = { noteId: 'n1', image: 'data:image/jpeg;base64,/9j/4AAQ', name: 'חוזה.pdf', createdBy: 'daughter', createdAt: serverTimestamp() };
     const file = doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f1');
@@ -428,6 +428,37 @@ describe('private notes', () => {
     await assertSucceeds(deleteDoc(file('dad', 'f2')));
     await assertSucceeds(deleteDoc(file('dad')));
     await assertSucceeds(deleteDoc(ref('dad')));
+  });
+});
+
+describe('password-locked notes', () => {
+  it('only the creator locks or unlocks; locked files are stored encrypted; lists cannot be locked', async () => {
+    await createInvite('dad', 'levi', 'CODE22', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE22', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const N = { title: 'קודים', emoji: '📝', kind: 'note', body: 'שער 1234', createdBy: 'dad', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const note = (who: Who) => doc(db(who), 'families', 'levi', 'lists', 'n1');
+    await assertSucceeds(setDoc(note('dad'), N));
+    const lock = (by: string) => ({ locked: true, salt: 'c2FsdA==', body: 'aXY=.Y3Q=', updatedAt: serverTimestamp(), updatedBy: by });
+    await assertFails(updateDoc(note('daughter'), lock('daughter')));
+    await assertSucceeds(updateDoc(note('dad'), lock('dad')));
+    // The daughter (who knows the password) edits the encrypted text, but cannot remove or change the lock.
+    await assertSucceeds(updateDoc(note('daughter'), { body: 'aXYy.Y3Qy', updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertFails(updateDoc(note('daughter'), { locked: false, salt: '', updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertFails(updateDoc(note('daughter'), { salt: 'b3RoZXI=', updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    const F = { noteId: 'n1', secret: 'Y2lwaGVy', iv: 'aXZpdml2aXY=', name: 'ת״ז.pdf', createdBy: 'dad', createdAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'noteFiles', 'f1'), F));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, secret: '<script>' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, image: 'data:image/jpeg;base64,/9j/' }));
+    await assertSucceeds(updateDoc(note('dad'), { locked: false, salt: '', body: 'שער 1234', updatedAt: serverTimestamp(), updatedBy: 'dad' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'l1'), { title: 'טיול', emoji: '🏕️', locked: true, salt: 'c2FsdA==', createdBy: 'dad', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'dad' }));
+    // A private note can be locked too, by its creator only.
+    const P = { title: 'ת״ז', emoji: '📝', kind: 'note', body: 'x', pinned: false, parentId: '', viewers: ['dad', 'daughter'], createdBy: 'dad', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const priv = (who: Who) => doc(db(who), 'families', 'levi', 'privateNotes', 'p1');
+    await assertSucceeds(setDoc(priv('dad'), P));
+    await assertFails(updateDoc(priv('daughter'), lock('daughter')));
+    await assertSucceeds(updateDoc(priv('dad'), lock('dad')));
+    await assertSucceeds(setDoc(doc(db('daughter'), 'families', 'levi', 'privateNotes', 'p1', 'files', 'f1'), { secret: 'Y2lwaGVy', iv: 'aXY=', name: 'a', createdBy: 'daughter', createdAt: serverTimestamp() }));
   });
 });
 

@@ -838,3 +838,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .who-edit .chip.on { background: var(--accent-soft); border-color: var(--accent); font-weight: 700; }
 .who-hint { margin: 0; font-size: 0.85rem; }
 .who-edit .chip.on:disabled { opacity: 1; color: inherit; }
+.note-gate, .note-lock { display: grid; gap: 10px; }
+.note-lock input, .note-gate input { min-height: 44px; }
+.note-thumb:disabled { display: grid; place-items: center; font-size: 1.6rem; }
