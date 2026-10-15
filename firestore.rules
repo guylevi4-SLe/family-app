@@ -197,11 +197,27 @@ service cloud.firestore {
       match /lists/{listId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['title', 'emoji', 'categories', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && onlyKeys(['title', 'emoji', 'categories', 'kind', 'body', 'pinned', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
           && shortString(data().title, 60) && data().title.size() > 0
           && shortString(data().emoji, 16)
           && (!('categories' in data()) || (data().categories is list && data().categories.size() <= 30))
+          && (!('kind' in data()) || data().kind == 'note')
+          && (!('body' in data()) || shortString(data().body, 5000))
+          && (!('pinned' in data()) || data().pinned is bool)
           && data().updatedBy == me();
+        allow delete: if isMember(fid);
+      }
+      // A PDF or photo on a note, stored as a JPEG; added or removed, never edited.
+      match /noteFiles/{fileId} {
+        allow read: if isMember(fid);
+        allow create: if isMember(fid)
+          && onlyKeys(['noteId', 'image', 'name', 'createdBy', 'createdAt'])
+          && shortString(data().noteId, 64)
+          && exists(/databases/$(database)/documents/families/$(fid)/lists/$(data().noteId))
+          && shortString(data().image, 950000)
+          && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+          && shortString(data().name, 120)
+          && data().createdBy == me();
         allow delete: if isMember(fid);
       }
       match /listEntries/{entryId} {

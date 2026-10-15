@@ -16,7 +16,7 @@ import type { Item } from './items';
 import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
-import type { FamilyList, ListEntry } from './lists';
+import type { FamilyList, ListEntry, NoteFile } from './lists';
 import type { Birthday } from './birthdays';
 import type { Schedule } from './schedules';
 import type { Invite, JoinRequest, Member } from './family';
@@ -196,6 +196,15 @@ export function useListEntries(fid: string) {
     `listEntries/${fid}`,
     () => collection(db, 'families', fid, 'listEntries'),
     (id, d, pending) => ({ id, ...(d as Omit<ListEntry, 'id' | 'pending'>), pending }),
+  );
+}
+
+/** Files attached to one note (each can be large, so only the open note's). */
+export function useNoteFiles(fid: string, noteId: string) {
+  return useQuery<NoteFile>(
+    `noteFiles/${fid}/${noteId}`,
+    () => query(collection(db, 'families', fid, 'noteFiles'), where('noteId', '==', noteId)),
+    (id, d, pending) => ({ id, ...(d as Omit<NoteFile, 'id' | 'pending'>), pending }),
   );
 }
 

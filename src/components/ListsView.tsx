@@ -1,8 +1,15 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   LIST_EMOJIS,
   LIST_IDEAS,
+  MAX_NOTE,
+  NOTE_EMOJIS,
   addEntries,
+  addNoteFile,
+  byPinThenTitle,
+  createNote,
+  deleteNoteFile,
+  saveNoteBody,
   changeCategory,
   moveEntry,
   createList,
@@ -15,8 +22,11 @@ import {
   type FamilyList,
   type ListEntry,
 } from '../data/lists';
+import { useNoteFiles } from '../data/hooks';
+import { scheduleImage } from '../data/schedules';
 import { useFamily } from './FamilyContext';
 import { Icon } from './Icon';
+import { ZoomViewer } from './ZoomViewer';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -35,7 +45,9 @@ export function ListsView({
   const open = lists?.find((l) => l.id === openId);
   return (
     <main className="list-page lists-page" aria-label="רשימות">
-      {open ? (
+      {open?.kind === 'note' ? (
+        <NoteDetail note={open} onBack={() => setOpenId(null)} />
+      ) : open ? (
         <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
       ) : (
         <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} />
@@ -63,17 +75,22 @@ function ListIndex({
   onOpen: (id: string) => void;
 }) {
   const { familyId } = useFamily();
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState<'list' | 'note' | null>(null);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('📋');
-  const sorted = [...(lists ?? [])].sort((a, b) => a.title.localeCompare(b.title, 'he'));
+  const sorted = [...(lists ?? [])].sort(byPinThenTitle);
+  const note = creating === 'note';
 
+  const start = (kind: 'list' | 'note') => {
+    setCreating(kind);
+    setTitle('');
+    setEmoji(kind === 'note' ? '📝' : '📋');
+  };
   const create = () => {
     if (!title.trim()) return;
-    const id = createList(familyId, title, emoji);
-    setCreating(false);
+    const id = note ? createNote(familyId, title, emoji) : createList(familyId, title, emoji);
+    setCreating(null);
     setTitle('');
-    setEmoji('📋');
     onOpen(id);
   };
 
@@ -82,39 +99,60 @@ function ListIndex({
       {creating ? (
         <form className="card list-new" onSubmit={(e) => { e.preventDefault(); create(); }}>
           <label>
-            <span className="field-label">שם הרשימה</span>
-            <input className="full" value={title} maxLength={60} autoFocus placeholder="למשל: ציוד לטיול" onChange={(e) => setTitle(e.target.value)} />
+            <span className="field-label">{note ? 'שם הפתק' : 'שם הרשימה'}</span>
+            <input className="full" value={title} maxLength={60} autoFocus placeholder={note ? 'למשל: קודים וסיסמאות לבית' : 'למשל: ציוד לטיול'} onChange={(e) => setTitle(e.target.value)} />
           </label>
-          <div className="chips" role="group" aria-label="רעיונות">
-            {LIST_IDEAS.map((i) => (
-              <button key={i.title} type="button" className="chip" onClick={() => { setTitle(i.title); setEmoji(i.emoji); }}>
-                {i.emoji} {i.title}
-              </button>
-            ))}
-          </div>
+          {!note && (
+            <div className="chips" role="group" aria-label="רעיונות">
+              {LIST_IDEAS.map((i) => (
+                <button key={i.title} type="button" className="chip" onClick={() => { setTitle(i.title); setEmoji(i.emoji); }}>
+                  {i.emoji} {i.title}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="emoji-pick" role="group" aria-label="סמל">
-            {LIST_EMOJIS.map((e) => (
+            {(note ? NOTE_EMOJIS : LIST_EMOJIS).map((e) => (
               <button key={e} type="button" className={e === emoji ? 'on' : ''} aria-pressed={e === emoji} onClick={() => setEmoji(e)}>
                 {e}
               </button>
             ))}
           </div>
           <div className="sheet-actions">
-            <button className="primary" disabled={!title.trim()}>יצירת הרשימה</button>
-            <button type="button" onClick={() => setCreating(false)}>ביטול</button>
+            <button className="primary" disabled={!title.trim()}>{note ? 'יצירת הפתק' : 'יצירת הרשימה'}</button>
+            <button type="button" onClick={() => setCreating(null)}>ביטול</button>
           </div>
         </form>
       ) : (
-        <button className="primary new-list" onClick={() => setCreating(true)}>
-          + רשימה חדשה
-        </button>
+        <div className="new-list-row">
+          <button className="primary new-list" onClick={() => start('list')}>
+            + רשימה חדשה
+          </button>
+          <button className="new-list new-note" onClick={() => start('note')}>
+            + פתק חדש
+          </button>
+        </div>
       )}
 
       {lists !== undefined && sorted.length === 0 && !creating && (
-        <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
+        <p className="empty">עוד אין רשימות או פתקים. רשימה לסימון (תיק למכון, ציוד לטיול), או פתק חופשי עם קבצים (מספרי טלפון, הוראות, מסמכים).</p>
       )}
       <ul className="list-cards">
         {sorted.map((l) => {
+          if (l.kind === 'note') {
+            const preview = (l.body ?? '').trim().split('\n')[0];
+            return (
+              <li key={l.id}>
+                <button className="list-card note-card" onClick={() => onOpen(l.id)}>
+                  <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
+                  <span className="list-card-main">
+                    <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
+                    <span className="muted note-preview">{preview || 'פתק ריק'}</span>
+                  </span>
+                </button>
+              </li>
+            );
+          }
           const mine = entries.filter((e) => e.listId === l.id);
           const done = mine.filter((e) => e.done).length;
           return (
@@ -122,7 +160,7 @@ function ListIndex({
               <button className="list-card" onClick={() => onOpen(l.id)}>
                 <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
                 <span className="list-card-main">
-                  <strong>{l.title}</strong>
+                  <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
                   <span className="muted">{mine.length === 0 ? 'ריקה' : done === mine.length ? `הכול מסומן ✓ (${done})` : `${done} מתוך ${mine.length}`}</span>
                   {mine.length > 0 && <Progress done={done} total={mine.length} />}
                 </span>
@@ -324,6 +362,175 @@ function ListDetail({
           }}
         >
           מחיקת הרשימה
+        </button>
+      </div>
+    </>
+  );
+}
+
+/** A free-text note the whole family edits, with PDFs or photos attached. */
+function NoteDetail({ note, onBack }: { note: FamilyList; onBack: () => void }) {
+  const { familyId } = useFamily();
+  const files = useNoteFiles(familyId, note.id);
+  const [body, setBody] = useState(note.body ?? '');
+  const [saved, setSaved] = useState(true);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [zoom, setZoom] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const editing = useRef(false);
+  const timer = useRef<number>();
+  const latest = useRef(body);
+  const remote = useRef(note.body ?? '');
+  remote.current = note.body ?? '';
+  const gone = useRef(false);
+
+  // Someone else's change shows up unless I am in the middle of typing.
+  useEffect(() => {
+    if (!editing.current && saved) {
+      setBody(note.body ?? '');
+      latest.current = note.body ?? '';
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note.body]);
+
+  const flush = () => {
+    window.clearTimeout(timer.current);
+    if (!gone.current && latest.current !== remote.current) saveNoteBody(familyId, note.id, latest.current);
+    setSaved(true);
+  };
+  useEffect(() => () => flush(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const change = (v: string) => {
+    setBody(v);
+    latest.current = v;
+    setSaved(false);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(flush, 800);
+  };
+
+  const attach = async (list: FileList | null) => {
+    if (!list?.length) return;
+    setBusy(true);
+    setError('');
+    for (const f of Array.from(list)) {
+      try {
+        await addNoteFile(familyId, note.id, await scheduleImage(f), f.name);
+      } catch {
+        setError(`לא הצלחנו לצרף את "${f.name}". אפשר PDF (עד 3 עמודים ראשונים) או תמונה.`);
+      }
+    }
+    setBusy(false);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  return (
+    <>
+      <button className="link back" onClick={() => { flush(); onBack(); }}>→ כל הרשימות</button>
+
+      <div className="list-hero">
+        <span className="list-emoji" aria-hidden="true">{note.emoji}</span>
+        <div className="list-hero-main">
+          {renaming !== null ? (
+            <form
+              className="list-rename"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (renaming.trim()) updateList(familyId, note.id, { title: renaming.trim().slice(0, 60) });
+                setRenaming(null);
+              }}
+            >
+              <input aria-label="שם הפתק" value={renaming} maxLength={60} autoFocus onChange={(e) => setRenaming(e.target.value)} />
+              <button className="small primary">שמירה</button>
+            </form>
+          ) : (
+            <h2 className="list-title">
+              <button className="link-plain" aria-label="שינוי שם הפתק" onClick={() => setRenaming(note.title)}>
+                {note.title}
+              </button>
+            </h2>
+          )}
+          <p className="muted list-sum">{saved ? 'פתק משפחתי, כולם יכולים לערוך' : 'שומר…'}</p>
+        </div>
+        <button
+          className={`pin ${note.pinned ? 'on' : ''}`}
+          aria-pressed={!!note.pinned}
+          aria-label={note.pinned ? 'ביטול נעיצה' : 'נעיצה למעלה'}
+          onClick={() => updateList(familyId, note.id, { pinned: !note.pinned })}
+        >
+          📌
+        </button>
+      </div>
+
+      <textarea
+        className="note-body"
+        aria-label="תוכן הפתק"
+        placeholder="כותבים כאן כל מה שצריך: מספרי טלפון, הוראות, קודים…"
+        value={body}
+        maxLength={MAX_NOTE}
+        onFocus={() => { editing.current = true; }}
+        onBlur={() => { editing.current = false; flush(); }}
+        onChange={(e) => change(e.target.value)}
+      />
+
+      <section className="note-files" aria-label="קבצים מצורפים">
+        <div className="list-section-head">
+          <h3>📎 קבצים</h3>
+          <span className="muted">{files?.length || ''}</span>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf,image/*"
+          multiple
+          hidden
+          aria-label="בחירת קובץ לפתק"
+          onChange={(e) => attach(e.target.files)}
+        />
+        {files && files.length > 0 && (
+          <ul className="note-file-grid">
+            {[...files].sort((a, b) => (a.createdAt?.toMillis() ?? Infinity) - (b.createdAt?.toMillis() ?? Infinity)).map((f) => (
+              <li key={f.id} className="note-file">
+                <button className="note-thumb" aria-label={`הגדלת ${f.name}`} onClick={() => setZoom(f.id)}>
+                  <img src={f.image} alt="" />
+                </button>
+                <span className="note-file-name" title={f.name}>{f.name}</span>
+                <button
+                  className="note-file-del"
+                  aria-label={`מחיקת ${f.name}`}
+                  onClick={() => confirm(`למחוק את "${f.name}" מהפתק?`) && deleteNoteFile(familyId, f.id)}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button className="note-attach" disabled={busy} onClick={() => fileRef.current?.click()}>
+          {busy ? 'מצרף…' : '+ צירוף PDF או תמונה'}
+        </button>
+        {error && <p className="error" role="alert">{error}</p>}
+        <p className="muted note-hint">מקובץ PDF נשמרים 3 העמודים הראשונים, כתמונה.</p>
+      </section>
+
+      {zoom && files?.find((f) => f.id === zoom) && (
+        <ZoomViewer src={files.find((f) => f.id === zoom)!.image} alt={files.find((f) => f.id === zoom)!.name} onClose={() => setZoom(null)} />
+      )}
+
+      <div className="list-tools">
+        <button
+          className="danger"
+          onClick={() => {
+            if (confirm(`למחוק את הפתק "${note.title}" וכל הקבצים שבו?`)) {
+              window.clearTimeout(timer.current);
+              gone.current = true;
+              deleteList(familyId, note.id, [], files ?? []);
+              onBack();
+            }
+          }}
+        >
+          מחיקת הפתק
         </button>
       </div>
     </>

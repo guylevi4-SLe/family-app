@@ -9,6 +9,12 @@ export interface FamilyList {
   emoji: string;
   /** Section names in order ("ביגוד", "רחצה"); lines without one show first. */
   categories?: string[];
+  /** 'note' is a free-text note (פתק) instead of a checklist. */
+  kind?: 'note';
+  /** The note's text, edited by the whole family. */
+  body?: string;
+  /** Pinned notes and lists show first. */
+  pinned?: boolean;
   createdBy: string;
   createdAt?: Timestamp | null;
   pending: boolean;
@@ -33,10 +39,30 @@ export const LIST_IDEAS = [
   { title: 'לפני שיוצאים מהבית', emoji: '🔑' },
 ];
 
+/** A PDF or photo attached to a note, kept as a JPEG (one document per file). */
+export interface NoteFile {
+  id: string;
+  noteId: string;
+  image: string;
+  name: string;
+  createdBy: string;
+  createdAt?: Timestamp | null;
+  pending: boolean;
+}
+
+export const NOTE_EMOJIS = ['📝', '📌', '💡', '📞', '🏥', '🏫', '🏠', '🚗', '💳', '🎁'];
+
+export const MAX_NOTE = 5000;
+
 export const LIST_EMOJIS = ['📋', '🏋️', '🏕️', '✈️', '🏖️', '🎒', '🎁', '🧳', '🏠', '🔑', '🛠️', '🎉'];
+
+/** Pinned first, then by name. */
+export const byPinThenTitle = (a: FamilyList, b: FamilyList) =>
+  Number(!!b.pinned) - Number(!!a.pinned) || a.title.localeCompare(b.title, 'he');
 
 const listsCol = (fid: string) => collection(db, 'families', fid, 'lists');
 const entriesCol = (fid: string) => collection(db, 'families', fid, 'listEntries');
+const filesCol = (fid: string) => collection(db, 'families', fid, 'noteFiles');
 const stamp = () => ({ updatedAt: serverTimestamp(), updatedBy: auth.currentUser!.uid });
 
 export function createList(fid: string, title: string, emoji: string) {
@@ -51,14 +77,47 @@ export function createList(fid: string, title: string, emoji: string) {
   return ref.id;
 }
 
-export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories'>>) {
+export function createNote(fid: string, title: string, emoji: string) {
+  const ref = doc(listsCol(fid));
+  setDoc(ref, {
+    title: title.trim().slice(0, 60),
+    emoji,
+    kind: 'note',
+    body: '',
+    createdBy: auth.currentUser!.uid,
+    createdAt: serverTimestamp(),
+    ...stamp(),
+  }).catch(reportWriteError);
+  return ref.id;
+}
+
+export function saveNoteBody(fid: string, id: string, body: string) {
+  return updateDoc(doc(listsCol(fid), id), { body: body.slice(0, MAX_NOTE), ...stamp() }).catch(reportWriteError);
+}
+
+export function addNoteFile(fid: string, noteId: string, image: string, name: string) {
+  return setDoc(doc(filesCol(fid)), {
+    noteId,
+    image,
+    name: name.slice(0, 120),
+    createdBy: auth.currentUser!.uid,
+    createdAt: serverTimestamp(),
+  }).catch(reportWriteError);
+}
+
+export function deleteNoteFile(fid: string, id: string) {
+  deleteDoc(doc(filesCol(fid), id)).catch(reportWriteError);
+}
+
+export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories' | 'pinned'>>) {
   updateDoc(doc(listsCol(fid), id), { ...fields, ...stamp() }).catch(reportWriteError);
 }
 
-/** Removes the list and every line in it. */
-export function deleteList(fid: string, id: string, entries: Pick<ListEntry, 'id'>[]) {
+/** Removes the list (or note) and every line or attached file in it. */
+export function deleteList(fid: string, id: string, entries: Pick<ListEntry, 'id'>[], files: Pick<NoteFile, 'id'>[] = []) {
   const b = writeBatch(db);
   for (const e of entries) b.delete(doc(entriesCol(fid), e.id));
+  for (const f of files) b.delete(doc(filesCol(fid), f.id));
   b.delete(doc(listsCol(fid), id));
   b.commit().catch(reportWriteError);
 }

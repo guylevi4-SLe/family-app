@@ -5,7 +5,7 @@ import { memberName, useFamily } from './FamilyContext';
 import type { Screen } from './Home';
 import { Icon } from './Icon';
 import { defaultScheduleUid, type Schedule } from '../data/schedules';
-import type { FamilyList, ListEntry } from '../data/lists';
+import { byPinThenTitle, type FamilyList, type ListEntry } from '../data/lists';
 import { birthdaysBetween, type Birthday } from '../data/birthdays';
 
 export function Dashboard({
@@ -58,7 +58,7 @@ export function Dashboard({
 
   const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
   const shown = live.find((s) => s.id === defaultScheduleUid(schedules, members.map((m) => m.id), me.id));
-  const sortedLists = [...(lists ?? [])].sort((a, b) => a.title.localeCompare(b.title, 'he'));
+  const sortedLists = [...(lists ?? [])].sort(byPinThenTitle);
   const others = live.filter((s) => s.id !== me.id).map((s) => memberName(members, s.id));
 
   return (
@@ -138,7 +138,7 @@ export function Dashboard({
         </button>
         {sortedLists.length === 0 ? (
           <button className="tile-body tile-link muted" onClick={() => openList(null)}>
-            רשימה לכל דבר: תיק למכון, ציוד לטיול, דברים לטיסה. לחיצה ליצירה
+            רשימה לכל דבר (תיק למכון, ציוד לטיול) או פתק עם קבצים. לחיצה ליצירה
           </button>
         ) : (
           <ul className="tile-lists">
@@ -149,7 +149,7 @@ export function Dashboard({
                 <li key={l.id}>
                   <button onClick={() => openList(l.id)}>
                     <span aria-hidden="true">{l.emoji}</span>
-                    <span className="tile-list-name">{l.title}</span>
+                    <span className="tile-list-name">{l.pinned ? '📌 ' : ''}{l.title}</span>
                     <span className="muted">{mine.length ? `${done}/${mine.length}` : ''}</span>
                   </button>
                 </li>

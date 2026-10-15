@@ -361,6 +361,34 @@ describe('checklists', () => {
   });
 });
 
+describe('notes', () => {
+  it('members keep notes with text and attached JPEGs; outsiders cannot; files need a real note', async () => {
+    await createInvite('dad', 'levi', 'CODE20', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE20', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const N = { title: 'קודים לבית', emoji: '📝', kind: 'note', body: 'שער: 1234', createdBy: 'dad', createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'dad' };
+    const note = doc(db('dad'), 'families', 'levi', 'lists', 'n1');
+    await assertSucceeds(setDoc(note, N));
+    await assertSucceeds(updateDoc(doc(db('daughter'), 'families', 'levi', 'lists', 'n1'), { body: 'שער: 4321', pinned: true, updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, kind: 'other' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, body: 'א'.repeat(5001) }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, pinned: 'yes' }));
+    const F = { noteId: 'n1', image: 'data:image/jpeg;base64,/9j/4AAQ', name: 'חוזה.pdf', createdBy: 'daughter', createdAt: serverTimestamp() };
+    const file = doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f1');
+    await assertSucceeds(setDoc(file, F));
+    await assertSucceeds(getDoc(doc(db('dad'), 'families', 'levi', 'noteFiles', 'f1')));
+    await assertFails(updateDoc(file, { name: 'אחר' }));
+    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, noteId: 'nope' }));
+    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, image: 'data:text/html;base64,PGgxPg==' }));
+    await assertFails(setDoc(doc(db('daughter'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, createdBy: 'dad' }));
+    await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'noteFiles', 'f2'), { ...F, createdBy: 'neighbor' }));
+    await assertFails(getDoc(doc(db('neighbor'), 'families', 'levi', 'noteFiles', 'f1')));
+    await assertFails(deleteDoc(doc(db('neighbor'), 'families', 'levi', 'noteFiles', 'f1')));
+    await assertSucceeds(deleteDoc(doc(db('dad'), 'families', 'levi', 'noteFiles', 'f1')));
+    await assertSucceeds(deleteDoc(note));
+  });
+});
+
 describe('birthdays', () => {
   it('members keep birthdays with a valid date; outsiders cannot', async () => {
     const B = { name: 'סבתא רחל', day: 12, month: 3, year: 1950, group: 'family', updatedAt: serverTimestamp(), updatedBy: 'dad' };

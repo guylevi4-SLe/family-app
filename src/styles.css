@@ -804,3 +804,21 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .ask-sheet { display: flex; flex-direction: column; gap: 12px; }
 .ask-text { font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); resize: vertical; }
 .ask-send { display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ---------- notes (פתקים) inside the lists screen ---------- */
+.new-list-row { display: flex; gap: 10px; }
+.new-list-row .new-list { flex: 1; }
+.new-note { background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; }
+.note-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-hero .pin { flex: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.2rem; opacity: 0.45; filter: grayscale(1); background: transparent; }
+.list-hero .pin.on { opacity: 1; filter: none; background: var(--accent-soft); }
+.note-body { width: 100%; min-height: 220px; resize: vertical; font: inherit; font-size: 1.02rem; line-height: 1.5; padding: 12px 14px; border-radius: var(--radius); }
+.note-files { display: grid; gap: 10px; }
+.note-file-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.note-file { position: relative; display: grid; gap: 4px; }
+.note-thumb { padding: 0; border-radius: 12px; overflow: hidden; aspect-ratio: 3 / 4; background: #fff; box-shadow: var(--shadow); }
+.note-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.note-file-name { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-file-del { position: absolute; top: 4px; inset-inline-start: 4px; width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.85rem; }
+.note-attach { min-height: 46px; border: 1.5px dashed var(--accent); background: transparent; color: var(--accent); font-weight: 700; }
+.note-hint { margin: 0; font-size: 0.82rem; }
