@@ -280,9 +280,12 @@ async function main() {
     await dad.page.locator('.chat-ref', { hasText: 'תזכורת בשבילך' }).waitFor({ timeout: 10000 });
     ok('family chat lists comments made on items and tasks');
     // Typing "@k" offers the daughter's name; picking it tags her (and notifies her).
-    await dad.page.getByLabel('כתיבת הודעה').fill('@k');
+    await dad.page.getByLabel('כתיבת הודעה').fill('@');
     await dad.page.getByRole('group', { name: 'פקודות מהירות' }).getByRole('button', { name: '@kid' }).click();
     assert.equal(await dad.page.getByLabel('כתיבת הודעה').inputValue(), '@kid ');
+    await dad.page.getByLabel('כתיבת הודעה').fill('');
+    await dad.page.getByLabel('כתיבת הודעה').pressSequentially('@k');
+    assert.equal(await dad.page.getByLabel('כתיבת הודעה').inputValue(), '@kid ', 'only one name fits "@k": it completes by itself');
     await dad.page.getByLabel('כתיבת הודעה').pressSequentially('ארוחת ערב ב־7');
     if (process.env.SCREENSHOT_DIR) {
       await dad.page.getByLabel('כתיבת הודעה').fill('ארוחת ערב ב־7 @');
@@ -385,6 +388,12 @@ async function main() {
       assert.equal(await box.inputValue(), '@רשימה: ', 'typing @ר grows into @רשימה:');
       for (let i = 0; i < 7; i++) await box.press('Backspace');
       assert.equal(await box.inputValue(), '@', 'deleting back does not grow it again');
+      await box.fill('');
+      await box.pressSequentially('@רשימה');
+      assert.equal(await box.inputValue(), '@רשימה: ', 'typing the whole word after it completed does not repeat it');
+      await box.fill('');
+      await box.pressSequentially('@רש');
+      assert.equal(await box.inputValue(), '@רשימה: ', '@רש completes too');
       await send('@ק במבה, 2 חלב');
       await notice.filter({ hasText: 'נוספו 2 מוצרים לקניות' }).waitFor();
       assert.equal(await box.inputValue(), '', 'a command clears the box');

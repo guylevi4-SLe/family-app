@@ -63,3 +63,21 @@ export function splitTags(text: string, names: string[]): { text: string; tag: b
   if (last < text.length) out.push({ text: text.slice(last), tag: false });
   return out;
 }
+
+/**
+ * Completes the "@…" being typed when only one thing fits: a chat command
+ * ("@רש" → "@רשימה: ", at the start only) or a name ("@ש" → "@שגב ").
+ * Null while more than one fits ("@ר" with רשימה, רומי and רוית).
+ */
+export function autoCompleteTag(text: string, names: string[], commands: string[]) {
+  const typed = typingTag(text);
+  if (!typed) return null;
+  const atStart = /^\s*@[\p{L}\p{N}_]*$/u.test(text);
+  const fits = [
+    ...(atStart ? commands.filter((c) => c.startsWith(typed)).map((c) => `@${c}: `) : []),
+    ...[...new Set([...names, EVERYONE])].filter((n) => n && n.toLowerCase().startsWith(typed.toLowerCase())).map((n) => `@${n} `),
+  ];
+  if (fits.length !== 1) return null;
+  const done = text.replace(/@[\p{L}\p{N}_]*$/u, fits[0]);
+  return done === text ? null : done;
+}

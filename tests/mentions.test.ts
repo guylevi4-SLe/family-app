@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completeTag, splitTags, suggestTags, taggedIds, typingTag } from '../src/data/mentions';
+import { autoCompleteTag, completeTag, splitTags, suggestTags, taggedIds, typingTag } from '../src/data/mentions';
 
 const members = [
   { id: 'g', displayName: 'גיא לוי' },
@@ -34,5 +34,21 @@ describe('chat tags', () => {
       { text: '@שגב', tag: true },
       { text: ' ו@מישהו', tag: false },
     ]);
+  });
+});
+
+describe('completing "@…" when only one thing fits', () => {
+  const names = ['שגב', 'רומי', 'רוית'];
+  const commands = ['קניות', 'משימה', 'יומן', 'רשימה'];
+  it('completes commands at the start and names anywhere', () => {
+    expect(autoCompleteTag('@רש', names, commands)).toBe('@רשימה: ');
+    expect(autoCompleteTag('@ק', names, commands)).toBe('@קניות: ');
+    expect(autoCompleteTag('@ר', names, commands)).toBeNull();
+    expect(autoCompleteTag('@רו', names, commands)).toBeNull();
+    expect(autoCompleteTag('@רומ', names, commands)).toBe('@רומי ');
+    expect(autoCompleteTag('היי @ש', names, commands)).toBe('היי @שגב ');
+    expect(autoCompleteTag('היי @רש', names, commands)).toBeNull();
+    expect(autoCompleteTag('@כ', names, commands)).toBe('@כולם ');
+    expect(autoCompleteTag('@', names, commands)).toBeNull();
   });
 });

@@ -238,6 +238,19 @@ describe('joining: invite, request, approval', () => {
     await approve('dad', 'levi', 'son');
     await assertFails(updateDoc(doc(db('son'), 'families', 'levi', 'members', 'son'), { role: 'admin' }));
   });
+  it('a member renames themselves; an admin renames anyone; nobody else', async () => {
+    await createInvite('dad', 'levi', 'CODE17');
+    await requestToJoin('son', 'levi', 'CODE17');
+    await approve('dad', 'levi', 'son');
+    const son = doc(db('son'), 'families', 'levi', 'members', 'son');
+    await assertSucceeds(updateDoc(son, { displayName: 'רומי' }));
+    await assertFails(updateDoc(son, { displayName: '' }));
+    await assertFails(updateDoc(son, { displayName: 'x'.repeat(41) }));
+    await assertFails(updateDoc(son, { displayName: 'רומי', role: 'admin' }));
+    await assertFails(updateDoc(doc(db('son'), 'families', 'levi', 'members', 'dad'), { displayName: 'אבא' }));
+    await assertSucceeds(updateDoc(doc(db('dad'), 'families', 'levi', 'members', 'son'), { displayName: 'רומי לוי' }));
+    await assertFails(updateDoc(doc(db('stranger'), 'families', 'levi', 'members', 'son'), { displayName: 'זר' }));
+  });
 });
 
 describe('tasks and events', () => {

@@ -18,6 +18,7 @@ import {
   decideRequest,
   inviteLink,
   removeMember,
+  renameMember,
   type Member,
   type Role,
 } from '../data/family';
@@ -103,6 +104,18 @@ export function FamilySettings({
                 </strong>
                 <span className="muted">{ROLE_LABELS[m.role]}</span>
               </div>
+              {(isAdmin || m.id === me.id) && (
+                <button
+                  className="small"
+                  aria-label={`שינוי השם של ${m.displayName}`}
+                  onClick={guard(async () => {
+                    const name = prompt('השם שיופיע במשפחה (ולתיוג עם @):', m.displayName)?.trim();
+                    if (name && name !== m.displayName) await renameMember(familyId, m.id, name);
+                  })}
+                >
+                  שינוי שם
+                </button>
+              )}
               {isAdmin && m.id !== me.id && (
                 <button
                   className="small danger"

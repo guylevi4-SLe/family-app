@@ -4,8 +4,8 @@ import { addItems, parseItems, updateItem, type Item } from '../data/items';
 import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, deleteEntry, deleteList, restoreEntry, type FamilyList, type ListEntry } from '../data/lists';
-import { suggestTags } from '../data/mentions';
-import { COMMANDS, expandCommand, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
+import { autoCompleteTag, firstName } from '../data/mentions';
+import { COMMANDS, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
 import { byTime, CommentBubble, Composer, PhotoViewer } from './CommentsSheet';
@@ -281,8 +281,8 @@ export function ChatView({
           tagging
           onCommand={runCommand}
           hints={(t) => suggestCommands(t).map((c) => ({ label: `@${c.key} ${c.emoji} ${c.word}`, insert: `@${c.word}: ` }))}
-          // "@ר" alone grows into "@רשימה: " only when no one's name starts with ר.
-          autoComplete={(t) => (suggestTags(t, members ?? [], me.id).length ? null : expandCommand(t))}
+          // "@רש" grows into "@רשימה: " and "@ש" into "@שגב ", whenever only one thing fits.
+          autoComplete={(t) => autoCompleteTag(t, (members ?? []).filter((m) => m.id !== me.id).map(firstName), COMMANDS.map((c) => c.word))}
         />
       </div>
       {viewing && <PhotoViewer src={viewing} onClose={() => setViewing(null)} />}

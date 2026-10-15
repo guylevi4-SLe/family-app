@@ -1,4 +1,5 @@
 import {
+  updateDoc,
   Timestamp,
   collection,
   deleteDoc,
@@ -161,6 +162,11 @@ export async function decideRequest(familyId: string, req: JoinRequest, approve:
     });
   }
   await batch.commit();
+}
+
+/** The name the family sees (and tags with "@"), changed by the person or an admin. */
+export function renameMember(familyId: string, uid: string, displayName: string) {
+  return updateDoc(doc(db, 'families', familyId, 'members', uid), { displayName: displayName.trim().slice(0, 40) });
 }
 
 export function removeMember(familyId: string, uid: string) {

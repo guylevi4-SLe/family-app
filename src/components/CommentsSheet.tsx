@@ -273,6 +273,8 @@ export function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const askFileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  /** What the last completion added, so typing those same letters next does not repeat them. */
+  const swallow = useRef<{ rest: string } | null>(null);
 
   const send = () => {
     if (!text.trim() && !photo) return;
@@ -402,8 +404,17 @@ export function Composer({
           aria-label={label}
           onChange={(e) => {
             const v = e.target.value;
+            // Typing on after a completion ("@רש" → "@רשימה: ", then "ימה") just confirms it.
+            const sw = swallow.current;
+            swallow.current = null;
+            if (sw && v.length === text.length + 1 && v.startsWith(text) && sw.rest.startsWith(v.slice(-1))) {
+              swallow.current = { rest: sw.rest.slice(1) };
+              return;
+            }
             // Only while typing forward, so deleting back past "@קניות: " is not undone.
-            setText((v.length > text.length && autoComplete?.(v)) || v);
+            const done = v.length > text.length ? autoComplete?.(v) : null;
+            if (done) swallow.current = { rest: done.slice(v.length) };
+            setText(done || v);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
