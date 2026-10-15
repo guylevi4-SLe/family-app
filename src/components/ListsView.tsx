@@ -66,10 +66,22 @@ export function ListsView({
         <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId ?? ''); setOpenId(null); }} />
       ) : open && open.kind !== 'folder' ? (
         <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
-      ) : inFolder !== null ? (
-        <Notebook all={all} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
       ) : (
-        <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} openNotebook={() => setFolder('')} />
+        <>
+          <div className="planner-tabs" role="tablist" aria-label="רשימות ופתקים">
+            <button role="tab" aria-selected={inFolder === null} className={inFolder === null ? 'on' : ''} onClick={() => setFolder(null)}>
+              <Icon name="list" size={18} /> רשימות
+            </button>
+            <button role="tab" aria-selected={inFolder !== null} className={inFolder !== null ? 'on' : ''} onClick={() => setFolder('')}>
+              <Icon name="book" size={18} /> פתקים
+            </button>
+          </div>
+          {inFolder !== null ? (
+            <Notebook all={all} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
+          ) : (
+            <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} />
+          )}
+        </>
       )}
     </main>
   );
@@ -88,20 +100,16 @@ function ListIndex({
   lists,
   entries,
   onOpen,
-  openNotebook,
 }: {
   lists: FamilyList[] | undefined;
   entries: ListEntry[];
   onOpen: (id: string) => void;
-  openNotebook: () => void;
 }) {
   const { familyId } = useFamily();
   const [creating, setCreating] = useState<'list' | 'note' | null>(null);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('📋');
   const sorted = (lists ?? []).filter((l) => !l.kind).sort(byPinThenTitle);
-  const notes = (lists ?? []).filter((l) => l.kind === 'note');
-  const folders = (lists ?? []).filter((l) => l.kind === 'folder');
   const note = creating === 'note';
 
   const start = (kind: 'list' | 'note') => {
@@ -151,19 +159,6 @@ function ListIndex({
           + רשימה חדשה
         </button>
       )}
-
-      <button className="list-card notebook-card" onClick={openNotebook}>
-        <span className="list-emoji" aria-hidden="true">📒</span>
-        <span className="list-card-main">
-          <strong>מחברת</strong>
-          <span className="muted">
-            {notes.length || folders.length
-              ? notesAndFolders(notes.length, folders.length)
-              : 'פתקים עם קבצים, מסודרים בתיקיות'}
-          </span>
-        </span>
-        <span className="chevron" aria-hidden="true">‹</span>
-      </button>
 
       {lists !== undefined && sorted.length === 0 && !creating && (
         <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
@@ -450,25 +445,29 @@ function Notebook({
 
   return (
     <>
-      <button className="link back" onClick={() => setFolder(folder ? (here && exists(parentOf(here)) ? parentOf(here) : '') : null)}>
-        → {folder ? (here?.parentId && exists(here.parentId) ? all.find((l) => l.id === here.parentId)?.title : 'מחברת') : 'כל הרשימות'}
-      </button>
+      {folder && (
+        <button className="link back" onClick={() => setFolder(here && exists(parentOf(here)) ? parentOf(here) : '')}>
+          → {(here?.parentId && exists(here.parentId) && all.find((l) => l.id === here.parentId)?.title) || 'כל הפתקים'}
+        </button>
+      )}
 
-      <nav className="crumbs" aria-label="מיקום במחברת">
-        <button className={folder ? 'link-plain' : 'link-plain here'} onClick={() => setFolder('')}>📒 מחברת</button>
-        {ancestors.map((id) => (
-          <span key={id}>
-            <span className="muted" aria-hidden="true"> › </span>
-            <button className="link-plain" onClick={() => setFolder(id)}>{all.find((l) => l.id === id)?.title}</button>
-          </span>
-        ))}
-        {here && (
-          <span>
-            <span className="muted" aria-hidden="true"> › </span>
-            <strong className="here">{path[path.length - 1]}</strong>
-          </span>
-        )}
-      </nav>
+      {folder && (
+        <nav className="crumbs" aria-label="מיקום במחברת">
+          <button className="link-plain" onClick={() => setFolder('')}>📒 פתקים</button>
+          {ancestors.map((id) => (
+            <span key={id}>
+              <span className="muted" aria-hidden="true"> › </span>
+              <button className="link-plain" onClick={() => setFolder(id)}>{all.find((l) => l.id === id)?.title}</button>
+            </span>
+          ))}
+          {here && (
+            <span>
+              <span className="muted" aria-hidden="true"> › </span>
+              <strong className="here">{path[path.length - 1]}</strong>
+            </span>
+          )}
+        </nav>
+      )}
 
       {!folder && (
         <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש בכל הפתקים" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
@@ -606,7 +605,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
   return (
     <>
       <button className="link back" onClick={() => { flush(); onBack(); }}>
-        → {(note.parentId && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'מחברת'}
+        → {(note.parentId && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'כל הפתקים'}
       </button>
 
       <div className="list-hero">
@@ -705,7 +704,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
           value={all.some((l) => l.id === note.parentId && l.kind === 'folder') ? note.parentId : ''}
           onChange={(e) => updateList(familyId, note.id, { parentId: e.target.value })}
         >
-          <option value="">מחברת (ראשי)</option>
+          <option value="">בלי תיקייה (ראשי)</option>
           {all
             .filter((l) => l.kind === 'folder')
             .map((f) => ({ id: f.id, label: folderPath(all, f.id).join(' › ') }))

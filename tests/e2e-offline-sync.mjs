@@ -656,7 +656,7 @@ async function main() {
 
     step('Notes');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
-    await lists.getByRole('button', { name: /מחברת/ }).click();
+    await lists.getByRole('tab', { name: 'פתקים' }).click();
     await answer('בית', () => lists.getByRole('button', { name: '+ תיקייה' }).click());
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await answer('ביטוחים', () => lists.getByRole('button', { name: '+ תיקייה' }).click());
@@ -683,15 +683,16 @@ async function main() {
     await lists.getByRole('button', { name: '→ בית' }).click();
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('שער חניה: 1234').waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notebook-folder.png` });
-    await lists.getByRole('button', { name: '→ מחברת' }).click();
+    await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
     await lists.getByLabel('חיפוש בפתקים').fill('אזעקה');
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('📁 בית').waitFor();
     await lists.getByLabel('חיפוש בפתקים').fill('');
-    await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
-    await lists.locator('.notebook-card').getByText('פתק אחד · 2 תיקיות').waitFor();
-    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/lists-with-notebook.png` });
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notes-tab.png` });
+    await lists.getByRole('tab', { name: 'רשימות' }).click();
+    await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
+    assert.equal(await lists.locator('.list-card', { hasText: 'קודים לבית' }).count(), 0, 'notes stay out of the lists tab');
     await kid.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
-    await kidLists.getByRole('button', { name: /מחברת/ }).click();
+    await kidLists.getByRole('tab', { name: 'פתקים' }).click();
     await kidLists.locator('.folder-card', { hasText: 'בית' }).click();
     await kidLists.locator('.note-card', { hasText: 'קודים לבית' }).click();
     await kidLists.locator('.note-file').nth(1).waitFor({ timeout: 10000 });
@@ -699,7 +700,7 @@ async function main() {
     await kidLists.getByLabel('תוכן הפתק').fill('שער חניה: 1234\nאזעקה: 9876\nוויפי: levi2024');
     await kidLists.getByLabel('תוכן הפתק').blur();
     await kidLists.getByLabel('תיקיית הפתק').selectOption({ label: 'בית › ביטוחים' });
-    await lists.getByRole('button', { name: /מחברת/ }).click();
+    await lists.getByRole('tab', { name: 'פתקים' }).click();
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).getByText('פתק אחד').waitFor({ timeout: 10000 });
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
@@ -709,7 +710,11 @@ async function main() {
     await lists.locator('.note-file').nth(1).waitFor({ state: 'detached' });
     await lists.getByRole('button', { name: '→ ביטוחים' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await lists.locator('.notebook-card').waitFor();
+    await lists.locator('.folder-card', { hasText: 'בית' }).waitFor();
+    await dad.page.reload();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.locator('.lists-page').getByRole('tab', { name: 'פתקים', selected: true }).waitFor();
+    await dad.page.locator('.lists-page').getByRole('tab', { name: 'רשימות' }).click();
     await kidLists.getByRole('button', { name: '→ ביטוחים' }).click();
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
