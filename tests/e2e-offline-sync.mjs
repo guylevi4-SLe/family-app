@@ -696,6 +696,34 @@ async function main() {
     await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     await kid.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
     await kidLists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
+    // Drag to reorder: a second list sorts first by name; Dad drags the trip list above it.
+    await lists.getByRole('button', { name: '+ רשימה חדשה' }).click();
+    await lists.getByLabel('שם הרשימה').fill('אאא לבדיקה');
+    await lists.getByRole('button', { name: 'יצירת הרשימה' }).click();
+    await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
+    const titles = (page) => page.locator('.lists-page .list-card strong').allInnerTexts();
+    assert.deepEqual((await titles(dad.page)).slice(0, 2), ['אאא לבדיקה', 'ציוד לטיול']);
+    {
+      const grip = lists.getByRole('button', { name: 'גרירה לשינוי הסדר: ציוד לטיול' });
+      const from = await grip.boundingBox();
+      const to = await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).boundingBox();
+      await dad.page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await dad.page.mouse.down();
+      for (let i = 1; i <= 8; i++) await dad.page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 - ((from.y - to.y + 10) * i) / 8);
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/lists-drag.png` });
+      await dad.page.mouse.up();
+    }
+    await dad.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('ציוד לטיול'));
+    await kid.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('ציוד לטיול'), null, { timeout: 10000 });
+    // The arrow keys on the grip move it too.
+    await lists.getByRole('button', { name: 'גרירה לשינוי הסדר: ציוד לטיול' }).press('ArrowDown');
+    await dad.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('אאא'));
+    await lists.getByRole('button', { name: 'גרירה לשינוי הסדר: ציוד לטיול' }).press('ArrowUp');
+    await dad.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('ציוד לטיול'));
+    await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).click();
+    await menu(lists, 'מחיקת הרשימה');
+    await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).waitFor({ state: 'detached' });
+    ok('dragging a list by its grip moves it up, for the whole family; arrow keys move it too');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-lists.png`, fullPage: true });
     ok('Dad made a trip packing list with categories; the daughter opens it from home and from the bottom bar, and resets the ticks');

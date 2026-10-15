@@ -5,6 +5,7 @@ import {
   addEntries,
   addNoteFile,
   byPinThenTitle,
+  saveOrder,
   createFolder,
   createNote,
   deleteNoteFile,
@@ -51,6 +52,7 @@ import { Icon } from './Icon';
 import { ZoomViewer } from './ZoomViewer';
 import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { MoreMenu } from './MoreMenu';
+import { useDragOrder } from './useDragOrder';
 import { KeyRound, Lock, LockOpen, Pencil, Pin, PinOff, RotateCcw, Shapes, Trash2 } from 'lucide-react';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
@@ -133,6 +135,7 @@ function ListIndex({
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState(iconValue('clipboard'));
   const sorted = (lists ?? []).filter((l) => !l.kind).sort(byPinThenTitle);
+  const drag = useDragOrder(sorted, (l) => l.id, (items) => saveOrder(familyId, items));
   const note = creating === 'note';
 
   const start = (kind: 'list' | 'note') => {
@@ -181,11 +184,11 @@ function ListIndex({
         <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
       )}
       <ul className="list-cards">
-        {sorted.map((l) => {
+        {drag.ordered.map((l) => {
           const mine = entries.filter((e) => e.listId === l.id);
           const done = mine.filter((e) => e.done).length;
           return (
-            <li key={l.id}>
+            <li key={l.id} {...drag.row(l.id)}>
               <button className="list-card" onClick={() => onOpen(l.id)}>
                 <span className="list-emoji" aria-hidden="true"><ListIcon value={l.emoji} /></span>
                 <span className="list-card-main">
@@ -194,6 +197,7 @@ function ListIndex({
                   {mine.length > 0 && <Progress done={done} total={mine.length} />}
                 </span>
               </button>
+              {sorted.length > 1 && drag.grip(l.id, l.title)}
             </li>
           );
         })}
@@ -444,6 +448,8 @@ function Notebook({
   const notes = all
     .filter((l) => l.kind === 'note' && (q ? !shut(l) && `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q) : at(l) === folder))
     .sort(byPinThenTitle);
+  const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
+  const noteDrag = useDragOrder(notes, (l) => l.id, (items) => saveOrder(familyId, items));
   const path = folder ? folderPath(all, folder) : [];
   const ancestors: string[] = [];
   for (let cur = here; cur?.parentId && exists(cur.parentId); cur = all.find((l) => l.id === cur!.parentId)) ancestors.unshift(cur.parentId);
@@ -612,8 +618,8 @@ function Notebook({
       {q && notes.length === 0 && <p className="empty">לא נמצאו פתקים עם "{q}".</p>}
 
       <ul className="list-cards">
-        {!q && folders.map((f) => (
-          <li key={f.id}>
+        {!q && folderDrag.ordered.map((f) => (
+          <li key={f.id} {...folderDrag.row(f.id)}>
             <button className="list-card folder-card" onClick={() => setFolder(f.id)}>
               <span className="list-emoji" aria-hidden="true"><ListIcon value={iconValue('folder')} /></span>
               <span className="list-card-main">
@@ -622,13 +628,14 @@ function Notebook({
               </span>
               <span className="chevron" aria-hidden="true">‹</span>
             </button>
+            {folders.length > 1 && folderDrag.grip(f.id, f.title)}
           </li>
         ))}
-        {notes.map((l) => {
+        {noteDrag.ordered.map((l) => {
           const preview = l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0];
           const where = q && at(l) ? folderPath(all, at(l)).join(' › ') : '';
           return (
-            <li key={l.id}>
+            <li key={l.id} {...noteDrag.row(l.id)}>
               <button className="list-card note-card" onClick={() => onOpen(l.id)}>
                 <span className="list-emoji" aria-hidden="true"><ListIcon value={l.emoji} /></span>
                 <span className="list-card-main">
@@ -636,6 +643,7 @@ function Notebook({
                   <span className="muted note-preview">{where ? `📁 ${where}` : preview || 'פתק ריק'}</span>
                 </span>
               </button>
+              {!q && notes.length > 1 && noteDrag.grip(l.id, l.title)}
             </li>
           );
         })}

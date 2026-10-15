@@ -17,6 +17,8 @@ export interface FamilyList {
   body?: string;
   /** Pinned notes and lists show first. */
   pinned?: boolean;
+  /** Place in its list when someone dragged it there; unranked ones follow, by title. */
+  rank?: number;
   /**
    * Only on private notes: who may see it (always including its creator).
    * Private notes live in their own collection, guarded by the rules.
@@ -69,7 +71,9 @@ export const MAX_NOTE = 5000;
 
 /** Pinned first, then by name. */
 export const byPinThenTitle = (a: FamilyList, b: FamilyList) =>
-  Number(!!b.pinned) - Number(!!a.pinned) || a.title.localeCompare(b.title, 'he');
+  Number(!!b.pinned) - Number(!!a.pinned) ||
+  (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
+  a.title.localeCompare(b.title, 'he');
 
 const listsCol = (fid: string) => collection(db, 'families', fid, 'lists');
 const entriesCol = (fid: string) => collection(db, 'families', fid, 'listEntries');
@@ -254,6 +258,7 @@ export function setNoteViewers(fid: string, note: FamilyList, files: NoteFile[],
     body: note.body ?? '',
     pinned: !!note.pinned,
     parentId: note.parentId ?? '',
+    ...(note.rank !== undefined ? { rank: note.rank } : {}),
     ...(note.locked ? { locked: true, salt: note.salt ?? '', lockFolder: note.lockFolder ?? '' } : {}),
     createdBy: note.createdBy,
     createdAt: note.createdAt ?? serverTimestamp(),
@@ -276,6 +281,18 @@ export function setNoteViewers(fid: string, note: FamilyList, files: NoteFile[],
 
 export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories' | 'pinned' | 'parentId'>>) {
   updateDoc(doc(listsCol(fid), id), { ...fields, ...stamp() }).catch(reportWriteError);
+}
+
+/** Saves a dragged order: each item's place, written only where it changed. */
+export function saveOrder(fid: string, items: FamilyList[]) {
+  const b = writeBatch(db);
+  let n = 0;
+  items.forEach((item, i) => {
+    if (item.rank === i) return;
+    b.update(item.kind === 'note' ? noteDoc(fid, item) : doc(listsCol(fid), item.id), { rank: i, ...stamp() });
+    n++;
+  });
+  if (n) b.commit().catch(reportWriteError);
 }
 
 /** Removes the list (or note) and every line or attached file in it. */

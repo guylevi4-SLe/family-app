@@ -889,3 +889,11 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 
 /* "@שגב" in a chat message */
 .comment .tag, .bubble .tag, p .tag { color: var(--accent); font-weight: 700; }
+
+/* ---------- drag to reorder lists, notes and folders ---------- */
+.list-cards li { display: flex; align-items: center; gap: 4px; }
+.list-cards li > .list-card { flex: 1; min-width: 0; }
+.drag-grip { flex: none; width: 36px; min-height: 52px; padding: 0; border: 0; background: transparent; color: var(--muted); display: grid; place-items: center; touch-action: none; cursor: grab; border-radius: 10px; }
+.drag-grip:active { cursor: grabbing; color: var(--accent); }
+.list-cards li.dragging > .list-card { transform: scale(1.02); box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 28%, transparent); outline: 2px solid var(--accent); }
+.list-cards li.dragging .drag-grip { color: var(--accent); }

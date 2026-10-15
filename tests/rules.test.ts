@@ -374,6 +374,22 @@ describe('checklists', () => {
   });
 });
 
+describe('drag order', () => {
+  it('lists and private notes keep a whole-number place; nothing else', async () => {
+    const d = db('dad');
+    const list = doc(d, 'families', 'levi', 'lists', 'ranked');
+    const base = { title: 'טיול', emoji: 'i:tent', createdBy: 'dad', updatedBy: 'dad' };
+    await assertSucceeds(setDoc(list, { ...base, rank: 0 }));
+    await assertSucceeds(updateDoc(list, { rank: 3, updatedBy: 'dad' }));
+    await assertFails(updateDoc(list, { rank: -1, updatedBy: 'dad' }));
+    await assertFails(updateDoc(list, { rank: 1.5, updatedBy: 'dad' }));
+    await assertFails(updateDoc(list, { rank: 'first', updatedBy: 'dad' }));
+    const priv = doc(d, 'families', 'levi', 'privateNotes', 'p-ranked');
+    await assertSucceeds(setDoc(priv, { title: 'פרטי', emoji: 'i:note', kind: 'note', body: '', pinned: false, parentId: '', viewers: ['dad'], createdBy: 'dad', updatedBy: 'dad', rank: 2 }));
+    await assertFails(updateDoc(priv, { rank: 'x', updatedBy: 'dad' }));
+  });
+});
+
 describe('notes', () => {
   it('members keep notes with text and attached JPEGs; outsiders cannot; files need a real note', async () => {
     await createInvite('dad', 'levi', 'CODE20', 'child');
