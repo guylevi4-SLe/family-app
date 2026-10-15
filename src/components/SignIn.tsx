@@ -1,3 +1,4 @@
+import { BrandLogo } from './BrandLogo';
 import { useState } from 'react';
 import {
   GoogleAuthProvider,
@@ -28,7 +29,7 @@ export function SignIn({ hasInvite }: { hasInvite: boolean }) {
 
   return (
     <main className="center-page">
-      <img className="brand-logo" src="/icon-192.png" alt="" width="96" height="96" />
+      <BrandLogo className="brand-logo" size={96} />
       <h1>לוי'ס</h1>
       <p className="muted">
         {hasInvite ? 'קיבלת הזמנה להצטרף למשפחה. התחברו כדי להמשיך.' : 'רשימת קניות, משימות ויומן למשפחה.'}

@@ -1,3 +1,4 @@
+import { BrandLogo } from './BrandLogo';
 import { useEffect, useMemo, useState } from 'react';
 import { useComments, useTargetComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays, usePrivateNotes } from '../data/hooks';
 import type { Member } from '../data/family';
@@ -237,11 +238,11 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         <header className="topbar">
           <h1 className="with-logo">
             {view === 'home' ? (
-              <img className="title-logo" src="/icon-192.png" alt="" width="34" height="34" />
+              <BrandLogo className="title-logo" size={34} />
             ) : (
               // On every other screen the logo is the way back home.
               <button type="button" className="logo-home" aria-label="חזרה למסך הבית" onClick={() => go('home')}>
-                <img className="title-logo" src="/icon-192.png" alt="" width="34" height="34" />
+                <BrandLogo className="title-logo" size={34} />
               </button>
             )}
             {title}

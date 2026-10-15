@@ -1020,6 +1020,12 @@ async function main() {
         await dad.page.getByRole('dialog').getByRole('button', { name: label }).click();
         await dad.page.getByRole('dialog').getByRole('button', { name: 'סגירה' }).click();
         if (file) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/${file}` });
+        if (file) {
+          // The top of the list: the logo and the WhatsApp button take the palette's colour.
+          await dad.page.evaluate(() => window.scrollTo(0, 0));
+          await dad.page.waitForTimeout(300);
+          await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/top-${file}` });
+        }
       }
       await planner(dad.page, 'tasks');
       await dad.page.getByText('למי:').waitFor();

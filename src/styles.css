@@ -399,7 +399,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .list-page.with-bottom-add ~ .toast,
 .with-bottom-add .toast { bottom: calc(var(--nav-h) + 84px); }
 .list-actions { display: flex; justify-content: flex-start; margin: 4px 0 2px; }
-.whatsapp { color: #5fd38f; border-color: #2f5d43; }
+.whatsapp { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 
 /* ---------- compact shopping list: plain rows, no cards, fits long lists ---------- */
 .shopping .dept { margin-top: 12px; }
@@ -518,10 +518,6 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
     --danger: #ff8a80;
   }
 }
-:root[data-palette='goldlight'] .whatsapp,
-:root[data-palette='pink'] .whatsapp,
-:root[data-palette='orange'] .whatsapp,
-:root[data-palette='green'] .whatsapp { color: #128c4b; border-color: #9fd8b6; }
 :root[data-palette='green'] body { background: var(--bg); }
 .swatch { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 25%, transparent); flex: none; }
 .chips .chip { display: inline-flex; align-items: center; gap: 6px; }
@@ -567,7 +563,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .sheet.tall { min-height: calc(100dvh - env(safe-area-inset-top) - 16px); max-height: calc(100dvh - env(safe-area-inset-top) - 16px); }
 body:has(.sheet-backdrop) { overflow: hidden; }
 
-/* WhatsApp share: a solid, clearly visible button in WhatsApp green (white text, 4.6:1). */
+/* WhatsApp share: a solid, clearly visible button in the palette's colour. */
 .shopping .whatsapp,
 :root[data-palette] .shopping .whatsapp {
   display: inline-flex;
@@ -577,11 +573,11 @@ body:has(.sheet-backdrop) { overflow: hidden; }
   padding: 0 16px;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #ffffff;
-  background: #128c4b;
-  border-color: #128c4b;
+  color: var(--accent-ink);
+  background: var(--grad);
+  border-color: transparent;
   border-radius: 999px;
-  box-shadow: 0 6px 18px rgba(18, 140, 75, 0.3);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .task-options { padding-top: 2px; }
 .assign-row { display: flex; align-items: center; gap: 8px; }
@@ -821,7 +817,7 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .note-attach { min-height: 46px; border: 1.5px dashed var(--accent); background: transparent; color: var(--accent); font-weight: 700; }
 .note-hint { margin: 0; font-size: 0.82rem; }
 .notebook-card, .folder-card { min-height: 68px; }
-.notebook-card .list-emoji { background: #fdf0c8; }
+.notebook-card .list-emoji { background: var(--accent-soft); }
 .list-card .chevron { flex: none; font-size: 1.6rem; color: var(--muted, #8a8174); }
 .crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 0.95rem; }
 .crumbs .link-plain { color: var(--accent); font-weight: 700; padding: 4px 2px; }
@@ -870,3 +866,8 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .list-hero .more-button { align-self: flex-start; }
 .crumbs-row { display: flex; align-items: center; gap: 8px; }
 .crumbs-row .crumbs { flex: 1; }
+
+/* ---------- the לוי'ס logo, in the palette's colours ---------- */
+.logo-bg { fill: color-mix(in srgb, var(--accent) 10%, var(--surface-2)); }
+.logo-bubble { fill: var(--accent); stroke: var(--accent); stroke-width: 6; }
+.logo-text { fill: var(--accent-ink); }
