@@ -637,6 +637,13 @@ async function main() {
     const sent = decodeURIComponent(new URL(await dad.page.evaluate(() => window.__opened)).searchParams.get('text'));
     assert.ok(sent.includes('*ציוד לטיול*') && sent.includes('*ביגוד*') && sent.includes('✅ אוהל') && sent.includes('▫️ משחה'), `WhatsApp text: ${sent}`);
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-detail.png` });
+    assert.ok(sent.startsWith('🏕️'), `WhatsApp keeps an emoji for the icon: ${sent.slice(0, 20)}`);
+    await lists.getByRole('button', { name: 'החלפת הסמל' }).click();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/icon-picker.png` });
+    await lists.getByRole('group', { name: 'סמל' }).getByRole('button', { name: 'מזוודה' }).click();
+    await lists.getByRole('button', { name: 'החלפת הסמל' }).click();
+    await lists.getByRole('group', { name: 'סמל' }).getByRole('button', { name: 'מזוודה', pressed: true }).waitFor();
+    await lists.getByRole('button', { name: 'סגירה' }).click();
     await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).getByText('1 מתוך 7').waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/lists.png` });

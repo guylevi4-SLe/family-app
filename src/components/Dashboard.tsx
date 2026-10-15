@@ -4,6 +4,7 @@ import { dayLabel, expandEvents, lastDay, untilLabel, isoDate, type FamilyEvent 
 import { memberName, useFamily } from './FamilyContext';
 import type { Screen } from './Home';
 import { Icon } from './Icon';
+import { ListIcon } from './ListIcon';
 import { defaultScheduleUid, type Schedule } from '../data/schedules';
 import { byPinThenTitle, type FamilyList, type ListEntry } from '../data/lists';
 import { birthdaysBetween, type Birthday } from '../data/birthdays';
@@ -148,7 +149,7 @@ export function Dashboard({
               return (
                 <li key={l.id}>
                   <button onClick={() => openList(l.id)}>
-                    <span aria-hidden="true">{l.emoji}</span>
+                    <span className="tile-list-icon" aria-hidden="true"><ListIcon value={l.emoji} size={18} /></span>
                     <span className="tile-list-name">{l.pinned ? '📌 ' : ''}{l.title}</span>
                     <span className="muted">{mine.length ? `${done}/${mine.length}` : ''}</span>
                   </button>

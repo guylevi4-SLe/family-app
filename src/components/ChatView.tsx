@@ -202,7 +202,7 @@ export function ChatView({
       });
       return 'done';
     }
-    const listId = existing?.id ?? createList(familyId, parts.listName, '📋');
+    const listId = existing?.id ?? createList(familyId, parts.listName, 'i:clipboard');
     if (!existing) made.current.push({ id: listId, title: parts.listName });
     const last = Math.max(0, ...(listEntries ?? []).filter((e) => e.listId === listId).map((e) => e.order));
     const ids = addEntries(familyId, listId, parts.items, last);

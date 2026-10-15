@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  LIST_EMOJIS,
   LIST_IDEAS,
   MAX_NOTE,
-  NOTE_EMOJIS,
   addEntries,
   addNoteFile,
   byPinThenTitle,
@@ -51,6 +49,7 @@ import {
 import { memberName, useFamily } from './FamilyContext';
 import { Icon } from './Icon';
 import { ZoomViewer } from './ZoomViewer';
+import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -130,14 +129,14 @@ function ListIndex({
   const { familyId } = useFamily();
   const [creating, setCreating] = useState<'list' | 'note' | null>(null);
   const [title, setTitle] = useState('');
-  const [emoji, setEmoji] = useState('📋');
+  const [emoji, setEmoji] = useState(iconValue('clipboard'));
   const sorted = (lists ?? []).filter((l) => !l.kind).sort(byPinThenTitle);
   const note = creating === 'note';
 
   const start = (kind: 'list' | 'note') => {
     setCreating(kind);
     setTitle('');
-    setEmoji(kind === 'note' ? '📝' : '📋');
+    setEmoji(iconValue(kind === 'note' ? 'note' : 'clipboard'));
   };
   const create = () => {
     if (!title.trim()) return;
@@ -159,18 +158,12 @@ function ListIndex({
             <div className="chips" role="group" aria-label="רעיונות">
               {LIST_IDEAS.map((i) => (
                 <button key={i.title} type="button" className="chip" onClick={() => { setTitle(i.title); setEmoji(i.emoji); }}>
-                  {i.emoji} {i.title}
+                  <ListIcon value={i.emoji} size={16} /> {i.title}
                 </button>
               ))}
             </div>
           )}
-          <div className="emoji-pick" role="group" aria-label="סמל">
-            {(note ? NOTE_EMOJIS : LIST_EMOJIS).map((e) => (
-              <button key={e} type="button" className={e === emoji ? 'on' : ''} aria-pressed={e === emoji} onClick={() => setEmoji(e)}>
-                {e}
-              </button>
-            ))}
-          </div>
+          <IconPicker value={emoji} onPick={setEmoji} />
           <div className="sheet-actions">
             <button className="primary" disabled={!title.trim()}>{note ? 'יצירת הפתק' : 'יצירת הרשימה'}</button>
             <button type="button" onClick={() => setCreating(null)}>ביטול</button>
@@ -192,7 +185,7 @@ function ListIndex({
           return (
             <li key={l.id}>
               <button className="list-card" onClick={() => onOpen(l.id)}>
-                <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
+                <span className="list-emoji" aria-hidden="true"><ListIcon value={l.emoji} /></span>
                 <span className="list-card-main">
                   <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
                   <span className="muted">{mine.length === 0 ? 'ריקה' : done === mine.length ? `הכול מסומן ✓ (${done})` : `${done} מתוך ${mine.length}`}</span>
@@ -310,7 +303,7 @@ function ListDetail({
       <button className="link back" onClick={onBack}>→ כל הרשימות</button>
 
       <div className="list-hero">
-        <span className="list-emoji" aria-hidden="true">{list.emoji}</span>
+        <IconButton value={list.emoji} onPick={(v) => updateList(familyId, list.id, { emoji: v })} />
         <div className="list-hero-main">
           {renaming !== null ? (
             <form
@@ -417,7 +410,7 @@ function Notebook({
   const { familyId, me } = useFamily();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
-  const [emoji, setEmoji] = useState('📝');
+  const [emoji, setEmoji] = useState(iconValue('note'));
   const [search, setSearch] = useState('');
   const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
   const [work, setWork] = useState('');
@@ -576,13 +569,7 @@ function Notebook({
             <span className="field-label">שם הפתק</span>
             <input className="full" value={title} maxLength={60} autoFocus placeholder="למשל: קודים וסיסמאות לבית" onChange={(e) => setTitle(e.target.value)} />
           </label>
-          <div className="emoji-pick" role="group" aria-label="סמל">
-            {NOTE_EMOJIS.map((e) => (
-              <button key={e} type="button" className={e === emoji ? 'on' : ''} aria-pressed={e === emoji} onClick={() => setEmoji(e)}>
-                {e}
-              </button>
-            ))}
-          </div>
+          <IconPicker value={emoji} onPick={setEmoji} />
           <div className="sheet-actions">
             <button className="primary" disabled={!title.trim()}>יצירת הפתק</button>
             <button type="button" onClick={() => setCreating(false)}>ביטול</button>
@@ -591,7 +578,7 @@ function Notebook({
       ) : (
         !q && (
           <div className="new-list-row">
-            <button className="primary new-list" onClick={() => { setCreating(true); setTitle(''); setEmoji('📝'); }}>+ פתק</button>
+            <button className="primary new-list" onClick={() => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); }}>+ פתק</button>
             <button className="new-list new-note" onClick={newFolder}>+ תיקייה</button>
           </div>
         )
@@ -606,7 +593,7 @@ function Notebook({
         {!q && folders.map((f) => (
           <li key={f.id}>
             <button className="list-card folder-card" onClick={() => setFolder(f.id)}>
-              <span className="list-emoji" aria-hidden="true">📁</span>
+              <span className="list-emoji" aria-hidden="true"><ListIcon value={iconValue('folder')} /></span>
               <span className="list-card-main">
                 <strong>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</strong>
                 <span className="muted">{count(f.id)}</span>
@@ -621,7 +608,7 @@ function Notebook({
           return (
             <li key={l.id}>
               <button className="list-card note-card" onClick={() => onOpen(l.id)}>
-                <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
+                <span className="list-emoji" aria-hidden="true"><ListIcon value={l.emoji} /></span>
                 <span className="list-card-main">
                   <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</strong>
                   <span className="muted note-preview">{where ? `📁 ${where}` : preview || 'פתק ריק'}</span>
@@ -831,7 +818,7 @@ function NoteGate({ note, all, onBack, onOpen }: { note: FamilyList; all: Family
     <>
       <button className="link back" onClick={onBack}>→ {backLabel(note, all)}</button>
       <div className="list-hero">
-        <span className="list-emoji" aria-hidden="true">{note.emoji}</span>
+        <span className="list-emoji" aria-hidden="true"><ListIcon value={note.emoji} /></span>
         <div className="list-hero-main">
           <h2 className="list-title">{note.title}</h2>
           <p className="muted list-sum">🔐 פתק נעול בסיסמה</p>
@@ -1023,7 +1010,7 @@ function NoteEditor({
       <button className="link back" onClick={() => { flush(); onBack(); }}>→ {backLabel(note, all)}</button>
 
       <div className="list-hero">
-        <span className="list-emoji" aria-hidden="true">{note.emoji}</span>
+        <IconButton value={note.emoji} onPick={(v) => updateNote(familyId, note, { emoji: v })} />
         <div className="list-hero-main">
           {renaming !== null ? (
             <form
@@ -1178,9 +1165,31 @@ function NoteEditor({
   );
 }
 
+/** The big icon at the top of a list or note; tapping it opens the icon choice. */
+function IconButton({ value, onPick }: { value: string; onPick: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="list-emoji icon-change" aria-label="החלפת הסמל" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <ListIcon value={value} />
+        <span className="icon-change-mark" aria-hidden="true">✎</span>
+      </button>
+      {open && (
+        <div className="icon-sheet card">
+          <div className="icon-sheet-head">
+            <strong>בחירת סמל</strong>
+            <button className="link" onClick={() => setOpen(false)}>סגירה</button>
+          </div>
+          <IconPicker value={value} onPick={(v) => { onPick(v); setOpen(false); }} />
+        </div>
+      )}
+    </>
+  );
+}
+
 /** Text for WhatsApp: the title, then each section; ticked lines get ✅. */
 export function listText(list: FamilyList, sections: { name: string; rows: ListEntry[] }[]) {
-  const lines = [`${list.emoji} *${list.title}*`];
+  const lines = [`${iconEmoji(list.emoji)} *${list.title}*`];
   for (const sec of sections) {
     if (sec.rows.length === 0) continue;
     if (sec.name) lines.push('', `*${sec.name}*`);

@@ -42,13 +42,13 @@ export interface ListEntry {
   pending: boolean;
 }
 
-/** Name ideas offered when creating a list; each picks its emoji. */
+/** Name ideas offered when creating a list; each picks its icon ("i:<key>", see ListIcon). */
 export const LIST_IDEAS = [
-  { title: 'תיק למכון', emoji: '🏋️' },
-  { title: 'ציוד לטיול', emoji: '🏕️' },
-  { title: 'דברים לטיסה', emoji: '✈️' },
-  { title: 'ים / בריכה', emoji: '🏖️' },
-  { title: 'לפני שיוצאים מהבית', emoji: '🔑' },
+  { title: 'תיק למכון', emoji: 'i:dumbbell' },
+  { title: 'ציוד לטיול', emoji: 'i:tent' },
+  { title: 'דברים לטיסה', emoji: 'i:plane' },
+  { title: 'ים / בריכה', emoji: 'i:beach' },
+  { title: 'לפני שיוצאים מהבית', emoji: 'i:key' },
 ];
 
 /** A PDF or photo attached to a note, kept as a JPEG (one document per file). */
@@ -65,11 +65,7 @@ export interface NoteFile {
   pending: boolean;
 }
 
-export const NOTE_EMOJIS = ['📝', '📌', '💡', '📞', '🏥', '🏫', '🏠', '🚗', '💳', '🎁'];
-
 export const MAX_NOTE = 5000;
-
-export const LIST_EMOJIS = ['📋', '🏋️', '🏕️', '✈️', '🏖️', '🎒', '🎁', '🧳', '🏠', '🔑', '🛠️', '🎉'];
 
 /** Pinned first, then by name. */
 export const byPinThenTitle = (a: FamilyList, b: FamilyList) =>
@@ -118,7 +114,7 @@ export function createFolder(fid: string, title: string, parentId = '') {
   const ref = doc(listsCol(fid));
   setDoc(ref, {
     title: title.trim().slice(0, 60),
-    emoji: '📁',
+    emoji: 'i:folder',
     kind: 'folder',
     parentId,
     createdBy: auth.currentUser!.uid,
