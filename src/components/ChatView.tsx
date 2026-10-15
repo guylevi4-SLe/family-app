@@ -170,7 +170,7 @@ export function ChatView({
     const parts = splitListCommand(cmd.body);
     if (!parts) return fail('כותבים את שם הרשימה, נקודתיים, ואז הפריטים.');
     const known = [...(lists ?? []), ...made.current.filter((m) => !lists?.some((l) => l.id === m.id))].filter(
-      (l) => !cancelled.current.has(l.id),
+      (l) => !(l as Partial<FamilyList>).kind && !cancelled.current.has(l.id),
     );
     const existing = findList(known, parts.listName);
     const { add, remove } = splitRemovals(parts.items);

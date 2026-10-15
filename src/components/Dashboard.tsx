@@ -58,7 +58,7 @@ export function Dashboard({
 
   const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
   const shown = live.find((s) => s.id === defaultScheduleUid(schedules, members.map((m) => m.id), me.id));
-  const sortedLists = [...(lists ?? [])].sort(byPinThenTitle);
+  const sortedLists = (lists ?? []).filter((l) => !l.kind || (l.kind === 'note' && l.pinned)).sort(byPinThenTitle);
   const others = live.filter((s) => s.id !== me.id).map((s) => memberName(members, s.id));
 
   return (

@@ -9,8 +9,10 @@ export interface FamilyList {
   emoji: string;
   /** Section names in order ("ביגוד", "רחצה"); lines without one show first. */
   categories?: string[];
-  /** 'note' is a free-text note (פתק) instead of a checklist. */
-  kind?: 'note';
+  /** 'note' is a free-text note (פתק), 'folder' a notebook folder; neither is a checklist. */
+  kind?: 'note' | 'folder';
+  /** The notebook folder a note or folder sits in ('' or missing: the notebook's top). */
+  parentId?: string;
   /** The note's text, edited by the whole family. */
   body?: string;
   /** Pinned notes and lists show first. */
@@ -77,18 +79,44 @@ export function createList(fid: string, title: string, emoji: string) {
   return ref.id;
 }
 
-export function createNote(fid: string, title: string, emoji: string) {
+export function createNote(fid: string, title: string, emoji: string, parentId = '') {
   const ref = doc(listsCol(fid));
   setDoc(ref, {
     title: title.trim().slice(0, 60),
     emoji,
     kind: 'note',
     body: '',
+    parentId,
     createdBy: auth.currentUser!.uid,
     createdAt: serverTimestamp(),
     ...stamp(),
   }).catch(reportWriteError);
   return ref.id;
+}
+
+export function createFolder(fid: string, title: string, parentId = '') {
+  const ref = doc(listsCol(fid));
+  setDoc(ref, {
+    title: title.trim().slice(0, 60),
+    emoji: '📁',
+    kind: 'folder',
+    parentId,
+    createdBy: auth.currentUser!.uid,
+    createdAt: serverTimestamp(),
+    ...stamp(),
+  }).catch(reportWriteError);
+  return ref.id;
+}
+
+/** "בית › ביטוחים": the folder's name with its parents, for pickers. */
+export function folderPath(all: FamilyList[], id: string) {
+  const names: string[] = [];
+  let cur = all.find((l) => l.id === id);
+  for (let guard = 0; cur && guard < 20; guard++) {
+    names.unshift(cur.title);
+    cur = cur.parentId ? all.find((l) => l.id === cur!.parentId) : undefined;
+  }
+  return names;
 }
 
 export function saveNoteBody(fid: string, id: string, body: string) {
@@ -109,7 +137,7 @@ export function deleteNoteFile(fid: string, id: string) {
   deleteDoc(doc(filesCol(fid), id)).catch(reportWriteError);
 }
 
-export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories' | 'pinned'>>) {
+export function updateList(fid: string, id: string, fields: Partial<Pick<FamilyList, 'title' | 'emoji' | 'categories' | 'pinned' | 'parentId'>>) {
   updateDoc(doc(listsCol(fid), id), { ...fields, ...stamp() }).catch(reportWriteError);
 }
 

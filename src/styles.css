@@ -822,3 +822,12 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .note-file-del { position: absolute; top: 4px; inset-inline-start: 4px; width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 0.85rem; }
 .note-attach { min-height: 46px; border: 1.5px dashed var(--accent); background: transparent; color: var(--accent); font-weight: 700; }
 .note-hint { margin: 0; font-size: 0.82rem; }
+.notebook-card, .folder-card { min-height: 68px; }
+.notebook-card .list-emoji { background: #fdf0c8; }
+.list-card .chevron { flex: none; font-size: 1.6rem; color: var(--muted, #8a8174); }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 0.95rem; }
+.crumbs .link-plain { color: var(--accent); font-weight: 700; padding: 4px 2px; }
+.crumbs .here { font-weight: 800; }
+.notebook-search { min-height: 44px; }
+.note-move { display: flex; align-items: center; gap: 8px; }
+.note-move select { flex: 1; min-height: 40px; }

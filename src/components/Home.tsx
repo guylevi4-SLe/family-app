@@ -63,6 +63,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const lists = useLists(familyId);
   const listEntries = useListEntries(familyId);
   const [listId, setListId] = useState<string | null>(null);
+  const [noteFolder, setNoteFolder] = useState<string | null>(null);
   const birthdays = useBirthdays(familyId);
   // undefined: closed; null: the whole book; an id: that birthday.
   const [birthdayOpen, setBirthdayOpen] = useState<string | null | undefined>(undefined);
@@ -243,7 +244,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         )}
 
         <ErrorBoundary resetKey={view}>
-        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} birthdays={birthdays} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); setView('lists'); }} />}
+        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} birthdays={birthdays} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); if (!id) setNoteFolder(null); setView('lists'); }} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
           <main className="list-page planner">
@@ -263,13 +264,17 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
             )}
           </main>
         )}
-        {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} />}
+        {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} folder={noteFolder} setFolder={setNoteFolder} />}
         {view === 'chat' && <ChatView comments={comments} hasOlder={(comments?.length ?? 0) >= chatSize} showOlder={() => setChatSize((n) => n + CHAT_PAGE)} items={items} tasks={tasks} events={events} lists={lists} listEntries={listEntries} go={go} openList={(id) => { setListId(id); setView('lists'); }} />}
         </ErrorBoundary>
 
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (
-            <button key={v.id} className={view === v.id ? 'active' : ''} aria-current={view === v.id ? 'page' : undefined} onClick={() => setView(v.id)}>
+            <button key={v.id} className={view === v.id ? 'active' : ''} aria-current={view === v.id ? 'page' : undefined} onClick={() => {
+                // Tapping "רשימות" again goes back to its top.
+                if (v.id === 'lists' && view === 'lists') { setListId(null); setNoteFolder(null); }
+                setView(v.id);
+              }}>
               <Icon name={v.icon} />
               {v.label}
             </button>

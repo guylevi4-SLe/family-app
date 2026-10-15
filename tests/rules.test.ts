@@ -371,6 +371,9 @@ describe('notes', () => {
     await assertSucceeds(setDoc(note, N));
     await assertSucceeds(updateDoc(doc(db('daughter'), 'families', 'levi', 'lists', 'n1'), { body: 'שער: 4321', pinned: true, updatedAt: serverTimestamp(), updatedBy: 'daughter' }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, kind: 'other' }));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'home'), { ...N, kind: 'folder', emoji: '📁', title: 'בית', parentId: '' }));
+    await assertSucceeds(updateDoc(note, { parentId: 'home', updatedAt: serverTimestamp(), updatedBy: 'dad' }));
+    await assertFails(updateDoc(note, { parentId: 'x'.repeat(65), updatedAt: serverTimestamp(), updatedBy: 'dad' }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, body: 'א'.repeat(5001) }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'lists', 'x'), { ...N, pinned: 'yes' }));
     const F = { noteId: 'n1', image: 'data:image/jpeg;base64,/9j/4AAQ', name: 'חוזה.pdf', createdBy: 'daughter', createdAt: serverTimestamp() };

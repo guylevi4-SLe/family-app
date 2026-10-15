@@ -7,8 +7,10 @@ import {
   addEntries,
   addNoteFile,
   byPinThenTitle,
+  createFolder,
   createNote,
   deleteNoteFile,
+  folderPath,
   saveNoteBody,
   changeCategory,
   moveEntry,
@@ -30,27 +32,44 @@ import { ZoomViewer } from './ZoomViewer';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
-/** The checklists screen: an index of lists, and one list with progress, ticks and reset. */
+/** "פתק אחד · 3 תיקיות" */
+const notesAndFolders = (notes: number, folders: number) =>
+  [notes && (notes === 1 ? 'פתק אחד' : `${notes} פתקים`), folders && (folders === 1 ? 'תיקייה אחת' : `${folders} תיקיות`)].filter(Boolean).join(' · ');
+
+/**
+ * The lists screen: an index of checklists, one checklist with progress, ticks
+ * and reset, and the notebook ("מחברת"): folders within folders, holding notes.
+ */
 export function ListsView({
   lists,
   entries,
   openId,
   setOpenId,
+  folder,
+  setFolder,
 }: {
   lists: FamilyList[] | undefined;
   entries: ListEntry[] | undefined;
   openId: string | null;
   setOpenId: (id: string | null) => void;
+  /** The notebook folder being browsed: null outside the notebook, '' at its top. */
+  folder: string | null;
+  setFolder: (id: string | null) => void;
 }) {
   const open = lists?.find((l) => l.id === openId);
+  const all = lists ?? [];
+  // A folder that was deleted (by anyone) sends us back to the notebook's top.
+  const inFolder = folder && !all.some((l) => l.id === folder && l.kind === 'folder') && lists ? '' : folder;
   return (
     <main className="list-page lists-page" aria-label="רשימות">
       {open?.kind === 'note' ? (
-        <NoteDetail note={open} onBack={() => setOpenId(null)} />
-      ) : open ? (
+        <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId ?? ''); setOpenId(null); }} />
+      ) : open && open.kind !== 'folder' ? (
         <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
+      ) : inFolder !== null ? (
+        <Notebook all={all} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
       ) : (
-        <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} />
+        <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} openNotebook={() => setFolder('')} />
       )}
     </main>
   );
@@ -69,16 +88,20 @@ function ListIndex({
   lists,
   entries,
   onOpen,
+  openNotebook,
 }: {
   lists: FamilyList[] | undefined;
   entries: ListEntry[];
   onOpen: (id: string) => void;
+  openNotebook: () => void;
 }) {
   const { familyId } = useFamily();
   const [creating, setCreating] = useState<'list' | 'note' | null>(null);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('📋');
-  const sorted = [...(lists ?? [])].sort(byPinThenTitle);
+  const sorted = (lists ?? []).filter((l) => !l.kind).sort(byPinThenTitle);
+  const notes = (lists ?? []).filter((l) => l.kind === 'note');
+  const folders = (lists ?? []).filter((l) => l.kind === 'folder');
   const note = creating === 'note';
 
   const start = (kind: 'list' | 'note') => {
@@ -124,35 +147,29 @@ function ListIndex({
           </div>
         </form>
       ) : (
-        <div className="new-list-row">
-          <button className="primary new-list" onClick={() => start('list')}>
-            + רשימה חדשה
-          </button>
-          <button className="new-list new-note" onClick={() => start('note')}>
-            + פתק חדש
-          </button>
-        </div>
+        <button className="primary new-list" onClick={() => start('list')}>
+          + רשימה חדשה
+        </button>
       )}
 
+      <button className="list-card notebook-card" onClick={openNotebook}>
+        <span className="list-emoji" aria-hidden="true">📒</span>
+        <span className="list-card-main">
+          <strong>מחברת</strong>
+          <span className="muted">
+            {notes.length || folders.length
+              ? notesAndFolders(notes.length, folders.length)
+              : 'פתקים עם קבצים, מסודרים בתיקיות'}
+          </span>
+        </span>
+        <span className="chevron" aria-hidden="true">‹</span>
+      </button>
+
       {lists !== undefined && sorted.length === 0 && !creating && (
-        <p className="empty">עוד אין רשימות או פתקים. רשימה לסימון (תיק למכון, ציוד לטיול), או פתק חופשי עם קבצים (מספרי טלפון, הוראות, מסמכים).</p>
+        <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
       )}
       <ul className="list-cards">
         {sorted.map((l) => {
-          if (l.kind === 'note') {
-            const preview = (l.body ?? '').trim().split('\n')[0];
-            return (
-              <li key={l.id}>
-                <button className="list-card note-card" onClick={() => onOpen(l.id)}>
-                  <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
-                  <span className="list-card-main">
-                    <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
-                    <span className="muted note-preview">{preview || 'פתק ריק'}</span>
-                  </span>
-                </button>
-              </li>
-            );
-          }
           const mine = entries.filter((e) => e.listId === l.id);
           const done = mine.filter((e) => e.done).length;
           return (
@@ -368,8 +385,169 @@ function ListDetail({
   );
 }
 
+/** The notebook: one folder's sub-folders and notes, with a path back up and a search. */
+function Notebook({
+  all,
+  folder,
+  setFolder,
+  onOpen,
+}: {
+  all: FamilyList[];
+  folder: string;
+  setFolder: (id: string | null) => void;
+  onOpen: (id: string) => void;
+}) {
+  const { familyId } = useFamily();
+  const [creating, setCreating] = useState(false);
+  const [title, setTitle] = useState('');
+  const [emoji, setEmoji] = useState('📝');
+  const [search, setSearch] = useState('');
+  const here = all.find((l) => l.id === folder);
+  const parentOf = (l: FamilyList) => l.parentId ?? '';
+  const exists = (id: string) => id === '' || all.some((l) => l.id === id && l.kind === 'folder');
+  // Anything whose folder is gone shows at the notebook's top, so nothing gets lost.
+  const at = (l: FamilyList) => (exists(parentOf(l)) ? parentOf(l) : '');
+  const folders = all.filter((l) => l.kind === 'folder' && at(l) === folder).sort(byPinThenTitle);
+  const q = search.trim();
+  const notes = all
+    .filter((l) => l.kind === 'note' && (q ? `${l.title}\n${l.body ?? ''}`.includes(q) : at(l) === folder))
+    .sort(byPinThenTitle);
+  const path = folder ? folderPath(all, folder) : [];
+  const ancestors: string[] = [];
+  for (let cur = here; cur?.parentId && exists(cur.parentId); cur = all.find((l) => l.id === cur!.parentId)) ancestors.unshift(cur.parentId);
+
+  const count = (id: string) => {
+    const n = all.filter((l) => l.kind === 'note' && at(l) === id).length;
+    const f = all.filter((l) => l.kind === 'folder' && at(l) === id).length;
+    return notesAndFolders(n, f) || 'ריקה';
+  };
+  const newFolder = () => {
+    const name = prompt(folder ? `שם התיקייה החדשה בתוך "${here?.title}"` : 'שם התיקייה (למשל: בית, רכב, ביטוחים)')?.trim();
+    if (name) createFolder(familyId, name, folder);
+  };
+  const create = () => {
+    if (!title.trim()) return;
+    const id = createNote(familyId, title, emoji, folder);
+    setCreating(false);
+    setTitle('');
+    onOpen(id);
+  };
+  const renameFolder = () => {
+    const name = prompt('שם חדש לתיקייה', here?.title)?.trim();
+    if (name && here) updateList(familyId, here.id, { title: name.slice(0, 60) });
+  };
+  const deleteFolder = () => {
+    if (!here) return;
+    if (all.some((l) => l.kind && at(l) === here.id)) {
+      alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
+      return;
+    }
+    if (confirm(`למחוק את התיקייה "${here.title}"?`)) {
+      deleteList(familyId, here.id, []);
+      setFolder(parentOf(here));
+    }
+  };
+
+  return (
+    <>
+      <button className="link back" onClick={() => setFolder(folder ? (here && exists(parentOf(here)) ? parentOf(here) : '') : null)}>
+        → {folder ? (here?.parentId && exists(here.parentId) ? all.find((l) => l.id === here.parentId)?.title : 'מחברת') : 'כל הרשימות'}
+      </button>
+
+      <nav className="crumbs" aria-label="מיקום במחברת">
+        <button className={folder ? 'link-plain' : 'link-plain here'} onClick={() => setFolder('')}>📒 מחברת</button>
+        {ancestors.map((id) => (
+          <span key={id}>
+            <span className="muted" aria-hidden="true"> › </span>
+            <button className="link-plain" onClick={() => setFolder(id)}>{all.find((l) => l.id === id)?.title}</button>
+          </span>
+        ))}
+        {here && (
+          <span>
+            <span className="muted" aria-hidden="true"> › </span>
+            <strong className="here">{path[path.length - 1]}</strong>
+          </span>
+        )}
+      </nav>
+
+      {!folder && (
+        <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש בכל הפתקים" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
+      )}
+
+      {creating ? (
+        <form className="card list-new" onSubmit={(e) => { e.preventDefault(); create(); }}>
+          <label>
+            <span className="field-label">שם הפתק</span>
+            <input className="full" value={title} maxLength={60} autoFocus placeholder="למשל: קודים וסיסמאות לבית" onChange={(e) => setTitle(e.target.value)} />
+          </label>
+          <div className="emoji-pick" role="group" aria-label="סמל">
+            {NOTE_EMOJIS.map((e) => (
+              <button key={e} type="button" className={e === emoji ? 'on' : ''} aria-pressed={e === emoji} onClick={() => setEmoji(e)}>
+                {e}
+              </button>
+            ))}
+          </div>
+          <div className="sheet-actions">
+            <button className="primary" disabled={!title.trim()}>יצירת הפתק</button>
+            <button type="button" onClick={() => setCreating(false)}>ביטול</button>
+          </div>
+        </form>
+      ) : (
+        !q && (
+          <div className="new-list-row">
+            <button className="primary new-list" onClick={() => { setCreating(true); setTitle(''); setEmoji('📝'); }}>+ פתק</button>
+            <button className="new-list new-note" onClick={newFolder}>+ תיקייה</button>
+          </div>
+        )
+      )}
+
+      {!q && folders.length + notes.length === 0 && !creating && (
+        <p className="empty">{folder ? 'התיקייה ריקה. אפשר להוסיף כאן פתק או תת־תיקייה.' : 'עוד אין פתקים. פתק הוא טקסט חופשי עם קבצים, ותיקיות עוזרות לסדר אותם (בית, רכב, ביטוחים).'}</p>
+      )}
+      {q && notes.length === 0 && <p className="empty">לא נמצאו פתקים עם "{q}".</p>}
+
+      <ul className="list-cards">
+        {!q && folders.map((f) => (
+          <li key={f.id}>
+            <button className="list-card folder-card" onClick={() => setFolder(f.id)}>
+              <span className="list-emoji" aria-hidden="true">📁</span>
+              <span className="list-card-main">
+                <strong>{f.title}</strong>
+                <span className="muted">{count(f.id)}</span>
+              </span>
+              <span className="chevron" aria-hidden="true">‹</span>
+            </button>
+          </li>
+        ))}
+        {notes.map((l) => {
+          const preview = (l.body ?? '').trim().split('\n')[0];
+          const where = q && at(l) ? folderPath(all, at(l)).join(' › ') : '';
+          return (
+            <li key={l.id}>
+              <button className="list-card note-card" onClick={() => onOpen(l.id)}>
+                <span className="list-emoji" aria-hidden="true">{l.emoji}</span>
+                <span className="list-card-main">
+                  <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
+                  <span className="muted note-preview">{where ? `📁 ${where}` : preview || 'פתק ריק'}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {here && (
+        <div className="list-tools">
+          <button onClick={renameFolder}>✎ שינוי שם התיקייה</button>
+          <button className="danger" onClick={deleteFolder}>מחיקת התיקייה</button>
+        </div>
+      )}
+    </>
+  );
+}
+
 /** A free-text note the whole family edits, with PDFs or photos attached. */
-function NoteDetail({ note, onBack }: { note: FamilyList; onBack: () => void }) {
+function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]; onBack: () => void }) {
   const { familyId } = useFamily();
   const files = useNoteFiles(familyId, note.id);
   const [body, setBody] = useState(note.body ?? '');
@@ -427,7 +605,9 @@ function NoteDetail({ note, onBack }: { note: FamilyList; onBack: () => void }) 
 
   return (
     <>
-      <button className="link back" onClick={() => { flush(); onBack(); }}>→ כל הרשימות</button>
+      <button className="link back" onClick={() => { flush(); onBack(); }}>
+        → {(note.parentId && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'מחברת'}
+      </button>
 
       <div className="list-hero">
         <span className="list-emoji" aria-hidden="true">{note.emoji}</span>
@@ -517,6 +697,22 @@ function NoteDetail({ note, onBack }: { note: FamilyList; onBack: () => void }) 
       {zoom && files?.find((f) => f.id === zoom) && (
         <ZoomViewer src={files.find((f) => f.id === zoom)!.image} alt={files.find((f) => f.id === zoom)!.name} onClose={() => setZoom(null)} />
       )}
+
+      <label className="note-move">
+        <span className="muted">📁 תיקייה:</span>
+        <select
+          aria-label="תיקיית הפתק"
+          value={all.some((l) => l.id === note.parentId && l.kind === 'folder') ? note.parentId : ''}
+          onChange={(e) => updateList(familyId, note.id, { parentId: e.target.value })}
+        >
+          <option value="">מחברת (ראשי)</option>
+          {all
+            .filter((l) => l.kind === 'folder')
+            .map((f) => ({ id: f.id, label: folderPath(all, f.id).join(' › ') }))
+            .sort((a, b) => a.label.localeCompare(b.label, 'he'))
+            .map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+        </select>
+      </label>
 
       <div className="list-tools">
         <button
