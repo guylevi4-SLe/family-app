@@ -197,7 +197,6 @@ function ListIndex({
                   {mine.length > 0 && <Progress done={done} total={mine.length} />}
                 </span>
               </button>
-              {sorted.length > 1 && drag.grip(l.id, l.title)}
             </li>
           );
         })}
@@ -449,7 +448,7 @@ function Notebook({
     .filter((l) => l.kind === 'note' && (q ? !shut(l) && `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q) : at(l) === folder))
     .sort(byPinThenTitle);
   const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
-  const noteDrag = useDragOrder(notes, (l) => l.id, (items) => saveOrder(familyId, items));
+  const noteDrag = useDragOrder(q ? [] : notes, (l) => l.id, (items) => saveOrder(familyId, items));
   const path = folder ? folderPath(all, folder) : [];
   const ancestors: string[] = [];
   for (let cur = here; cur?.parentId && exists(cur.parentId); cur = all.find((l) => l.id === cur!.parentId)) ancestors.unshift(cur.parentId);
@@ -628,10 +627,9 @@ function Notebook({
               </span>
               <span className="chevron" aria-hidden="true">‹</span>
             </button>
-            {folders.length > 1 && folderDrag.grip(f.id, f.title)}
           </li>
         ))}
-        {noteDrag.ordered.map((l) => {
+        {(q ? notes : noteDrag.ordered).map((l) => {
           const preview = l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0];
           const where = q && at(l) ? folderPath(all, at(l)).join(' › ') : '';
           return (
@@ -643,7 +641,6 @@ function Notebook({
                   <span className="muted note-preview">{where ? `📁 ${where}` : preview || 'פתק ריק'}</span>
                 </span>
               </button>
-              {!q && notes.length > 1 && noteDrag.grip(l.id, l.title)}
             </li>
           );
         })}
