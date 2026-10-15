@@ -1024,7 +1024,11 @@ async function main() {
 
     step('Removed member loses access');
     await dad.page.getByLabel('הגדרות').click();
-    await dad.page.locator('.person', { hasText: 'kid' }).getByRole('button', { name: 'הסרה' }).click();
+    // Long names stay on one line: rename and remove live in each person's ⋮ menu.
+    await dad.page.locator('.person', { hasText: 'kid' }).getByRole('button', { name: 'אפשרויות' }).click();
+    await dad.page.getByRole('dialog', { name: 'אפשרויות: kid' }).getByRole('button', { name: 'שינוי שם' }).waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/member-menu.png` });
+    await dad.page.getByRole('dialog', { name: 'אפשרויות: kid' }).getByRole('button', { name: 'הסרה מהמשפחה' }).click();
     await kid.page.getByText('אין לך גישה למשפחה הזו').waitFor({ timeout: 15000 }).catch(async (e) => {
       console.log('  [debug] kid page:', (await kid.page.locator('body').innerText()).slice(0, 300).replace(/\n/g, ' | '));
       throw e;

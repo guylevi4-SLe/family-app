@@ -27,6 +27,8 @@ import { useInvites, useMembers, usePendingRequests } from '../data/hooks';
 import { START_KEY, type Screen } from './Home';
 import { lastError } from './ErrorBoundary';
 import { disablePush, enablePush, pushState, type PushState } from '../push';
+import { MoreMenu } from './MoreMenu';
+import { Pencil, Trash2 } from 'lucide-react';
 import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
 export function FamilySettings({
@@ -105,26 +107,27 @@ export function FamilySettings({
                 <span className="muted">{ROLE_LABELS[m.role]}</span>
               </div>
               {(isAdmin || m.id === me.id) && (
-                <button
-                  className="small"
-                  aria-label={`שינוי השם של ${m.displayName}`}
-                  onClick={guard(async () => {
-                    const name = prompt('השם שיופיע במשפחה (ולתיוג עם @):', m.displayName)?.trim();
-                    if (name && name !== m.displayName) await renameMember(familyId, m.id, name);
-                  })}
-                >
-                  שינוי שם
-                </button>
-              )}
-              {isAdmin && m.id !== me.id && (
-                <button
-                  className="small danger"
-                  onClick={guard(async () => {
-                    if (confirmRemove(m.displayName)) await removeMember(familyId, m.id);
-                  })}
-                >
-                  הסרה
-                </button>
+                <MoreMenu
+                  title={m.displayName}
+                  items={[
+                    {
+                      label: 'שינוי שם',
+                      icon: <Pencil size={20} />,
+                      onClick: guard(async () => {
+                        const name = prompt('השם שיופיע במשפחה (ולתיוג עם @):', m.displayName)?.trim();
+                        if (name && name !== m.displayName) await renameMember(familyId, m.id, name);
+                      }),
+                    },
+                    isAdmin && m.id !== me.id && {
+                      label: 'הסרה מהמשפחה',
+                      icon: <Trash2 size={20} />,
+                      danger: true,
+                      onClick: guard(async () => {
+                        if (confirmRemove(m.displayName)) await removeMember(familyId, m.id);
+                      }),
+                    },
+                  ]}
+                />
               )}
             </div>
           ))}
