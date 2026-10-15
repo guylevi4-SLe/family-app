@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, query, serverTimestamp, setDoc, updateDoc, where, writeBatch, type Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch, type Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -25,6 +25,8 @@ export interface FamilyList {
   /** Password-locked: `body` and the files are ciphertext, the key comes from the password and `salt`. */
   locked?: boolean;
   salt?: string;
+  /** A note locked by the folder it sits in: that folder's id (its salt is the note's salt). */
+  lockFolder?: string;
   createdBy: string;
   createdAt?: Timestamp | null;
   pending: boolean;
@@ -90,7 +92,13 @@ export function createList(fid: string, title: string, emoji: string) {
   return ref.id;
 }
 
-export function createNote(fid: string, title: string, emoji: string, parentId = '') {
+export function createNote(
+  fid: string,
+  title: string,
+  emoji: string,
+  parentId = '',
+  lock?: { salt: string; body: string; lockFolder: string },
+) {
   const ref = doc(listsCol(fid));
   setDoc(ref, {
     title: title.trim().slice(0, 60),
@@ -98,6 +106,7 @@ export function createNote(fid: string, title: string, emoji: string, parentId =
     kind: 'note',
     body: '',
     parentId,
+    ...(lock ? { locked: true, ...lock } : {}),
     createdBy: auth.currentUser!.uid,
     createdAt: serverTimestamp(),
     ...stamp(),
@@ -117,6 +126,26 @@ export function createFolder(fid: string, title: string, parentId = '') {
     ...stamp(),
   }).catch(reportWriteError);
   return ref.id;
+}
+
+/** The locked folder a folder sits under (itself included), if any: its password locks everything inside. */
+export function lockOf(all: FamilyList[], folderId: string | undefined) {
+  let cur = folderId ? all.find((l) => l.id === folderId && l.kind === 'folder') : undefined;
+  for (let guard = 0; cur && guard < 20; guard++) {
+    if (cur.locked && cur.salt) return cur;
+    cur = cur.parentId ? all.find((l) => l.id === cur!.parentId && l.kind === 'folder') : undefined;
+  }
+  return null;
+}
+
+/** Locks a folder (its salt, and a known text encrypted with its key to check the password) or unlocks it. */
+export function setFolderLock(fid: string, folderId: string, lock: { salt: string; check: string } | null) {
+  updateDoc(doc(listsCol(fid), folderId), {
+    locked: !!lock,
+    salt: lock?.salt ?? '',
+    body: lock?.check ?? '',
+    ...stamp(),
+  }).catch(reportWriteError);
 }
 
 /** "בית › ביטוחים": the folder's name with its parents, for pickers. */
@@ -144,6 +173,12 @@ export const privateNotesQuery = (fid: string, uid: string) => query(privCol(fid
 export const noteFilesQuery = (fid: string, note: NoteRef) =>
   note.viewers ? query(privFilesCol(fid, note.id)) : query(filesCol(fid), where('noteId', '==', note.id));
 
+/** One note's files, read once (to re-encrypt a note that is not open). */
+export async function fetchNoteFiles(fid: string, note: NoteRef): Promise<NoteFile[]> {
+  const snap = await getDocs(noteFilesQuery(fid, note));
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<NoteFile, 'id' | 'pending' | 'noteId'>), noteId: note.id, pending: false }));
+}
+
 /** Saves the text as given (a locked note's caller passes ciphertext). */
 export function saveNoteBody(fid: string, note: NoteRef, body: string) {
   return updateDoc(noteDoc(fid, note), { body, ...stamp() }).catch(reportWriteError);
@@ -160,12 +195,14 @@ const contentOf = (f: NoteFile): FileContent => (f.secret ? { secret: f.secret, 
 export function relockNote(
   fid: string,
   note: NoteRef,
-  lock: { salt: string; body: string } | { body: string },
+  lock: { salt: string; body: string; lockFolder?: string } | { body: string },
   files: { file: NoteFile; content: FileContent }[],
+  extra: Partial<Pick<FamilyList, 'parentId'>> = {},
 ) {
   const fail = reportWriteError;
   const salt = 'salt' in lock ? lock.salt : '';
-  updateDoc(noteDoc(fid, note), { locked: !!salt, salt, body: lock.body, ...stamp() }).catch(fail);
+  const lockFolder = 'salt' in lock ? lock.lockFolder ?? '' : '';
+  updateDoc(noteDoc(fid, note), { locked: !!salt, salt, lockFolder, body: lock.body, ...extra, ...stamp() }).catch(fail);
   for (const { file, content } of files) {
     setDoc(doc(note.viewers ? privFilesCol(fid, note.id) : filesCol(fid)), {
       ...(note.viewers ? {} : { noteId: note.id }),
@@ -221,7 +258,7 @@ export function setNoteViewers(fid: string, note: FamilyList, files: NoteFile[],
     body: note.body ?? '',
     pinned: !!note.pinned,
     parentId: note.parentId ?? '',
-    ...(note.locked ? { locked: true, salt: note.salt ?? '' } : {}),
+    ...(note.locked ? { locked: true, salt: note.salt ?? '', lockFolder: note.lockFolder ?? '' } : {}),
     createdBy: note.createdBy,
     createdAt: note.createdAt ?? serverTimestamp(),
     ...stamp(),

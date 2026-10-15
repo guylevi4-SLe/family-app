@@ -30,11 +30,22 @@ service cloud.firestore {
     // creator may lock, unlock or change the password.
     function validLock() {
       return (!('locked' in data()) || data().locked is bool)
-        && (!('salt' in data()) || shortString(data().salt, 64));
+        && (!('salt' in data()) || shortString(data().salt, 64))
+        && (!('lockFolder' in data()) || shortString(data().lockFolder, 64));
     }
     function sameLock() {
       return data().get('locked', false) == resource.data.get('locked', false)
-        && data().get('salt', '') == resource.data.get('salt', '');
+        && data().get('salt', '') == resource.data.get('salt', '')
+        && data().get('lockFolder', '') == resource.data.get('lockFolder', '');
+    }
+    // Changing a note's lock: its creator always may. A note in a locked folder
+    // follows the folder: anyone may lock it with that folder's salt (moving it
+    // in, or the folder being locked), or open it up again when it leaves.
+    function lockChangeOk(fid) {
+      return sameLock() || resource.data.createdBy == me()
+        || (data().get('locked', false) == true && data().get('lockFolder', '') != ''
+            && get(/databases/$(database)/documents/families/$(fid)/lists/$(data().lockFolder)).data.get('salt', '') == data().get('salt', ''))
+        || (resource.data.get('lockFolder', '') != '' && data().get('locked', false) == false);
     }
     // A note's file: a JPEG, or (locked note) its encrypted bytes with their IV.
     function validFileContent() {
@@ -216,7 +227,7 @@ service cloud.firestore {
       match /lists/{listId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['title', 'emoji', 'categories', 'kind', 'body', 'pinned', 'parentId', 'locked', 'salt', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          && onlyKeys(['title', 'emoji', 'categories', 'kind', 'body', 'pinned', 'parentId', 'locked', 'salt', 'lockFolder', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
           && shortString(data().title, 60) && data().title.size() > 0
           && shortString(data().emoji, 16)
           && (!('categories' in data()) || (data().categories is list && data().categories.size() <= 30))
@@ -225,8 +236,8 @@ service cloud.firestore {
           && (!('body' in data()) || shortString(data().body, 20000))
           && (!('pinned' in data()) || data().pinned is bool)
           && validLock()
-          && (data().get('locked', false) == false || data().get('kind', '') == 'note')
-          && (resource == null || sameLock() || resource.data.createdBy == me())
+          && (data().get('locked', false) == false || data().get('kind', '') in ['note', 'folder'])
+          && (resource == null || lockChangeOk(fid))
           && data().updatedBy == me();
         allow delete: if isMember(fid);
       }
@@ -251,10 +262,10 @@ service cloud.firestore {
         allow update: if isMember(fid) && me() in resource.data.viewers && validPrivateNote()
           && data().createdBy == resource.data.createdBy
           && (data().viewers == resource.data.viewers || resource.data.createdBy == me())
-          && (sameLock() || resource.data.createdBy == me());
+          && lockChangeOk(fid);
 
         function validPrivateNote() {
-          return onlyKeys(['title', 'emoji', 'kind', 'body', 'pinned', 'parentId', 'viewers', 'locked', 'salt', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
+          return onlyKeys(['title', 'emoji', 'kind', 'body', 'pinned', 'parentId', 'viewers', 'locked', 'salt', 'lockFolder', 'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
             && data().kind == 'note'
             && shortString(data().title, 60) && data().title.size() > 0
             && shortString(data().emoji, 16)

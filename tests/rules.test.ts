@@ -462,6 +462,30 @@ describe('password-locked notes', () => {
   });
 });
 
+describe('password-locked folders', () => {
+  it('locking a folder may encrypt notes others wrote, only with that folder\'s salt; leaving the folder opens them', async () => {
+    await createInvite('dad', 'levi', 'CODE23', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE23', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const ref = (who: Who, id: string) => doc(db(who), 'families', 'levi', 'lists', id);
+    const ts = (by: string) => ({ updatedAt: serverTimestamp(), updatedBy: by });
+    await assertSucceeds(setDoc(ref('dad', 'f1'), { title: 'מסמכים', emoji: '📁', kind: 'folder', parentId: '', createdBy: 'dad', createdAt: serverTimestamp(), ...ts('dad') }));
+    await assertSucceeds(setDoc(ref('daughter', 'n2'), { title: 'דרכון', emoji: '📝', kind: 'note', body: '123', parentId: 'f1', createdBy: 'daughter', createdAt: serverTimestamp(), ...ts('daughter') }));
+    // Only the folder's creator locks the folder.
+    await assertFails(updateDoc(ref('daughter', 'f1'), { locked: true, salt: 'U0FMVA==', body: 'aXY=.Y2hr', ...ts('daughter') }));
+    await assertSucceeds(updateDoc(ref('dad', 'f1'), { locked: true, salt: 'U0FMVA==', body: 'aXY=.Y2hr', ...ts('dad') }));
+    // Dad encrypts the daughter's note with the folder's salt, but not with a made-up one.
+    await assertFails(updateDoc(ref('dad', 'n2'), { locked: true, salt: 'b3RoZXI=', lockFolder: 'f1', body: 'aXY=.Y3Q=', ...ts('dad') }));
+    await assertSucceeds(updateDoc(ref('dad', 'n2'), { locked: true, salt: 'U0FMVA==', lockFolder: 'f1', body: 'aXY=.Y3Q=', ...ts('dad') }));
+    // Moving it out of the folder opens it up again.
+    await assertSucceeds(updateDoc(ref('daughter', 'n2'), { locked: false, salt: '', lockFolder: '', body: '123', parentId: '', ...ts('daughter') }));
+    // A personal lock still belongs to the note's creator only.
+    await assertSucceeds(updateDoc(ref('daughter', 'n2'), { locked: true, salt: 'bWluZQ==', lockFolder: '', body: 'aXY=.Y3Q=', ...ts('daughter') }));
+    await assertFails(updateDoc(ref('dad', 'n2'), { locked: false, salt: '', body: 'x', ...ts('dad') }));
+    await assertFails(updateDoc(doc(db('neighbor'), 'families', 'levi', 'lists', 'n2'), { locked: false, salt: '', body: 'x', ...ts('neighbor') }));
+  });
+});
+
 describe('birthdays', () => {
   it('members keep birthdays with a valid date; outsiders cannot', async () => {
     const B = { name: 'סבתא רחל', day: 12, month: 3, year: 1950, group: 'family', updatedAt: serverTimestamp(), updatedBy: 'dad' };

@@ -66,17 +66,19 @@ export async function decryptImage(key: CryptoKey, secret: string, iv: string) {
   return `data:image/jpeg;base64,${toB64(await open(key, iv, secret))}`;
 }
 
-// Opened notes stay open on this device for a while, in memory only.
-const keys = new Map<string, { key: CryptoKey; salt: string; at: number }>();
+// Opened passwords stay open on this device for a while, in memory only. They
+// are kept by salt: a locked folder and every note in it share one salt, so
+// opening the folder opens its notes too.
+const keys = new Map<string, { key: CryptoKey; at: number }>();
 
-export function rememberKey(noteId: string, salt: string, key: CryptoKey) {
-  keys.set(noteId, { key, salt, at: Date.now() });
+export function rememberKey(salt: string, key: CryptoKey) {
+  keys.set(salt, { key, at: Date.now() });
 }
 
-export function rememberedKey(noteId: string, salt: string | undefined) {
-  const k = keys.get(noteId);
-  if (!k || k.salt !== salt || Date.now() - k.at > IDLE_MS) {
-    keys.delete(noteId);
+export function rememberedKey(salt: string | undefined) {
+  const k = salt ? keys.get(salt) : undefined;
+  if (!k || Date.now() - k.at > IDLE_MS) {
+    if (salt) keys.delete(salt);
     return null;
   }
   k.at = Date.now();
@@ -84,19 +86,19 @@ export function rememberedKey(noteId: string, salt: string | undefined) {
 }
 
 /** Still within the idle time (without counting this as use). */
-export function keyAlive(noteId: string) {
-  const k = keys.get(noteId);
+export function keyAlive(salt: string) {
+  const k = keys.get(salt);
   return !!k && Date.now() - k.at <= IDLE_MS;
 }
 
 /** Typing in an open note counts as use. */
-export function touchKey(noteId: string) {
-  const k = keys.get(noteId);
+export function touchKey(salt: string) {
+  const k = keys.get(salt);
   if (k) k.at = Date.now();
 }
 
-export function forgetKey(noteId: string) {
-  keys.delete(noteId);
+export function forgetKey(salt: string) {
+  keys.delete(salt);
 }
 
 if (typeof window !== 'undefined') window.addEventListener('pagehide', () => keys.clear());

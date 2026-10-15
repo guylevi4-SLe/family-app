@@ -11,6 +11,9 @@ import {
   createNote,
   deleteNoteFile,
   folderPath,
+  lockOf,
+  setFolderLock,
+  fetchNoteFiles,
   relockNote,
   saveNoteBody,
   setNoteViewers,
@@ -28,6 +31,7 @@ import {
   type FamilyList,
   type ListEntry,
   type NoteFile,
+  type FileContent,
 } from '../data/lists';
 import { useNoteFiles } from '../data/hooks';
 import { scheduleImage } from '../data/schedules';
@@ -410,12 +414,26 @@ function Notebook({
   setFolder: (id: string | null) => void;
   onOpen: (id: string) => void;
 }) {
-  const { familyId } = useFamily();
+  const { familyId, me } = useFamily();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState('📝');
   const [search, setSearch] = useState('');
+  const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
+  const [work, setWork] = useState('');
+  const [, setTick] = useState(0);
   const here = all.find((l) => l.id === folder);
+  const lock = lockOf(all, folder);
+  const shut = (l: FamilyList) => {
+    const fl = lockOf(all, l.parentId);
+    return !!fl && !keyAlive(fl.salt ?? '');
+  };
+  // A locked folder closes again after a while without use.
+  useEffect(() => {
+    if (!lock) return;
+    const t = window.setInterval(() => setTick((n) => n + 1), 15_000);
+    return () => window.clearInterval(t);
+  }, [lock]);
   const parentOf = (l: FamilyList) => l.parentId ?? '';
   const exists = (id: string) => id === '' || all.some((l) => l.id === id && l.kind === 'folder');
   // Anything whose folder is gone shows at the notebook's top, so nothing gets lost.
@@ -423,7 +441,7 @@ function Notebook({
   const folders = all.filter((l) => l.kind === 'folder' && at(l) === folder).sort(byPinThenTitle);
   const q = search.trim();
   const notes = all
-    .filter((l) => l.kind === 'note' && (q ? `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q) : at(l) === folder))
+    .filter((l) => l.kind === 'note' && (q ? !shut(l) && `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q) : at(l) === folder))
     .sort(byPinThenTitle);
   const path = folder ? folderPath(all, folder) : [];
   const ancestors: string[] = [];
@@ -438,13 +456,70 @@ function Notebook({
     const name = prompt(folder ? `שם התיקייה החדשה בתוך "${here?.title}"` : 'שם התיקייה (למשל: בית, רכב, ביטוחים)')?.trim();
     if (name) createFolder(familyId, name, folder);
   };
-  const create = () => {
+  const create = async () => {
     if (!title.trim()) return;
-    const id = createNote(familyId, title, emoji, folder);
+    const k = lock ? rememberedKey(lock.salt) : null;
+    if (lock && !k) return setTick((n) => n + 1);
+    const id = createNote(
+      familyId,
+      title,
+      emoji,
+      folder,
+      k && lock ? { salt: lock.salt!, body: await encryptText(k, ''), lockFolder: lock.id } : undefined,
+    );
     setCreating(false);
     setTitle('');
     onOpen(id);
   };
+  // Every note under this folder (sub-folders too) that I can see.
+  const under = (l: FamilyList, id: string) => {
+    for (let p = l.parentId, guard = 0; p && guard < 20; guard++) {
+      if (p === id) return true;
+      p = all.find((x) => x.id === p)?.parentId;
+    }
+    return false;
+  };
+  /** Rewrites notes in their new form: encrypted with `to`'s key, or opened up (to null). */
+  const rewrap = async (notes: FamilyList[], from: (n: FamilyList) => CryptoKey | null, to: { key: CryptoKey; salt: string; folder: string } | null) => {
+    let done = 0;
+    for (const n of notes) {
+      setWork(`${to ? 'מצפין' : 'פותח'} ${++done} מתוך ${notes.length}…`);
+      const k = from(n);
+      const text = k ? await decryptText(k, n.body ?? '') : n.body ?? '';
+      const files = await fetchNoteFiles(familyId, n);
+      const moved: { file: NoteFile; content: FileContent }[] = [];
+      for (const f of files) {
+        const image = f.image ?? (k && f.secret && f.iv ? await decryptImage(k, f.secret, f.iv) : '');
+        if (!image) continue;
+        moved.push({ file: f, content: to ? await encryptImage(to.key, image) : { image } });
+      }
+      relockNote(familyId, n, to ? { salt: to.salt, body: await encryptText(to.key, text), lockFolder: to.folder } : { body: text }, moved);
+    }
+    setWork('');
+  };
+  const lockFolder = async () => {
+    if (!here || !locking || locking.a.length < 4 || locking.a !== locking.b) return;
+    setWork('מצפין…');
+    const salt = newSalt();
+    const key = await deriveKey(locking.a, salt);
+    setFolderLock(familyId, here.id, { salt, check: await encryptText(key, 'levis') });
+    rememberKey(salt, key);
+    setLocking(null);
+    // A note with its own password stays with it, unless that password is open now.
+    const inside = all.filter((l) => l.kind === 'note' && under(l, here.id) && (!l.locked || rememberedKey(l.salt)));
+    await rewrap(inside, (n) => (n.locked ? rememberedKey(n.salt) : null), { key, salt, folder: here.id });
+    const kept = all.filter((l) => l.kind === 'note' && under(l, here.id) && l.locked && !l.lockFolder && !rememberedKey(l.salt));
+    if (kept.length) alert(`${kept.length} פתקים עם סיסמה משלהם נשארו עם הסיסמה שלהם.`);
+  };
+  const unlockFolder = async () => {
+    if (!here?.salt) return;
+    const key = rememberedKey(here.salt);
+    if (!key || !confirm('להסיר את הסיסמה מהתיקייה? הפתקים שבה יישמרו שוב בלי הצפנה.')) return;
+    await rewrap(all.filter((l) => l.kind === 'note' && l.lockFolder === here.id), () => key, null);
+    setFolderLock(familyId, here.id, null);
+    forgetKey(here.salt);
+  };
+
   const renameFolder = () => {
     const name = prompt('שם חדש לתיקייה', here?.title)?.trim();
     if (name && here) updateList(familyId, here.id, { title: name.slice(0, 60) });
@@ -487,6 +562,10 @@ function Notebook({
         </nav>
       )}
 
+      {lock && !keyAlive(lock.salt ?? '') ? (
+        <FolderGate folder={lock} onOpen={() => setTick((n) => n + 1)} />
+      ) : (
+      <>
       {!folder && (
         <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש בכל הפתקים" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
       )}
@@ -529,7 +608,7 @@ function Notebook({
             <button className="list-card folder-card" onClick={() => setFolder(f.id)}>
               <span className="list-emoji" aria-hidden="true">📁</span>
               <span className="list-card-main">
-                <strong>{f.title}</strong>
+                <strong>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</strong>
                 <span className="muted">{count(f.id)}</span>
               </span>
               <span className="chevron" aria-hidden="true">‹</span>
@@ -553,13 +632,75 @@ function Notebook({
         })}
       </ul>
 
+      {locking && (
+        <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lockFolder(); }}>
+          <strong>🔐 נעילת התיקייה בסיסמה</strong>
+          <input type="password" autoComplete="new-password" placeholder="סיסמה (לפחות 4 תווים)" aria-label="סיסמה חדשה לתיקייה" value={locking.a} autoFocus onChange={(e) => setLocking({ ...locking, a: e.target.value })} />
+          <input type="password" autoComplete="new-password" placeholder="שוב, לאימות" aria-label="אימות סיסמת התיקייה" value={locking.b} onChange={(e) => setLocking({ ...locking, b: e.target.value })} />
+          {locking.b && locking.a !== locking.b && <p className="error">הסיסמאות לא זהות</p>}
+          <p className="muted note-hint">
+            כל הפתקים בתיקייה ובתתי־התיקיות שלה יוצפנו בטלפון, גם פתקים שבני משפחה אחרים כתבו. פתק שנוסיף או נעביר לכאן יינעל אוטומטית.
+            <strong> סיסמה שנשכחה אי אפשר לשחזר.</strong> שמות הפתקים והתיקיות לא מוצפנים.
+          </p>
+          <div className="sheet-actions">
+            <button className="primary" disabled={!!work || locking.a.length < 4 || locking.a !== locking.b}>נעילה</button>
+            <button type="button" onClick={() => setLocking(null)}>ביטול</button>
+          </div>
+        </form>
+      )}
+      {work && <p className="muted" role="status">{work}</p>}
+
       {here && (
         <div className="list-tools">
           <button onClick={renameFolder}>✎ שינוי שם התיקייה</button>
+          {here.locked ? (
+            <>
+              <button onClick={() => { forgetKey(here.salt ?? ''); setTick((n) => n + 1); }}>🔐 נעילה עכשיו</button>
+              {here.createdBy === me.id && <button disabled={!!work} onClick={unlockFolder}>🔓 הסרת הסיסמה</button>}
+            </>
+          ) : (
+            !lock && here.createdBy === me.id && !locking && (
+              <button onClick={() => setLocking({ a: '', b: '' })}>🔐 נעילת התיקייה בסיסמה</button>
+            )
+          )}
           <button className="danger" onClick={deleteFolder}>מחיקת התיקייה</button>
         </div>
       )}
+      </>
+      )}
     </>
+  );
+}
+
+/** The password screen of a locked folder; it checks the password against the folder's sealed check text. */
+function FolderGate({ folder, onOpen }: { folder: FamilyList; onOpen: () => void }) {
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const open = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const k = await deriveKey(password, folder.salt ?? '');
+      await decryptText(k, folder.body ?? '');
+      rememberKey(folder.salt ?? '', k);
+      onOpen();
+    } catch {
+      setError('הסיסמה לא נכונה');
+      setBusy(false);
+    }
+  };
+  return (
+    <form className="card note-gate" onSubmit={(e) => { e.preventDefault(); if (password) open(); }}>
+      <strong>🔐 התיקייה "{folder.title}" נעולה בסיסמה</strong>
+      <label>
+        <span className="field-label">הסיסמה של התיקייה</span>
+        <input className="full" type="password" autoComplete="off" value={password} autoFocus aria-label="סיסמת התיקייה" onChange={(e) => setPassword(e.target.value)} />
+      </label>
+      {error && <p className="error" role="alert">{error}</p>}
+      <button className="primary" disabled={!password || busy}>{busy ? 'פותח…' : '🔓 פתיחה'}</button>
+      <p className="muted note-hint">את הסיסמה מקבלים ממי שנעל את התיקייה. אחרי הפתיחה, כל הפתקים שבתוכה פתוחים.</p>
+    </form>
   );
 }
 
@@ -638,20 +779,20 @@ function WhoSees({ note, files }: { note: FamilyList; files: NoteFile[] | undefi
 
 /** A note: its password gate when locked, then the editor. */
 function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]; onBack: () => void }) {
-  const [key, setKey] = useState<CryptoKey | null>(() => (note.locked ? rememberedKey(note.id, note.salt) : null));
+  const [key, setKey] = useState<CryptoKey | null>(() => (note.locked ? rememberedKey(note.salt) : null));
   // A new password (or the lock removed) needs the key to match again.
   const salt = note.locked ? note.salt ?? '' : '';
   const [keySalt, setKeySalt] = useState(salt);
   if (keySalt !== salt) {
     setKeySalt(salt);
-    setKey(note.locked ? rememberedKey(note.id, note.salt) : null);
+    setKey(note.locked ? rememberedKey(note.salt) : null);
   }
   // Locks itself again after a while without use.
   useEffect(() => {
     if (!note.locked || !key) return;
-    const t = window.setInterval(() => !keyAlive(note.id) && setKey(null), 15_000);
+    const t = window.setInterval(() => !keyAlive(note.salt ?? '') && setKey(null), 15_000);
     return () => window.clearInterval(t);
-  }, [note.id, note.locked, key]);
+  }, [note.salt, note.locked, key]);
 
   if (note.locked && !key) return <NoteGate note={note} all={all} onBack={onBack} onOpen={setKey} />;
   return (
@@ -661,7 +802,7 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
       all={all}
       cryptoKey={note.locked ? key : null}
       onBack={onBack}
-      lockNow={() => { forgetKey(note.id); setKey(null); }}
+      lockNow={() => { forgetKey(note.salt ?? ''); setKey(null); }}
     />
   );
 }
@@ -679,7 +820,7 @@ function NoteGate({ note, all, onBack, onOpen }: { note: FamilyList; all: Family
     try {
       const k = await deriveKey(password, note.salt ?? '');
       await decryptText(k, note.body ?? '');
-      rememberKey(note.id, note.salt ?? '', k);
+      rememberKey(note.salt ?? '', k);
       onOpen(k);
     } catch {
       setError('הסיסמה לא נכונה');
@@ -806,7 +947,7 @@ function NoteEditor({
     setBody(v);
     latest.current = v;
     setSaved(false);
-    touchKey(note.id);
+    touchKey(note.salt ?? '');
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(flush, 800);
   };
@@ -837,7 +978,7 @@ function NoteEditor({
     const enc = await Promise.all(files.map(async (f) => ({ file: f, content: await encryptImage(k, images.get(f.id)!) })));
     gone.current = true;
     window.clearTimeout(timer.current);
-    rememberKey(note.id, salt, k);
+    rememberKey(salt, k);
     relockNote(familyId, note, { salt, body: text }, enc);
   };
   const unlock = () => {
@@ -845,8 +986,34 @@ function NoteEditor({
     if (!confirm('להסיר את הסיסמה? הפתק והקבצים יישמרו שוב בלי הצפנה.')) return;
     gone.current = true;
     window.clearTimeout(timer.current);
-    forgetKey(note.id);
+    forgetKey(note.salt ?? '');
     relockNote(familyId, note, { body: latest.current.slice(0, MAX_NOTE) }, files.map((f) => ({ file: f, content: { image: images.get(f.id)! } })));
+  };
+
+  // Moving into or out of a locked folder re-encrypts the note with that folder's password (or opens it up).
+  const moveTo = async (target: string) => {
+    const lock = lockOf(all, target);
+    if (lock ? note.lockFolder === lock.id : !note.lockFolder) {
+      updateNote(familyId, note, { parentId: target });
+      return;
+    }
+    if (!files || !allImages || !ready) return setError('רגע, הפתק עוד נטען');
+    const k = lock ? rememberedKey(lock.salt) : null;
+    if (lock && !k) return setError(`קודם פותחים את התיקייה "${lock.title}" עם הסיסמה שלה`);
+    setBusy(true);
+    const text = latest.current.slice(0, MAX_NOTE);
+    const moved = k
+      ? await Promise.all(files.map(async (f) => ({ file: f, content: (await encryptImage(k, images.get(f.id)!)) as FileContent })))
+      : files.map((f) => ({ file: f, content: { image: images.get(f.id)! } as FileContent }));
+    gone.current = true;
+    window.clearTimeout(timer.current);
+    relockNote(
+      familyId,
+      note,
+      k && lock ? { salt: lock.salt!, body: await encryptText(k, text), lockFolder: lock.id } : { body: text },
+      moved,
+      { parentId: target },
+    );
   };
 
   const zoomed = zoom ? files?.find((f) => f.id === zoom) : undefined;
@@ -878,7 +1045,7 @@ function NoteEditor({
             </h2>
           )}
           <p className="muted list-sum">
-            {!saved ? 'שומר…' : note.locked ? '🔐 נעול בסיסמה, פתוח כרגע' : note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך'}
+            {!saved ? 'שומר…' : note.lockFolder ? '🔐 בתיקייה נעולה, פתוח כרגע' : note.locked ? '🔐 נעול בסיסמה, פתוח כרגע' : note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך'}
           </p>
         </div>
         <button
@@ -952,14 +1119,18 @@ function NoteEditor({
         <select
           aria-label="תיקיית הפתק"
           value={all.some((l) => l.id === note.parentId && l.kind === 'folder') ? note.parentId : ''}
-          onChange={(e) => updateNote(familyId, note, { parentId: e.target.value })}
+          disabled={busy}
+          onChange={(e) => moveTo(e.target.value)}
         >
           <option value="">בלי תיקייה (ראשי)</option>
           {all
             .filter((l) => l.kind === 'folder')
-            .map((f) => ({ id: f.id, label: folderPath(all, f.id).join(' › ') }))
+            .map((f) => {
+              const lock = lockOf(all, f.id);
+              return { id: f.id, label: folderPath(all, f.id).join(' › ') + (lock ? ' 🔐' : ''), shut: !!lock && !rememberedKey(lock.salt) };
+            })
             .sort((a, b) => a.label.localeCompare(b.label, 'he'))
-            .map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+            .map((f) => <option key={f.id} value={f.id} disabled={f.shut}>{f.label}</option>)}
         </select>
       </label>
 
@@ -984,7 +1155,7 @@ function NoteEditor({
         {note.locked ? (
           <>
             <button onClick={() => { flush(); lockNow(); }}>🔐 נעילה עכשיו</button>
-            {mine && <button disabled={!allImages} onClick={unlock}>🔓 הסרת הסיסמה</button>}
+            {mine && !note.lockFolder && <button disabled={!allImages} onClick={unlock}>🔓 הסרת הסיסמה</button>}
           </>
         ) : (
           mine && !locking && <button onClick={() => setLocking({ a: '', b: '' })}>🔐 נעילה בסיסמה</button>
