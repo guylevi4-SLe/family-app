@@ -51,6 +51,8 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
             +
           </button>
         </div>
+        {/* Who and when appear once a task is being typed. */}
+        {title.trim() && (
         <div className="task-options">
           <div className="assign-row">
             <span className="assign-label">למי:</span>
@@ -70,21 +72,22 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
               ))}
             </div>
           </div>
-          {title.trim() && (
-            <label className="inline-label">
-              עד
-              <input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} aria-label="תאריך יעד" />
-            </label>
-          )}
+          <label className="inline-label">
+            עד
+            <input type="date" value={due} min={today} onChange={(e) => setDue(e.target.value)} aria-label="תאריך יעד" />
+          </label>
         </div>
+        )}
       </form>
 
-      <div className="segmented" role="group" aria-label="סינון">
-        <button className={filter === 'all' ? 'on' : ''} onClick={() => setFilter('all')}>
-          של כולם
-        </button>
-        <button className={filter === 'mine' ? 'on' : ''} onClick={() => setFilter('mine')}>
-          שלי
+      <div className="tasks-bar">
+        <span className="muted">{filter === 'mine' ? 'המשימות שלי' : 'כל המשימות'}</span>
+        <button
+          className={filter === 'mine' ? 'chip on' : 'chip'}
+          aria-pressed={filter === 'mine'}
+          onClick={() => setFilter(filter === 'mine' ? 'all' : 'mine')}
+        >
+          רק שלי
         </button>
       </div>
 

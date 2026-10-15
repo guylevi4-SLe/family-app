@@ -19,15 +19,17 @@ import { birthdaysBetween, birthdayTitle, type Birthday, type BirthdayOn } from 
 import { whenLabel } from './BirthdaysSheet';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
+import { MoreMenu } from './MoreMenu';
+import { BookOpen, CalendarDays, CalendarPlus, Cake, ChevronLeft, ChevronRight, List, ListTodo, Plus } from 'lucide-react';
 
 type Mode = 'list' | 'month';
 const MODE_KEY = 'calendarMode';
 
 function readMode(): Mode {
   try {
-    return localStorage.getItem(MODE_KEY) === 'month' ? 'month' : 'list';
+    return localStorage.getItem(MODE_KEY) === 'list' ? 'list' : 'month';
   } catch {
-    return 'list';
+    return 'month';
   }
 }
 
@@ -60,6 +62,14 @@ export function CalendarView({
     } catch {
       /* optional */
     }
+  };
+
+  const [y, m] = selected.split('-').map(Number);
+  const monthTitle = new Date(y, m - 1, 1).toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+  // Moving a month selects its first day, or today in the current month.
+  const shiftMonth = (delta: number) => {
+    const d = isoDate(new Date(y, m - 1 + delta, 1));
+    setSelected(d.slice(0, 7) === today.slice(0, 7) ? today : d);
   };
 
   const live = (events ?? []).filter((e) => !e.deleted);
@@ -97,21 +107,40 @@ export function CalendarView({
 
   return (
     <div className="planner-body">
-      <div className="calendar-tools">
-        <button className="small" onClick={openSchedule}>
-          📚 מערכת שעות
+      {/* One thin bar: the month (or "upcoming"), the view switch and the ⋮ menu. */}
+      <div className="cal-bar">
+        {mode === 'month' ? (
+          <div className="cal-month">
+            <button className="icon-button" aria-label="החודש הקודם" onClick={() => shiftMonth(-1)}>
+              <ChevronRight size={22} aria-hidden="true" />
+            </button>
+            <h2>{monthTitle}</h2>
+            <button className="icon-button" aria-label="החודש הבא" onClick={() => shiftMonth(1)}>
+              <ChevronLeft size={22} aria-hidden="true" />
+            </button>
+            {selected.slice(0, 7) !== today.slice(0, 7) && (
+              <button className="chip cal-today" onClick={() => setSelected(today)}>
+                היום
+              </button>
+            )}
+          </div>
+        ) : (
+          <h2 className="cal-title">הקרוב</h2>
+        )}
+        <button
+          className="more-button"
+          aria-label={mode === 'month' ? 'תצוגת רשימה' : 'לוח חודשי'}
+          onClick={() => setMode(mode === 'month' ? 'list' : 'month')}
+        >
+          {mode === 'month' ? <List size={22} aria-hidden="true" /> : <CalendarDays size={22} aria-hidden="true" />}
         </button>
-        <button className="small" onClick={() => openBirthdays(null)}>
-          🎂 ימי הולדת
-        </button>
-      </div>
-      <div className="segmented" role="group" aria-label="תצוגה">
-        <button className={mode === 'list' ? 'on' : ''} onClick={() => setMode('list')}>
-          רשימה
-        </button>
-        <button className={mode === 'month' ? 'on' : ''} onClick={() => setMode('month')}>
-          לוח חודשי
-        </button>
+        <MoreMenu
+          title="יומן"
+          items={[
+            { label: 'מערכת שעות', icon: <BookOpen size={20} />, onClick: openSchedule },
+            { label: 'ימי הולדת', icon: <Cake size={20} />, onClick: () => openBirthdays(null) },
+          ]}
+        />
       </div>
 
       {mode === 'month' ? (
@@ -123,18 +152,9 @@ export function CalendarView({
           selected={selected}
           onSelect={setSelected}
           onOpenEvent={setEditing}
-          onAddEvent={() => openNewEvent(selected)}
-          onAddTask={() => setAddingTask(selected)}
         />
       ) : (
         <>
-          <div className="calendar-add">
-            <button className="primary" onClick={() => openNewEvent(null)}>
-              + אירוע חדש
-            </button>
-            <button onClick={() => setAddingTask(today)}>+ משימה ליומן</button>
-          </div>
-
           {events !== undefined && days.length === 0 && <p className="empty">אין אירועים קרובים</p>}
 
           {days.map(([date, list]) => (
@@ -171,6 +191,19 @@ export function CalendarView({
         </>
       )}
 
+      <div className="fab-wrap">
+        <MoreMenu
+          label="הוספה"
+          className="fab"
+          icon={<Plus size={28} strokeWidth={2.4} aria-hidden="true" />}
+          title={mode === 'month' ? `הוספה ל${dayLabel(selected)}` : 'הוספה ליומן'}
+          items={[
+            { label: 'אירוע חדש', icon: <CalendarPlus size={20} />, onClick: () => openNewEvent(mode === 'month' ? selected : null) },
+            { label: 'משימה ליומן', icon: <ListTodo size={20} />, onClick: () => setAddingTask(mode === 'month' ? selected : today) },
+          ]}
+        />
+      </div>
+
       {editing && (
         <EventSheet
           event={editing === 'new' ? null : (live.find((e) => e.id === editing.id) ?? editing)}
@@ -193,8 +226,6 @@ function MonthView({
   selected,
   onSelect,
   onOpenEvent,
-  onAddEvent,
-  onAddTask,
 }: {
   events: FamilyEvent[];
   tasks: (Task & { due: string })[];
@@ -203,8 +234,6 @@ function MonthView({
   selected: string;
   onSelect: (d: string) => void;
   onOpenEvent: (e: FamilyEvent) => void;
-  onAddEvent: () => void;
-  onAddTask: () => void;
 }) {
   const { members } = useFamily();
   const [y, m] = selected.split('-').map(Number);
@@ -215,11 +244,6 @@ function MonthView({
   for (let d = 1; d <= daysInMonth; d++) cells.push(isoDate(new Date(y, m - 1, d)));
   while (cells.length % 7) cells.push(null);
 
-  const shift = (delta: number) => {
-    const d = new Date(y, m - 1 + delta, 1);
-    onSelect(isoDate(d));
-  };
-
   const dayEvents = events
     .filter((e) => coversDay(e, selected))
     .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'));
@@ -228,15 +252,6 @@ function MonthView({
 
   return (
     <div className="month">
-      <div className="month-head">
-        <button className="icon-button" aria-label="החודש הקודם" onClick={() => shift(-1)}>
-          ‹
-        </button>
-        <h2>{first.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}</h2>
-        <button className="icon-button" aria-label="החודש הבא" onClick={() => shift(1)}>
-          ›
-        </button>
-      </div>
       <div className="month-grid" role="grid" aria-label="לוח חודשי">
         {WEEKDAYS.map((w) => (
           <span key={w} className="weekday">
@@ -282,12 +297,6 @@ function MonthView({
             ))}
           </ul>
         )}
-        <div className="calendar-add">
-          <button className="primary" onClick={onAddEvent}>
-            + אירוע ביום הזה
-          </button>
-          <button onClick={onAddTask}>+ משימה ביום הזה</button>
-        </div>
       </section>
     </div>
   );

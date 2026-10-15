@@ -4,17 +4,30 @@ import { EllipsisVertical } from 'lucide-react';
 export type MenuItem = { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean };
 
 /** A "⋮" button that opens a sheet of actions (rename, lock, delete…), instead of a row of buttons. */
-export function MoreMenu({ title, items }: { title: string; items: (MenuItem | false | null | undefined)[] }) {
+export function MoreMenu({
+  title,
+  items,
+  label = 'אפשרויות',
+  className = 'more-button',
+  icon = <EllipsisVertical size={22} strokeWidth={2} aria-hidden="true" />,
+}: {
+  title: string;
+  items: (MenuItem | false | null | undefined)[];
+  /** The trigger button: "⋮" unless given (e.g. a floating "+"). */
+  label?: string;
+  className?: string;
+  icon?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const shown = items.filter(Boolean) as MenuItem[];
   return (
     <>
-      <button className="more-button" aria-label="אפשרויות" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-        <EllipsisVertical size={22} strokeWidth={2} aria-hidden="true" />
+      <button className={className} aria-label={label} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        {icon}
       </button>
       {open && (
         <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-          <div className="sheet more-sheet" role="dialog" aria-label={`אפשרויות: ${title}`} onClick={(e) => e.stopPropagation()}>
+          <div className="sheet more-sheet" role="dialog" aria-label={`${label}: ${title}`} onClick={(e) => e.stopPropagation()}>
             <strong className="more-title">{title}</strong>
             <ul className="more-items">
               {shown.map((item) => (

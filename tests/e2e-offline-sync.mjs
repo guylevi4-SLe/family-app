@@ -15,6 +15,18 @@ const step = (m) => console.log(`\n▶ ${m}`);
 const ok = (m) => console.log(`  ✓ ${m}`);
 
 /** Opens the calendar screen on one side: 'לו״ז' (schedule) or 'משימות' (tasks). */
+// The calendar's ⋮ menu and floating "+" open a sheet of actions.
+async function calMenu(page, button, item) {
+  await page.getByRole('button', { name: button, exact: true }).click();
+  await page.getByRole('dialog', { name: new RegExp(`^${button}`) }).getByRole('button', { name: item }).click();
+}
+
+// The calendar opens on the month grid; "upcoming" is the list of what comes next.
+async function upcomingView(page) {
+  const toList = page.getByRole('button', { name: 'תצוגת רשימה' });
+  if (await toList.count()) await toList.click();
+}
+
 async function planner(page, side) {
   await page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
   await page.getByRole('tablist', { name: 'יומן ומשימות' }).getByRole('tab', { name: side === 'tasks' ? /^משימות/ : 'לו״ז' }).click();
@@ -530,7 +542,7 @@ async function main() {
     await pdfPage.pdf({ path: pdfPath, format: 'A4' });
     await pdfPage.close();
     await planner(dad.page, 'schedule');
-    await dad.page.getByRole('button', { name: '📚 מערכת שעות' }).click();
+    await calMenu(dad.page, 'אפשרויות', 'מערכת שעות');
     await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('group', { name: 'של מי' }).getByRole('button', { name: 'kid' }).click();
     await dad.page.getByLabel('בחירת קובץ מערכת').setInputFiles(pdfPath);
     await dad.page.locator('.schedule-img img').waitFor({ timeout: 20000 });
@@ -565,7 +577,7 @@ async function main() {
     await dad.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('Dad sees the children\'s timetable on his own home screen too');
     await planner(dad.page, 'schedule');
-    await dad.page.getByRole('button', { name: '📚 מערכת שעות' }).click();
+    await calMenu(dad.page, 'אפשרויות', 'מערכת שעות');
     await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('heading', { name: /של kid/ }).waitFor();
     assert.equal(await dad.page.getByRole('group', { name: 'של מי' }).locator('[aria-pressed=true]').innerText().then((t) => t.includes('kid')), true, 'only the daughter is selected');
     await dad.page.getByRole('dialog').getByLabel('סגירה').click();
@@ -574,7 +586,7 @@ async function main() {
     step('Birthdays');
     {
       await planner(dad.page, 'schedule');
-      await dad.page.getByRole('button', { name: '🎂 ימי הולדת' }).click();
+      await calMenu(dad.page, 'אפשרויות', 'ימי הולדת');
       const book = dad.page.getByRole('dialog', { name: 'ימי הולדת' });
       await book.getByRole('button', { name: '+ יום הולדת' }).click();
       const t = new Date();
@@ -596,8 +608,10 @@ async function main() {
       assert.equal(new URL(href).searchParams.get('recur'), 'RRULE:FREQ=YEARLY', 'Google copy repeats every year');
       await book.getByRole('button', { name: 'ביטול' }).click();
       await book.getByLabel('סגירה').click();
+      await upcomingView(dad.page);
       await dad.page.locator('.birthday-row', { hasText: 'סבתא רחל' }).waitFor();
       await planner(kid.page, 'schedule');
+      await upcomingView(kid.page);
       await kid.page.locator('.birthday-row', { hasText: 'סבתא רחל' }).waitFor({ timeout: 10000 });
       await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
       await kid.page.locator('.tile', { hasText: 'יומן' }).getByText('יום הולדת לסבתא רחל').waitFor();
@@ -938,7 +952,8 @@ async function main() {
     ok('Dad locked a folder: his note and the daughter\'s are encrypted; she opens the folder with its password, moves her note out (plain again); Dad removes the password');
 
     await planner(dad.page, 'schedule');
-    await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
+    await upcomingView(dad.page);
+    await calMenu(dad.page, 'הוספה', 'אירוע חדש');
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('חוג ציור');
     await dad.page.locator('input[type=time]').fill('17:30');
     await dad.page.getByRole('group', { name: 'מי משתתף' }).getByRole('button', { name: 'kid' }).click();
@@ -947,7 +962,7 @@ async function main() {
     await planner(kid.page, 'schedule');
     await kid.page.locator('.row', { hasText: 'חוג ציור' }).getByText('17:30').waitFor({ timeout: 10000 });
     ok('event added by Dad appears in the daughter\'s calendar');
-    await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
+    await calMenu(dad.page, 'הוספה', 'אירוע חדש');
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('טיול שנתי');
     await dad.page.getByLabel('כמה ימים').check();
     const dayLabelFor = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }); };
@@ -957,7 +972,7 @@ async function main() {
     await dad.page.getByRole('button', { name: 'שמירה' }).click();
     await dad.page.locator('.row', { hasText: 'טיול שנתי' }).locator('.until').waitFor();
     ok('multi-day event saved with an end date');
-    await dad.page.getByRole('button', { name: '+ אירוע חדש' }).click();
+    await calMenu(dad.page, 'הוספה', 'אירוע חדש');
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('שיעור פרטי');
     await dad.page.getByLabel('תאריך', { exact: true }).fill(iso(1));
     await dad.page.locator('.sheet input[type=time]').fill('16:00');
@@ -975,7 +990,7 @@ async function main() {
       await dad.page.locator('.month-grid .day', { has: dad.page.locator('.num', { hasText: new RegExp(`^${day.getDate()}$`) }) }).locator('.mark.ev').waitFor();
     }
     await dad.page.locator('.month-grid .day.today .mark.ev').waitFor();
-    await dad.page.getByRole('button', { name: '+ משימה ביום הזה' }).click();
+    await calMenu(dad.page, 'הוספה', 'משימה ליומן');
     await dad.page.getByPlaceholder('למשל: לקנות מתנה לסבתא').fill('לקנות מתנה');
     await dad.page.getByRole('dialog').getByRole('button', { name: 'kid' }).click();
     await dad.page.getByRole('dialog').getByRole('button', { name: 'הוספה' }).click();
@@ -1028,7 +1043,7 @@ async function main() {
         }
       }
       await planner(dad.page, 'tasks');
-      await dad.page.getByText('למי:').waitFor();
+      await dad.page.getByRole('button', { name: 'רק שלי' }).waitFor();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/tasks.png` });
     }
     if (process.env.STRESS) {
