@@ -50,6 +50,8 @@ import { memberName, useFamily } from './FamilyContext';
 import { Icon } from './Icon';
 import { ZoomViewer } from './ZoomViewer';
 import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
+import { MoreMenu } from './MoreMenu';
+import { KeyRound, Lock, LockOpen, Pencil, Pin, PinOff, RotateCcw, Shapes, Trash2 } from 'lucide-react';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -213,6 +215,7 @@ function ListDetail({
   const [text, setText] = useState('');
   const [target, setTarget] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<{ id: string; text: string; category: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cats = list.categories ?? [];
@@ -303,7 +306,7 @@ function ListDetail({
       <button className="link back" onClick={onBack}>→ כל הרשימות</button>
 
       <div className="list-hero">
-        <IconButton value={list.emoji} onPick={(v) => updateList(familyId, list.id, { emoji: v })} />
+        <IconButton value={list.emoji} open={picking} setOpen={setPicking} onPick={(v) => updateList(familyId, list.id, { emoji: v })} />
         <div className="list-hero-main">
           {renaming !== null ? (
             <form
@@ -329,6 +332,25 @@ function ListDetail({
           </p>
           {entries.length > 0 && <Progress done={done.length} total={entries.length} />}
         </div>
+        <MoreMenu
+          title={list.title}
+          items={[
+            { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => setRenaming(list.title) },
+            { label: 'החלפת הסמל', icon: <Shapes size={20} />, onClick: () => setPicking(true) },
+            { label: 'ניקוי סימונים', icon: <RotateCcw size={20} />, disabled: done.length === 0, onClick: () => confirm('לנקות את כל הסימונים ולהתחיל מחדש?') && resetList(familyId, entries) },
+            {
+              label: 'מחיקת הרשימה',
+              icon: <Trash2 size={20} />,
+              danger: true,
+              onClick: () => {
+                if (confirm(`למחוק את הרשימה "${list.title}" וכל מה שבה?`)) {
+                  deleteList(familyId, list.id, entries);
+                  onBack();
+                }
+              },
+            },
+          ]}
+        />
       </div>
 
       <form className="add-box list-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
@@ -375,20 +397,6 @@ function ListDetail({
       <div className="list-tools">
         <button className="whatsapp" disabled={entries.length === 0} onClick={() => shareList(list, sections)}>
           <Icon name="whatsapp" size={20} /> שליחת הרשימה לוואטסאפ
-        </button>
-        <button disabled={done.length === 0} onClick={() => confirm('לנקות את כל הסימונים ולהתחיל מחדש?') && resetList(familyId, entries)}>
-          ↺ ניקוי סימונים
-        </button>
-        <button
-          className="danger"
-          onClick={() => {
-            if (confirm(`למחוק את הרשימה "${list.title}" וכל מה שבה?`)) {
-              deleteList(familyId, list.id, entries);
-              onBack();
-            }
-          }}
-        >
-          מחיקת הרשימה
         </button>
       </div>
     </>
@@ -538,6 +546,7 @@ function Notebook({
       )}
 
       {folder && (
+        <div className="crumbs-row">
         <nav className="crumbs" aria-label="מיקום במחברת">
           <button className="link-plain" onClick={() => setFolder('')}>📒 פתקים</button>
           {ancestors.map((id) => (
@@ -553,6 +562,19 @@ function Notebook({
             </span>
           )}
         </nav>
+        {here && (
+          <MoreMenu
+            title={here.title}
+            items={[
+              { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: renameFolder },
+              here.locked && keyAlive(here.salt ?? '') && { label: 'נעילה עכשיו', icon: <Lock size={20} />, onClick: () => { forgetKey(here.salt ?? ''); setTick((n) => n + 1); } },
+              here.locked && keyAlive(here.salt ?? '') && here.createdBy === me.id && { label: 'הסרת הסיסמה', icon: <LockOpen size={20} />, disabled: !!work, onClick: unlockFolder },
+              !here.locked && !lock && here.createdBy === me.id && !locking && { label: 'נעילת התיקייה בסיסמה', icon: <KeyRound size={20} />, onClick: () => setLocking({ a: '', b: '' }) },
+              { label: 'מחיקת התיקייה', icon: <Trash2 size={20} />, danger: true, onClick: deleteFolder },
+            ]}
+          />
+        )}
+        </div>
       )}
 
       {lock && !keyAlive(lock.salt ?? '') ? (
@@ -637,22 +659,6 @@ function Notebook({
       )}
       {work && <p className="muted" role="status">{work}</p>}
 
-      {here && (
-        <div className="list-tools">
-          <button onClick={renameFolder}>✎ שינוי שם התיקייה</button>
-          {here.locked ? (
-            <>
-              <button onClick={() => { forgetKey(here.salt ?? ''); setTick((n) => n + 1); }}>🔐 נעילה עכשיו</button>
-              {here.createdBy === me.id && <button disabled={!!work} onClick={unlockFolder}>🔓 הסרת הסיסמה</button>}
-            </>
-          ) : (
-            !lock && here.createdBy === me.id && !locking && (
-              <button onClick={() => setLocking({ a: '', b: '' })}>🔐 נעילת התיקייה בסיסמה</button>
-            )
-          )}
-          <button className="danger" onClick={deleteFolder}>מחיקת התיקייה</button>
-        </div>
-      )}
       </>
       )}
     </>
@@ -899,6 +905,7 @@ function NoteEditor({
   const [error, setError] = useState('');
   const [zoom, setZoom] = useState<string | null>(null);
   const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
+  const [picking, setPicking] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const editing = useRef(false);
   const timer = useRef<number>();
@@ -1010,7 +1017,7 @@ function NoteEditor({
       <button className="link back" onClick={() => { flush(); onBack(); }}>→ {backLabel(note, all)}</button>
 
       <div className="list-hero">
-        <IconButton value={note.emoji} onPick={(v) => updateNote(familyId, note, { emoji: v })} />
+        <IconButton value={note.emoji} open={picking} setOpen={setPicking} onPick={(v) => updateNote(familyId, note, { emoji: v })} />
         <div className="list-hero-main">
           {renaming !== null ? (
             <form
@@ -1032,17 +1039,36 @@ function NoteEditor({
             </h2>
           )}
           <p className="muted list-sum">
+            {note.pinned && '📌 נעוץ · '}
             {!saved ? 'שומר…' : note.lockFolder ? '🔐 בתיקייה נעולה, פתוח כרגע' : note.locked ? '🔐 נעול בסיסמה, פתוח כרגע' : note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך'}
           </p>
         </div>
-        <button
-          className={`pin ${note.pinned ? 'on' : ''}`}
-          aria-pressed={!!note.pinned}
-          aria-label={note.pinned ? 'ביטול נעיצה' : 'נעיצה למעלה'}
-          onClick={() => updateNote(familyId, note, { pinned: !note.pinned })}
-        >
-          📌
-        </button>
+        <MoreMenu
+          title={note.title}
+          items={[
+            { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => setRenaming(note.title) },
+            { label: 'החלפת הסמל', icon: <Shapes size={20} />, onClick: () => setPicking(true) },
+            note.pinned
+              ? { label: 'ביטול נעיצה', icon: <PinOff size={20} />, onClick: () => updateNote(familyId, note, { pinned: false }) }
+              : { label: 'נעיצה למעלה', icon: <Pin size={20} />, onClick: () => updateNote(familyId, note, { pinned: true }) },
+            note.locked && { label: 'נעילה עכשיו', icon: <Lock size={20} />, onClick: () => { flush(); lockNow(); } },
+            note.locked && mine && !note.lockFolder && { label: 'הסרת הסיסמה', icon: <LockOpen size={20} />, disabled: !allImages, onClick: unlock },
+            !note.locked && mine && !locking && { label: 'נעילה בסיסמה', icon: <KeyRound size={20} />, onClick: () => setLocking({ a: '', b: '' }) },
+            {
+              label: 'מחיקת הפתק',
+              icon: <Trash2 size={20} />,
+              danger: true,
+              onClick: () => {
+                if (confirm(`למחוק את הפתק "${note.title}" וכל הקבצים שבו?`)) {
+                  window.clearTimeout(timer.current);
+                  gone.current = true;
+                  deleteNote(familyId, note, files ?? []);
+                  onBack();
+                }
+              },
+            },
+          ]}
+        />
       </div>
 
       <WhoSees note={note} files={files} />
@@ -1138,36 +1164,12 @@ function NoteEditor({
         </form>
       )}
 
-      <div className="list-tools">
-        {note.locked ? (
-          <>
-            <button onClick={() => { flush(); lockNow(); }}>🔐 נעילה עכשיו</button>
-            {mine && !note.lockFolder && <button disabled={!allImages} onClick={unlock}>🔓 הסרת הסיסמה</button>}
-          </>
-        ) : (
-          mine && !locking && <button onClick={() => setLocking({ a: '', b: '' })}>🔐 נעילה בסיסמה</button>
-        )}
-        <button
-          className="danger"
-          onClick={() => {
-            if (confirm(`למחוק את הפתק "${note.title}" וכל הקבצים שבו?`)) {
-              window.clearTimeout(timer.current);
-              gone.current = true;
-              deleteNote(familyId, note, files ?? []);
-              onBack();
-            }
-          }}
-        >
-          מחיקת הפתק
-        </button>
-      </div>
     </>
   );
 }
 
 /** The big icon at the top of a list or note; tapping it opens the icon choice. */
-function IconButton({ value, onPick }: { value: string; onPick: (value: string) => void }) {
-  const [open, setOpen] = useState(false);
+function IconButton({ value, onPick, open, setOpen }: { value: string; onPick: (value: string) => void; open: boolean; setOpen: (open: boolean) => void }) {
   return (
     <>
       <button className="list-emoji icon-change" aria-label="החלפת הסמל" aria-expanded={open} onClick={() => setOpen(!open)}>

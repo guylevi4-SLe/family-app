@@ -810,8 +810,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .new-list-row .new-list { flex: 1; }
 .new-note { background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; }
 .note-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.list-hero .pin { flex: none; width: 44px; height: 44px; border-radius: 50%; font-size: 1.2rem; opacity: 0.45; filter: grayscale(1); background: transparent; }
-.list-hero .pin.on { opacity: 1; filter: none; background: var(--accent-soft); }
 .note-body { width: 100%; min-height: 220px; resize: vertical; font: inherit; font-size: 1.02rem; line-height: 1.5; padding: 12px 14px; border-radius: var(--radius); }
 .note-files { display: grid; gap: 10px; }
 .note-file-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
@@ -856,3 +854,19 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .icon-pick button.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent); }
 .chip .list-icon { vertical-align: -3px; color: var(--accent); }
 .tile-list-icon { display: inline-grid; place-items: center; color: var(--accent); }
+
+/* ---------- "⋮" options menu ---------- */
+.more-button { flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 0; background: transparent; color: var(--muted); }
+.more-button:active { background: var(--accent-soft); }
+.more-sheet { gap: 6px; }
+.more-title { padding: 0 4px 6px; font-size: 1.05rem; }
+.more-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.more-item { width: 100%; display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; text-align: start; font-size: 1rem; font-weight: 600; }
+.more-item:active { background: var(--accent-soft); }
+.more-item .more-icon { display: grid; place-items: center; color: var(--accent); }
+.more-item.danger, .more-item.danger .more-icon { color: var(--danger); }
+.more-item:disabled { opacity: 0.45; }
+.more-cancel { margin-top: 6px; min-height: 48px; }
+.list-hero .more-button { align-self: flex-start; }
+.crumbs-row { display: flex; align-items: center; gap: 8px; }
+.crumbs-row .crumbs { flex: 1; }
