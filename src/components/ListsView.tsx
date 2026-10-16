@@ -500,7 +500,21 @@ function ListDetail({
 
   return (
     <>
-      <button className="link back" onClick={onBack}>→ כל הרשימות</button>
+      <div className="detail-top">
+        <button className="link back" onClick={() => { add(); onBack(); }}>→ כל הרשימות</button>
+        <button
+          type="button"
+          className="link lib-edit"
+          onClick={() => {
+            // Rows are saved as they're added; this only adds what's still typed and closes the list.
+            add();
+            (document.activeElement as HTMLElement | null)?.blur();
+            onBack();
+          }}
+        >
+          סיום
+        </button>
+      </div>
 
       <div className="list-hero">
         <IconButton value={list.emoji} open={picking} setOpen={setPicking} onPick={(v) => updateList(familyId, list.id, { emoji: v })} />
@@ -1285,6 +1299,7 @@ function NoteEditor({
               ? { label: 'ביטול נעיצה', icon: <PinOff size={20} />, onClick: () => updateNote(familyId, note, { pinned: false }) }
               : { label: 'נעיצה למעלה', icon: <Pin size={20} />, onClick: () => updateNote(familyId, note, { pinned: true }) },
             { label: 'העברה לתיקייה', icon: <FolderInput size={20} />, disabled: busy, onClick: () => setMoving(true) },
+            !note.locked && !note.lockFolder && { label: 'שיתוף בווטסאפ', icon: <Icon name="whatsapp" size={20} />, onClick: () => { flush(); shareItem({ ...note, body: latest.current }, []); } },
             note.locked && { label: 'נעילה עכשיו', icon: <Lock size={20} />, onClick: () => { flush(); lockNow(); } },
             note.locked && mine && !note.lockFolder && { label: 'הסרת הסיסמה', icon: <LockOpen size={20} />, disabled: !allImages, onClick: unlock },
             !note.locked && mine && !locking && { label: 'נעילה בסיסמה', icon: <KeyRound size={20} />, onClick: () => setLocking({ a: '', b: '' }) },

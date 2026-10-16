@@ -706,7 +706,10 @@ async function main() {
     await addNew(lists, 'רשימה חדשה');
     await lists.getByLabel('שם הרשימה').fill('אאא לבדיקה');
     await lists.getByRole('button', { name: 'יצירת הרשימה' }).click();
-    await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
+    // "סיום" adds what's still typed (no Enter) and closes the list.
+    await lists.getByLabel('הוספת שורות').fill('פנס');
+    await lists.getByRole('button', { name: 'סיום', exact: true }).click();
+    await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).getByText('0 מתוך 1').waitFor({ timeout: 10000 });
     const titles = (page) => page.locator('.lists-page .list-card strong').allInnerTexts();
     assert.deepEqual((await titles(dad.page)).slice(0, 2), ['אאא לבדיקה', 'ציוד לטיול']);
     // A quick tap still opens a list; holding it lifts it, and dragging moves it.
