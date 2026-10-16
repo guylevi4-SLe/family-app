@@ -214,7 +214,20 @@ function ItemRow({ item, last, onToggle, onEdit }: { item: Item; last?: PriceEnt
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
         <span className="box" aria-hidden="true">{item.checked ? '✓' : ''}</span>
         <span className="name">{item.name}</span>
-        {item.qty && <span className="qty">{item.qty}</span>}
+        {item.qty && (
+          // The quantity opens the edit sheet (to change it) instead of ticking the item.
+          <span
+            className="qty"
+            role="button"
+            aria-label={`שינוי כמות ${item.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+          >
+            {item.qty}
+          </span>
+        )}
         {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}
       </button>
       {last && (

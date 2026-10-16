@@ -102,6 +102,13 @@ async function main() {
     ok('WhatsApp button opens a share with the list grouped by department');
 
     // Prices: ticking asks nothing; after shopping, "רישום מחירים" under "נקנו" takes prices for the bought items.
+    await row(dad, 'לחם').getByRole('button', { name: 'שינוי כמות לחם', exact: true }).click();
+    const qtySheet = dad.page.getByRole('dialog', { name: 'עריכת לחם' });
+    await qtySheet.getByText('כמות').waitFor();
+    assert.equal(await row(dad, 'לחם').locator('.check-area').getAttribute('aria-pressed'), 'false', 'tapping the quantity does not tick the item');
+    await qtySheet.getByRole('button', { name: 'שמירה' }).click();
+    await qtySheet.waitFor({ state: 'detached' });
+    ok('tapping the quantity opens the edit sheet');
     await add(dad, "קוטג' 3%");
     await row(dad, "קוטג' 3%").locator('.check-area').click();
     assert.equal(await dad.page.getByLabel('מחיר ששולם').count(), 0, 'ticking does not ask for a price');
@@ -182,13 +189,13 @@ async function main() {
 
     step('Meanwhile Dad (online) edits; both edit the same products offline');
     await row(dad, 'לחם').getByRole('button', { name: /עריכת/ }).click();
-    await dad.page.getByLabel('כמות').fill('3');
+    await dad.page.getByRole('dialog').getByLabel('כמות').fill('3');
     await dad.page.getByRole('button', { name: 'שמירה' }).click();
     // Dad deletes "עגבניות" while the daughter (offline) renames its quantity.
     await row(dad, 'עגבניות').getByRole('button', { name: /עריכת/ }).click();
     await dad.page.getByRole('button', { name: 'מחיקה' }).click();
     await row(kid, 'עגבניות').getByRole('button', { name: /עריכת/ }).click();
-    await kid.page.getByLabel('כמות').fill('1 ק"ג');
+    await kid.page.getByRole('dialog').getByLabel('כמות').fill('1 ק"ג');
     await kid.page.getByRole('button', { name: 'שמירה' }).click();
     // Both add "ביצים".
     await add(dad, 'ביצים');
