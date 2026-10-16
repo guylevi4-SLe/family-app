@@ -277,11 +277,24 @@ function Library({
   return (
     <>
       <div className="lib-head">
-        <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש בפתקים וברשימות" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
+        <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
         {!q && (
           <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
             {editing ? 'סיום' : 'עריכה'}
           </button>
+        )}
+        {!q && !editing && !creating && (
+          <MoreMenu
+            label="הוספה"
+            className="lib-add"
+            icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
+            title="הוספה"
+            items={[
+              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => setCreating('note') },
+              { label: 'רשימה חדשה', icon: <ListChecks size={20} />, onClick: () => setCreating('list') },
+              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
+            ]}
+          />
         )}
       </div>
 
@@ -382,21 +395,6 @@ function Library({
       )}
 
       {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
-      {!creating && (
-        <div className="fab-wrap">
-          <MoreMenu
-            label="הוספה"
-            className="fab"
-            icon={<Plus size={28} strokeWidth={2.4} aria-hidden="true" />}
-            title="הוספה"
-            items={[
-              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => setCreating('note') },
-              { label: 'רשימה חדשה', icon: <ListChecks size={20} />, onClick: () => setCreating('list') },
-              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
-            ]}
-          />
-        </div>
-      )}
     </>
   );
 }
@@ -789,11 +787,25 @@ function Notebook({
         <FolderGate folder={lock} onOpen={() => setTick((n) => n + 1)} />
       ) : (
       <>
-      {!creating && folders.length + notes.length > 0 && (
+      {!creating && (
         <div className="lib-head end">
-          <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-            {editing ? 'סיום' : 'עריכה'}
-          </button>
+          {folders.length + notes.length > 0 && (
+            <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
+              {editing ? 'סיום' : 'עריכה'}
+            </button>
+          )}
+          {!editing && (
+            <MoreMenu
+              label="הוספה"
+              className="lib-add"
+              icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
+              title={here ? `הוספה ל"${here.title}"` : 'הוספה'}
+              items={[
+                { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
+                { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
+              ]}
+            />
+          )}
         </div>
       )}
       {creating && (
@@ -860,20 +872,6 @@ function Notebook({
       )}
 
       {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
-      {!creating && (
-        <div className="fab-wrap">
-          <MoreMenu
-            label="הוספה"
-            className="fab"
-            icon={<Plus size={28} strokeWidth={2.4} aria-hidden="true" />}
-            title={here ? `הוספה ל"${here.title}"` : 'הוספה'}
-            items={[
-              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
-              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
-            ]}
-          />
-        </div>
-      )}
 
       {locking && (
         <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lockFolder(); }}>

@@ -942,3 +942,4 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .confirm-icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
 .confirm-yes { width: 100%; min-height: 50px; border: 0; border-radius: 14px; background: var(--danger); color: #fff; font-weight: 700; font-size: 1.05rem; }
 .confirm-sheet .more-cancel { width: 100%; }
+.lib-add { flex: none; width: 42px; height: 42px; min-height: 0; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
