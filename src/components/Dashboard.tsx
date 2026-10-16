@@ -1,4 +1,5 @@
 import type { Item } from '../data/items';
+import { orderedDepartments } from '../data/departments';
 import type { Task } from '../data/tasks';
 import { dayLabel, expandEvents, lastDay, untilLabel, isoDate, type FamilyEvent } from '../data/events';
 import { memberName, useFamily } from './FamilyContext';
@@ -17,6 +18,7 @@ export function Dashboard({
   lists,
   listEntries,
   birthdays,
+  deptOrder,
   go,
   openSchedule,
   openList,
@@ -28,12 +30,18 @@ export function Dashboard({
   lists: FamilyList[] | undefined;
   listEntries: ListEntry[] | undefined;
   birthdays: Birthday[] | undefined;
+  deptOrder: string[] | undefined;
   go: (s: Screen) => void;
   openSchedule: (uid: string) => void;
   openList: (id: string | null) => void;
 }) {
   const { me, members } = useFamily();
-  const toBuy = (items ?? []).filter((i) => !i.deleted && !i.checked);
+  // In the shopping list's own order: the family's department order, then the order they were added.
+  const depts = orderedDepartments(deptOrder);
+  const deptRank = (i: Item) => (depts.includes(i.category) ? depts.indexOf(i.category) : depts.length - 1);
+  const toBuy = (items ?? [])
+    .filter((i) => !i.deleted && !i.checked)
+    .sort((a, b) => deptRank(a) - deptRank(b) || (a.addedAt?.toMillis() ?? Infinity) - (b.addedAt?.toMillis() ?? Infinity));
   const open = (tasks ?? []).filter((t) => !t.deleted && !t.done);
   const mine = open.filter((t) => t.assignee === me.id);
   const today = isoDate(new Date());

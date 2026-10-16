@@ -244,6 +244,9 @@ async function main() {
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));
     await kid.page.reload();
     await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).waitFor();
+    const tileText = await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).locator('.tile-body').innerText();
+    const at = (n) => tileText.indexOf(n);
+    assert.ok(at('עגבניות') === 0 && at('ביצים') > 0 && at('ביצים') < at('לחם'), `the shopping tile follows the department order: ${tileText}`);
     ok('start screen "home" shows the dashboard tiles');
     await planner(dad.page, 'tasks');
     await dad.page.getByLabel('משימה חדשה').fill('לתלות כביסה');
