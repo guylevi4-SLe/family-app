@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon-64.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon-pink-64.png', 'apple-touch-icon-pink.png'],
       manifest: {
         name: "לוי'ס",
         short_name: "לוי'ס",
@@ -19,9 +19,9 @@ export default defineConfig({
         background_color: '#fdf7fa',
         theme_color: '#fdf7fa',
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon-pink-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-pink-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icon-pink-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {

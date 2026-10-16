@@ -286,7 +286,7 @@ async function main() {
       ok('marking a task done asks for confirmation');
       await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip').click();
     }
-    await dad.page.getByLabel('בחירת תמונה', { exact: true }).setInputFiles('public/icon-512.png');
+    await dad.page.getByLabel('בחירת תמונה', { exact: true }).setInputFiles('public/icon-pink-512.png');
     await dad.page.locator('.photo-preview img').waitFor();
     await dad.page.getByRole('dialog').getByRole('button', { name: 'שליחה' }).click();
     await kid.page.locator('.comment-photo img').waitFor({ timeout: 10000 });
@@ -528,7 +528,7 @@ async function main() {
       await sheet.getByRole('button', { name: 'שאלה על המוצר בוואטסאפ' }).click();
       const askBox = p.getByRole('dialog', { name: 'שאלה בוואטסאפ' });
       assert.equal(await askBox.getByRole('textbox', { name: 'השאלה' }).inputValue(), 'איזה אחוז שומן?', 'what was typed carries over');
-      await askBox.getByLabel('בחירת תמונה לשאלה').setInputFiles('public/icon-512.png');
+      await askBox.getByLabel('בחירת תמונה לשאלה').setInputFiles('public/icon-pink-512.png');
       await askBox.getByRole('img', { name: 'התמונה שתצורף לשאלה' }).waitFor();
       if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/ask-photo.png` });
       await askBox.getByRole('button', { name: 'שליחה בוואטסאפ' }).click();
@@ -812,7 +812,7 @@ async function main() {
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('שער חניה: 1234\nאזעקה: 9876');
     await lists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor();
-    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles([`${process.env.TMPDIR || '/tmp'}/timetable-e2e.pdf`, 'public/icon-512.png']);
+    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles([`${process.env.TMPDIR || '/tmp'}/timetable-e2e.pdf`, 'public/icon-pink-512.png']);
     await lists.locator('.note-file').nth(1).waitFor({ timeout: 20000 });
     await menu(lists, 'נעיצה למעלה');
     await lists.getByText('📌 נעוץ', { exact: false }).waitFor();
@@ -848,7 +848,7 @@ async function main() {
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).click();
     await dad.page.waitForFunction(() => document.querySelector('.note-body')?.value.includes('וויפי'), null, { timeout: 10000 });
-    await lists.getByRole('button', { name: 'מחיקת icon-512.png' }).click();
+    await lists.getByRole('button', { name: 'מחיקת icon-pink-512.png' }).click();
     await lists.locator('.note-file').nth(1).waitFor({ state: 'detached' });
     await lists.getByRole('button', { name: '→ ביטוחים' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
@@ -867,7 +867,7 @@ async function main() {
     await lists.getByLabel('שם הפתק').fill('תעודות זהות');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('אבא: 012345678');
-    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-512.png');
+    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-pink-512.png');
     await lists.locator('.note-file').first().waitFor({ timeout: 20000 });
     await lists.getByLabel('תוכן הפתק').blur();
     await lists.locator('.who-sees').getByText('כל המשפחה').waitFor();
@@ -910,7 +910,7 @@ async function main() {
     await lists.getByLabel('שם הפתק').fill('קוד אזעקה');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('אזעקה: 9876');
-    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-512.png');
+    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-pink-512.png');
     await lists.locator('.note-file img').first().waitFor({ timeout: 20000 });
     await lists.getByLabel('תוכן הפתק').blur();
     await menu(lists, 'נעילה בסיסמה');
@@ -996,7 +996,7 @@ async function main() {
     await lists.getByLabel('שם הפתק').fill('דרכון');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('דרכון: 111');
-    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-512.png');
+    await lists.getByLabel('בחירת קובץ לפתק').setInputFiles('public/icon-pink-512.png');
     await lists.locator('.note-file img').first().waitFor({ timeout: 20000 });
     await lists.getByLabel('תוכן הפתק').blur();
     await lists.getByRole('button', { name: '→ מסמכים' }).click();
