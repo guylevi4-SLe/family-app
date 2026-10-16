@@ -1,4 +1,4 @@
-import { LOGO_PATH } from './components/BrandLogo';
+import { LOGO_PATH, LOGO_TEXT } from './components/BrandLogo';
 // Colour palettes. The choice is per device and is applied before the first render.
 export const PALETTES = [
   { id: 'goldlight', label: 'לבן וזהב', swatch: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', bar: '#f5f3ee' },
@@ -45,7 +45,7 @@ function paintFavicon() {
   const ink = css.getPropertyValue('--accent-ink').trim();
   const bg = css.getPropertyValue('--surface-2').trim();
   if (!accent) return;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="42" fill="${bg}"/><path d="${LOGO_PATH}" fill="${accent}" stroke="${accent}" stroke-width="6" stroke-linejoin="round"/><text x="96" y="117" text-anchor="middle" font-size="50" font-weight="800" font-family="Heebo, Arial, sans-serif" fill="${ink}">לוי'ס</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="42" fill="${bg}"/><path d="${LOGO_PATH}" fill="${accent}" stroke="${accent}" stroke-width="6" stroke-linejoin="round"/><text x="96" y="117" text-anchor="middle" font-size="50" font-weight="800" font-family="Heebo, Arial, sans-serif" fill="${ink}" direction="ltr" unicode-bidi="bidi-override">${LOGO_TEXT}</text></svg>`;
   const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
   if (link) {
     link.type = 'image/svg+xml';
