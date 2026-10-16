@@ -19,7 +19,7 @@ export function readPalette(): Palette {
   } catch {
     /* storage may be blocked */
   }
-  return 'goldlight';
+  return 'pink';
 }
 
 export function applyPalette(id: Palette, save = false) {
