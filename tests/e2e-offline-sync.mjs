@@ -745,6 +745,9 @@ async function main() {
     await lists.getByRole('button', { name: 'שיתוף' }).waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-swipe.png` });
     await lists.getByRole('button', { name: 'מחיקה', exact: true }).click();
+    await dad.page.getByRole('alertdialog', { name: 'למחוק את הרשימה "אאא למחיקה"?' }).waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/confirm-delete.png` });
+    await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
     await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor({ state: 'detached' });
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'swiping does not open the list');
     ok('the library: edit mode renames, a left swipe shows share and delete');
@@ -853,6 +856,7 @@ async function main() {
     await lists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor({ timeout: 10000 });
     await lists.locator('.note-file').first().waitFor({ timeout: 10000 });
     await menu(lists, 'מחיקת הפתק');
+    await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
     await lists.getByRole('button', { name: 'הוספה', exact: true }).waitFor();
     await kidLists.getByLabel('חיפוש בפתקים').fill('');
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
@@ -928,6 +932,7 @@ async function main() {
     await lists.locator('.note-file img').first().waitFor({ timeout: 15000 });
     assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אזעקה: 9876\nכספת: 4321');
     await menu(lists, 'מחיקת הפתק');
+    await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
     await lists.getByRole('button', { name: 'הוספה', exact: true }).waitFor();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
     ok('Dad locked a note with a password: the server holds only ciphertext; the daughter opens it with the password; only Dad removes it');

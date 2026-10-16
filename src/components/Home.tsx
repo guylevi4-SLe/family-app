@@ -18,6 +18,7 @@ import { defaultScheduleUid } from '../data/schedules';
 import { Icon, type IconName } from './Icon';
 import { clearBadge, takePendingUrl } from '../push';
 import { FamilyContext } from './FamilyContext';
+import { ConfirmHost } from './ConfirmSheet';
 
 interface Family {
   name: string;
@@ -221,6 +222,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
       }}
     >
       <div className="app">
+        <ConfirmHost />
         <header className="topbar">
           <h1 className="with-logo">
             {view === 'home' ? (

@@ -57,6 +57,7 @@ import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Loc
 import { LibRow } from './LibRow';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
+import { confirmDelete } from './ConfirmSheet';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -139,7 +140,7 @@ function shareItem(item: FamilyList, entries: ListEntry[]) {
 /** Deletes a list, or a note with its files, after asking. */
 async function removeItem(familyId: string, item: FamilyList, entries: ListEntry[]) {
   const what = item.kind === 'note' ? 'הפתק' : 'הרשימה';
-  if (!confirm(`למחוק את ${what} "${item.title}"${item.kind === 'note' ? ' וכל הקבצים שבו' : ' וכל מה שבה'}?`)) return;
+  if (!(await confirmDelete(`למחוק את ${what} "${item.title}"?`, `${item.kind === 'note' ? 'הפתק וכל הקבצים שבו יימחקו' : 'הרשימה וכל מה שבה יימחקו'} לכל המשפחה. אי אפשר לבטל.`))) return;
   if (item.kind === 'note') deleteNote(familyId, item, await fetchNoteFiles(familyId, item));
   else deleteList(familyId, item.id, entries.filter((e) => e.listId === item.id));
 }
@@ -246,7 +247,7 @@ function Library({
   };
   const removeFolder = (f: FamilyList) => {
     if (all.some((l) => l.kind && l.parentId === f.id)) return alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
-    if (confirm(`למחוק את התיקייה "${f.title}"?`)) deleteList(familyId, f.id, []);
+    confirmDelete(`למחוק את התיקייה "${f.title}"?`).then((ok) => ok && deleteList(familyId, f.id, []));
   };
   const [moving, setMoving] = useState<FamilyList | null>(null);
   const itemActions = (l: FamilyList) => [
@@ -541,10 +542,11 @@ function ListDetail({
               icon: <Trash2 size={20} />,
               danger: true,
               onClick: () => {
-                if (confirm(`למחוק את הרשימה "${list.title}" וכל מה שבה?`)) {
+                confirmDelete(`למחוק את הרשימה "${list.title}"?`, 'הרשימה וכל מה שבה יימחקו לכל המשפחה. אי אפשר לבטל.').then((ok) => {
+                  if (!ok) return;
                   deleteList(familyId, list.id, entries);
                   onBack();
-                }
+                });
               },
             },
           ]}
@@ -725,7 +727,7 @@ function Notebook({
   };
   const deleteSub = (f: FamilyList) => {
     if (all.some((l) => l.kind && at(l) === f.id)) return alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
-    if (confirm(`למחוק את התיקייה "${f.title}"?`)) deleteList(familyId, f.id, []);
+    confirmDelete(`למחוק את התיקייה "${f.title}"?`).then((ok) => ok && deleteList(familyId, f.id, []));
   };
   const renameItem = (l: FamilyList) => {
     const name = prompt('שם חדש', l.title)?.trim();
@@ -737,10 +739,11 @@ function Notebook({
       alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
       return;
     }
-    if (confirm(`למחוק את התיקייה "${here.title}"?`)) {
+    confirmDelete(`למחוק את התיקייה "${here.title}"?`).then((ok) => {
+      if (!ok) return;
       deleteList(familyId, here.id, []);
       up();
-    }
+    });
   };
 
   return (
@@ -1292,12 +1295,13 @@ function NoteEditor({
               icon: <Trash2 size={20} />,
               danger: true,
               onClick: () => {
-                if (confirm(`למחוק את הפתק "${note.title}" וכל הקבצים שבו?`)) {
+                confirmDelete(`למחוק את הפתק "${note.title}"?`, 'הפתק וכל הקבצים שבו יימחקו לכל המשפחה. אי אפשר לבטל.').then((ok) => {
+                  if (!ok) return;
                   window.clearTimeout(timer.current);
                   gone.current = true;
                   deleteNote(familyId, note, files ?? []);
                   onBack();
-                }
+                });
               },
             },
           ]}

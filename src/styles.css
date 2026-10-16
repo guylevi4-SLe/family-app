@@ -936,3 +936,9 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .lock-mark { display: inline-block; vertical-align: -0.125em; margin-inline-end: 0.3em; color: var(--accent); flex: none; }
 button .lock-mark, .primary .lock-mark { color: inherit; }
 .move-current { margin-inline-start: auto; color: var(--accent); }
+.confirm-sheet { text-align: center; display: grid; justify-items: center; gap: 10px; }
+.confirm-sheet .more-title { font-size: 1.15rem; }
+.confirm-sheet p { margin: 0 0 6px; }
+.confirm-icon { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.confirm-yes { width: 100%; min-height: 50px; border: 0; border-radius: 14px; background: var(--danger); color: #fff; font-weight: 700; font-size: 1.05rem; }
+.confirm-sheet .more-cancel { width: 100%; }
