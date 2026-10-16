@@ -222,6 +222,20 @@ service cloud.firestore {
       }
 
       // Family corrections to the built-in product dictionary.
+      // ---------- prices paid per product (shopping list) ----------
+      match /prices/{priceId} {
+        allow read: if isMember(fid);
+        allow create: if isMember(fid)
+          && onlyKeys(['key', 'name', 'price', 'store', 'at', 'by'])
+          && shortString(data().key, 120) && data().key.size() > 0
+          && shortString(data().name, 80)
+          && (data().price is int || data().price is float) && data().price > 0 && data().price < 100000
+          && shortString(data().store, 40)
+          && data().at == request.time
+          && data().by == me();
+        allow delete: if isMember(fid) && (resource.data.by == me() || isAdmin(fid));
+      }
+
       match /categoryOverrides/{norm} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)

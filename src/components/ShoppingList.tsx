@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { addItems, clearChecked, parseItems, updateItem, type Item } from '../data/items';
-import { useOverrides } from '../data/hooks';
+import { useOverrides, usePrices } from '../data/hooks';
+import { addPrice, formatPrice, knownStores, parsePrice, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { CommentButton } from './CommentButton';
 import { Icon } from './Icon';
@@ -18,11 +19,16 @@ export function ShoppingList({
   deptOrder: string[] | undefined;
 }) {
   const overrides = useOverrides(familyId);
+  const priceRows = usePrices(familyId);
+  const byKey = useMemo(() => pricesByKey(priceRows), [priceRows]);
+  const stores = useMemo(() => knownStores(priceRows), [priceRows]);
+  const lastPrice = (it: Item) => byKey.get(priceKey(it.name))?.[0];
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<Item | null>(null);
   const [showBought, setShowBought] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [undo, setUndo] = useState<{ item: Item; timer: number } | null>(null);
+  const [paid, setPaid] = useState({ price: '', store: '' });
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const byId = useMemo(() => new Map((items ?? []).map((i) => [i.id, i])), [items]);
@@ -59,8 +65,9 @@ export function ShoppingList({
     updateItem(familyId, it.id, { checked: !it.checked });
     if (!it.checked) {
       if (undo) clearTimeout(undo.timer);
-      const timer = window.setTimeout(() => setUndo(null), 5000);
+      const timer = window.setTimeout(() => setUndo(null), 7000);
       setUndo({ item: it, timer });
+      setPaid({ price: '', store: stores[0] ?? '' });
     }
   };
 
@@ -83,7 +90,7 @@ export function ShoppingList({
             <h2>{dept}</h2>
             <ul>
               {list.map((it) => (
-                <ItemRow key={it.id} item={it} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} />
+                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} />
               ))}
             </ul>
           </section>
@@ -103,7 +110,7 @@ export function ShoppingList({
           {showBought && (
             <ul>
               {bought.map((it) => (
-                <ItemRow key={it.id} item={it} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} />
+                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} />
               ))}
             </ul>
           )}
@@ -134,17 +141,39 @@ export function ShoppingList({
       )}
 
       {undo && (
-        <div className="toast" role="status">
-          <span>{undo.item.name} סומן כנקנה</span>
-          <button
-            onClick={() => {
-              updateItem(familyId, undo.item.id, { checked: false });
-              clearTimeout(undo.timer);
+        <div className="toast bought-toast" role="status">
+          <div className="toast-line">
+            <span>{undo.item.name} סומן כנקנה</span>
+            <button
+              onClick={() => {
+                updateItem(familyId, undo.item.id, { checked: false });
+                clearTimeout(undo.timer);
+                setUndo(null);
+              }}
+            >
+              ביטול
+            </button>
+            <button aria-label="סגירה" onClick={() => { clearTimeout(undo.timer); setUndo(null); }}>✕</button>
+          </div>
+          {/* Optional: what was paid, kept as the product's price history. Typing keeps the toast open. */}
+          <form
+            className="paid-form"
+            onFocus={() => clearTimeout(undo.timer)}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const price = parsePrice(paid.price);
+              if (!price) return;
+              addPrice(familyId, undo.item.name, price, paid.store);
               setUndo(null);
             }}
           >
-            ביטול
-          </button>
+            <input inputMode="decimal" placeholder="כמה שילמת? ₪" aria-label="מחיר ששולם" value={paid.price} onChange={(e) => setPaid({ ...paid, price: e.target.value })} />
+            <input list="known-stores" placeholder="איפה?" aria-label="חנות" maxLength={40} value={paid.store} onChange={(e) => setPaid({ ...paid, store: e.target.value })} />
+            <button disabled={!parsePrice(paid.price)}>שמירה</button>
+            <datalist id="known-stores">
+              {stores.map((st) => <option key={st} value={st} />)}
+            </datalist>
+          </form>
         </div>
       )}
 
@@ -153,6 +182,10 @@ export function ShoppingList({
           familyId={familyId}
           item={byId.get(editing.id) ?? editing}
           deptOrder={deptOrder}
+          byKey={byKey}
+          stores={stores}
+          existing={byId}
+          overrides={overrides}
           onClose={() => setEditing(null)}
         />
       )}
@@ -187,7 +220,7 @@ export function ShoppingList({
   );
 }
 
-function ItemRow({ item, onToggle, onEdit }: { item: Item; onToggle: () => void; onEdit: () => void }) {
+function ItemRow({ item, last, onToggle, onEdit }: { item: Item; last?: PriceEntry; onToggle: () => void; onEdit: () => void }) {
   return (
     <li className={`row ${item.checked ? 'checked' : ''}`}>
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
@@ -196,6 +229,11 @@ function ItemRow({ item, onToggle, onEdit }: { item: Item; onToggle: () => void;
         {item.qty && <span className="qty">{item.qty}</span>}
         {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}
       </button>
+      {last && (
+        <button className="price-tag" aria-label={`מחיר אחרון ${formatPrice(last.price)}${last.store ? ` ב${last.store}` : ''}`} onClick={onEdit}>
+          {formatPrice(last.price)}
+        </button>
+      )}
       <CommentButton type="item" id={item.id} title={item.name} />
       <button className="icon-button edit" aria-label={`עריכת ${item.name}`} onClick={onEdit}>
         <Icon name="edit" size={18} />

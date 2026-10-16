@@ -390,6 +390,28 @@ describe('drag order', () => {
   });
 });
 
+describe('prices', () => {
+  it('members record what they paid; only the payer or an admin removes it; outsiders cannot', async () => {
+    await createInvite('dad', 'levi', 'CODE30', 'member');
+    await requestToJoin('son', 'levi', 'CODE30', 'member');
+    await approve('dad', 'levi', 'son', 'member');
+    const P = { key: 'קוטג 3%', name: "קוטג' 3%", price: 5.9, store: 'רמי לוי', at: serverTimestamp(), by: 'son' };
+    await assertSucceeds(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'p1'), P));
+    await assertSucceeds(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'p2'), { ...P, price: 6, store: '' }));
+    await assertSucceeds(getDocs(collection(db('dad'), 'families', 'levi', 'prices')));
+    await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, by: 'dad' }));
+    await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, price: -1 }));
+    await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, price: '5' }));
+    await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, store: 'א'.repeat(41) }));
+    await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, note: 'x' }));
+    await assertFails(updateDoc(doc(db('son'), 'families', 'levi', 'prices', 'p1'), { price: 1 }));
+    await assertFails(getDocs(collection(db('neighbor'), 'families', 'levi', 'prices')));
+    await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'prices', 'x'), { ...P, by: 'neighbor' }));
+    await assertSucceeds(deleteDoc(doc(db('son'), 'families', 'levi', 'prices', 'p1')));
+    await assertSucceeds(deleteDoc(doc(db('dad'), 'families', 'levi', 'prices', 'p2')));
+  });
+});
+
 describe('notes', () => {
   it('members keep notes with text and attached JPEGs; outsiders cannot; files need a real note', async () => {
     await createInvite('dad', 'levi', 'CODE20', 'child');

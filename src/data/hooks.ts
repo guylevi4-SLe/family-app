@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { PriceEntry } from './prices';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import {
   collection,
@@ -95,6 +96,10 @@ export function useItems(fid: string) {
     () => collection(db, 'families', fid, 'items'),
     (id, d, pending) => ({ id, ...(d as Omit<Item, 'id' | 'pending'>), pending }),
   );
+}
+
+export function usePrices(fid: string) {
+  return useQuery<PriceEntry>(`prices/${fid}`, () => collection(db, 'families', fid, 'prices'), (id, d) => ({ id, ...(d as Omit<PriceEntry, 'id'>) }));
 }
 
 export function useMembers(fid: string) {

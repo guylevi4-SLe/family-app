@@ -101,6 +101,34 @@ async function main() {
     assert.ok(!shared.includes('\n\n'), 'no blank lines between departments');
     ok('WhatsApp button opens a share with the list grouped by department');
 
+    // Prices: ticking offers "how much?"; the price is a small tag in the row; the edit sheet offers kinds bought before.
+    await add(dad, "קוטג' 3%");
+    await row(dad, "קוטג' 3%").locator('.check-area').click();
+    const toast = dad.page.locator('.bought-toast');
+    await toast.getByLabel('מחיר ששולם').fill('5,90');
+    await toast.getByLabel('חנות').fill('רמי לוי');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-toast.png` });
+    await toast.getByRole('button', { name: 'שמירה' }).click();
+    await toast.waitFor({ state: 'detached' });
+    await add(dad, "קוטג'");
+    await row(dad, "קוטג'").waitFor();
+    assert.equal(await row(dad, "קוטג'").locator('.price-tag').count(), 0, 'no price is guessed for a different name');
+    await row(dad, "קוטג'").getByRole('button', { name: /עריכת/ }).click();
+    const kindSheet = dad.page.getByRole('dialog', { name: /עריכת/ });
+    await kindSheet.getByRole('group', { name: 'סוגים שקניתם בעבר' }).getByRole('button', { name: /קוטג' 3%/ }).click();
+    const tag = row(dad, "קוטג' 3%").getByRole('button', { name: 'מחיר אחרון ₪5.90 ברמי לוי' });
+    await tag.waitFor({ timeout: 10000 });
+    const rowH = await row(dad, "קוטג' 3%").evaluate((el) => el.getBoundingClientRect().height);
+    const plainH = await row(dad, 'לחם').evaluate((el) => el.getBoundingClientRect().height);
+    assert.equal(rowH, plainH, 'the price tag does not make the row taller');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-tag.png` });
+    await tag.click();
+    await kindSheet.getByRole('list', { name: 'היסטוריית מחירים' }).getByText('רמי לוי').waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-sheet.png` });
+    await kindSheet.getByRole('button', { name: 'מחיקה' }).click();
+    await row(dad, "קוטג' 3%").waitFor({ state: 'detached' });
+    ok('a price paid is kept per product, shown as a small tag, and "קוטג\'" can become the kind bought before');
+
     step('Dad invites the daughter; she cannot see anything until approved');
     await dad.page.getByLabel('הגדרות').click();
     await dad.page.getByLabel('תפקיד').selectOption('child');
