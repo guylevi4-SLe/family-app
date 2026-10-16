@@ -2,10 +2,10 @@ import { LOGO_PATH, LOGO_TEXT } from './components/BrandLogo';
 // Colour palettes. The choice is per device and is applied before the first render.
 export const PALETTES = [
   { id: 'goldlight', label: 'לבן וזהב', swatch: 'linear-gradient(135deg, #fff 50%, #c99700 50%)', bar: '#f5f3ee' },
-  { id: 'gold', label: 'שחור וזהב', swatch: '#f5c518', bar: '#090909' },
+  { id: 'gold', label: 'צהוב ושחור', swatch: 'linear-gradient(135deg, #090909 50%, #f5c518 50%)', bar: '#090909' },
   { id: 'orange', label: 'כתום ולבן', swatch: 'linear-gradient(135deg, #fff 50%, #d97757 50%)', bar: '#faf9f5' },
   { id: 'pink', label: 'ורוד ולבן', swatch: 'linear-gradient(135deg, #fff 50%, #be185d 50%)', bar: '#fdf7fa' },
-  { id: 'green', label: 'ירוק (הקלאסי)', swatch: '#2f6f4f', bar: '' },
+  { id: 'green', label: 'ירוק ולבן', swatch: 'linear-gradient(135deg, #fff 50%, #2f6f4f 50%)', bar: '' },
 ] as const;
 
 export type Palette = (typeof PALETTES)[number]['id'];
