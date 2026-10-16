@@ -2,8 +2,9 @@ import { useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { addItems, clearChecked, parseItems, updateItem, type Item } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
-import { addPrice, formatPrice, knownStores, parsePrice, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
+import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
+import { PaidSheet } from './PaidSheet';
 import { CommentButton } from './CommentButton';
 import { Icon } from './Icon';
 
@@ -28,7 +29,7 @@ export function ShoppingList({
   const [showBought, setShowBought] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [undo, setUndo] = useState<{ item: Item; timer: number } | null>(null);
-  const [paid, setPaid] = useState({ price: '', store: '' });
+  const [paying, setPaying] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const byId = useMemo(() => new Map((items ?? []).map((i) => [i.id, i])), [items]);
@@ -67,7 +68,6 @@ export function ShoppingList({
       if (undo) clearTimeout(undo.timer);
       const timer = window.setTimeout(() => setUndo(null), 7000);
       setUndo({ item: it, timer });
-      setPaid({ price: '', store: stores[0] ?? '' });
     }
   };
 
@@ -102,6 +102,9 @@ export function ShoppingList({
           <div className="section-head">
             <button className="link" onClick={() => setShowBought(!showBought)} aria-expanded={showBought}>
               נקנו ({bought.length}) {showBought ? '▴' : '▾'}
+            </button>
+            <button className="link" onClick={() => setPaying(true)}>
+              רישום מחירים
             </button>
             <button className="link" onClick={() => clearChecked(familyId, bought)}>
               ניקוי
@@ -155,26 +158,11 @@ export function ShoppingList({
             </button>
             <button aria-label="סגירה" onClick={() => { clearTimeout(undo.timer); setUndo(null); }}>✕</button>
           </div>
-          {/* Optional: what was paid, kept as the product's price history. Typing keeps the toast open. */}
-          <form
-            className="paid-form"
-            onFocus={() => clearTimeout(undo.timer)}
-            onSubmit={(e) => {
-              e.preventDefault();
-              const price = parsePrice(paid.price);
-              if (!price) return;
-              addPrice(familyId, undo.item.name, price, paid.store);
-              setUndo(null);
-            }}
-          >
-            <input inputMode="decimal" placeholder="כמה שילמת? ₪" aria-label="מחיר ששולם" value={paid.price} onChange={(e) => setPaid({ ...paid, price: e.target.value })} />
-            <input list="known-stores" placeholder="איפה?" aria-label="חנות" maxLength={40} value={paid.store} onChange={(e) => setPaid({ ...paid, store: e.target.value })} />
-            <button disabled={!parsePrice(paid.price)}>שמירה</button>
-            <datalist id="known-stores">
-              {stores.map((st) => <option key={st} value={st} />)}
-            </datalist>
-          </form>
         </div>
+      )}
+
+      {paying && bought.length > 0 && (
+        <PaidSheet familyId={familyId} bought={bought} byKey={byKey} stores={stores} onClose={() => setPaying(false)} />
       )}
 
       {editing && (

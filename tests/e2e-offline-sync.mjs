@@ -101,15 +101,17 @@ async function main() {
     assert.ok(!shared.includes('\n\n'), 'no blank lines between departments');
     ok('WhatsApp button opens a share with the list grouped by department');
 
-    // Prices: ticking offers "how much?"; the price is a small tag in the row; the edit sheet offers kinds bought before.
+    // Prices: ticking asks nothing; after shopping, "רישום מחירים" under "נקנו" takes prices for the bought items.
     await add(dad, "קוטג' 3%");
     await row(dad, "קוטג' 3%").locator('.check-area').click();
-    const toast = dad.page.locator('.bought-toast');
-    await toast.getByLabel('מחיר ששולם').fill('5,90');
-    await toast.getByLabel('חנות').fill('רמי לוי');
-    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-toast.png` });
-    await toast.getByRole('button', { name: 'שמירה' }).click();
-    await toast.waitFor({ state: 'detached' });
+    assert.equal(await dad.page.getByLabel('מחיר ששולם').count(), 0, 'ticking does not ask for a price');
+    await dad.page.getByRole('button', { name: 'רישום מחירים' }).click();
+    const paidSheet = dad.page.getByRole('dialog', { name: 'מחירים מהקנייה' });
+    await paidSheet.getByLabel('חנות').fill('רמי לוי');
+    await paidSheet.getByLabel("מחיר קוטג' 3%").fill('5,90');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-after.png` });
+    await paidSheet.getByRole('button', { name: 'שמירה (1)' }).click();
+    await paidSheet.waitFor({ state: 'detached' });
     await add(dad, "קוטג'");
     await row(dad, "קוטג'").waitFor();
     assert.equal(await row(dad, "קוטג'").locator('.price-tag').count(), 0, 'no price is guessed for a different name');
@@ -151,7 +153,7 @@ async function main() {
     ok('second person using the same code is refused');
 
     await dad.page.getByRole('button', { name: 'אישור', exact: true }).click();
-    await dad.page.getByLabel('סגירה').click();
+    await dad.page.getByRole('dialog').getByLabel('סגירה').click();
     await kid.page.getByLabel('הוספת מוצרים').waitFor({ timeout: 15000 });
     await row(kid, 'חלב').waitFor();
     ok('after approval the daughter sees the family list');

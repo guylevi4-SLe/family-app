@@ -952,10 +952,6 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .bought-toast .toast-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-inline-start: 6px; }
 .paid-form { display: flex; gap: 6px; align-items: center; }
 .paid-form input { flex: 1; min-width: 0; min-height: 38px; padding: 0 10px; font-size: 16px; border-radius: 10px; }
-.paid-form input:first-child { flex: 0 1 38%; }
-.bought-toast .paid-form input { border: 0; background: color-mix(in srgb, var(--bg) 92%, transparent); color: var(--text); }
-.bought-toast .paid-form button { padding: 0 6px; }
-.bought-toast .paid-form button:disabled { opacity: 0.45; }
 .kinds .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-price { color: var(--muted); font-size: 0.85em; margin-inline-start: 4px; }
 .price-box { display: grid; gap: 6px; }
@@ -965,3 +961,10 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .price-history li .link { min-height: 32px; padding: 0 4px; }
 .price-history li.cheapest strong { color: var(--accent); }
 .cheap-mark { font-size: 0.72rem; font-weight: 700; color: var(--accent); background: var(--accent-soft); padding: 1px 8px; border-radius: 999px; }
+.bought .section-head { justify-content: flex-start; gap: 4px; }
+.bought .section-head > :first-child { margin-inline-end: auto; }
+.sheet-title { font-size: 1.15rem; margin: 0; }
+.paid-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 45vh; overflow-y: auto; }
+.paid-list li { display: flex; align-items: center; gap: 10px; }
+.paid-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paid-list input { flex: 0 0 96px; min-height: 40px; padding: 0 10px; font-size: 16px; border-radius: 10px; }
