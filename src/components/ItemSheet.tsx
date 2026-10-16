@@ -27,9 +27,9 @@ export function ItemSheet({
   const [name, setName] = useState(item.name);
   const [qty, setQty] = useState(item.qty);
   const [paid, setPaid] = useState({ price: '', store: stores[0] ?? '' });
-  const history = byKey.get(priceKey(item.name)) ?? [];
+  const history = byKey.get(priceKey(name.trim() || item.name)) ?? [];
   const cheapest = history.length > 1 ? Math.min(...history.map((h) => h.price)) : null;
-  const kinds = similarKinds(item.name, byKey);
+  const kinds = similarKinds(name.trim() || item.name, byKey);
 
   // "קוטג'" becomes the kind bought before ("קוטג' 3%"), with its prices; the quantity stays.
   const switchTo = (kind: string) => {
@@ -98,7 +98,7 @@ export function ItemSheet({
               className="small"
               disabled={!parsePrice(paid.price)}
               onClick={() => {
-                addPrice(familyId, item.name, parsePrice(paid.price)!, paid.store);
+                addPrice(familyId, name.trim() || item.name, parsePrice(paid.price)!, paid.store);
                 setPaid({ ...paid, price: '' });
               }}
             >
