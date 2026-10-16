@@ -554,7 +554,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .chip.on { background: var(--grad); color: var(--accent-ink); border-color: transparent; }
 .brand-mark { background: var(--grad); color: var(--accent-ink); box-shadow: 0 8px 22px color-mix(in srgb, var(--accent) 30%, transparent); }
 .toast { background: var(--text); color: var(--bg); border: 0; box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35); }
-.toast button { color: var(--accent-2); font-weight: 800; }
+.toast button { color: var(--bg); font-weight: 800; background: color-mix(in srgb, var(--bg) 18%, transparent); border-radius: 999px; padding: 4px 14px; }
 
 /* Sheets never scroll sideways: long emails and names wrap instead of widening the page. */
 .sheet { overflow-x: hidden; overscroll-behavior: contain; overflow-wrap: anywhere; }

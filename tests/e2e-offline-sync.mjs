@@ -105,6 +105,7 @@ async function main() {
     await add(dad, "קוטג' 3%");
     await row(dad, "קוטג' 3%").locator('.check-area').click();
     assert.equal(await dad.page.getByLabel('מחיר ששולם').count(), 0, 'ticking does not ask for a price');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/bought-toast.png` });
     await dad.page.getByRole('button', { name: 'רישום מחירים' }).click();
     const paidSheet = dad.page.getByRole('dialog', { name: 'מחירים מהקנייה' });
     await paidSheet.getByLabel('חנות').fill('רמי לוי');
