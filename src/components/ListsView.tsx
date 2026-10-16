@@ -165,7 +165,6 @@ function NewItemForm({ kind, onCreate, onCancel }: { kind: 'list' | 'note'; onCr
           ))}
         </div>
       )}
-      <IconPicker value={emoji} onPick={setEmoji} />
       <div className="sheet-actions">
         <button className="primary" disabled={!title.trim()}>{note ? 'יצירת הפתק' : 'יצירת הרשימה'}</button>
         <button type="button" onClick={onCancel}>ביטול</button>
@@ -828,7 +827,6 @@ function Notebook({
             <span className="field-label">שם הפתק</span>
             <input className="full" value={title} maxLength={60} autoFocus placeholder="למשל: קודים וסיסמאות לבית" onChange={(e) => setTitle(e.target.value)} />
           </label>
-          <IconPicker value={emoji} onPick={setEmoji} />
           <div className="sheet-actions">
             <button className="primary" disabled={!title.trim()}>יצירת הפתק</button>
             <button type="button" onClick={() => setCreating(false)}>ביטול</button>
