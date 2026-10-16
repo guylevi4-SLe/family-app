@@ -896,3 +896,40 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .list-cards li.dragging { position: relative; z-index: 2; }
 .list-cards li.dragging > .list-card { transform: scale(1.03); box-shadow: 0 16px 36px color-mix(in srgb, var(--accent) 30%, transparent); outline: 2px solid var(--accent); }
 .list-cards li.drag-shift > .list-card { opacity: 0.85; }
+
+/* ---------- the library: grouped rows in the style of the phone's Notes ---------- */
+.lib-head { display: flex; align-items: center; gap: 10px; }
+.lib-head.end { justify-content: flex-end; }
+.lib-head .notebook-search { flex: 1; margin: 0; }
+.lib-edit { flex: none; font-weight: 700; color: var(--accent); min-height: 40px; }
+.lib-title { font-size: 1.35rem; font-weight: 800; }
+.lib-section { width: 100%; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 4px; border: 0; background: none; font-size: 1.45rem; font-weight: 800; text-align: start; }
+.lib-section > span:first-child { flex: 1; }
+.lib-section-count { font-size: 0.95rem; font-weight: 600; }
+.lib-chevron { color: var(--accent); transition: transform 0.2s ease; }
+.lib-chevron.shut { transform: rotate(90deg); }
+.lib-group { list-style: none; margin: 0 0 6px; padding: 0; border-radius: 16px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--line); }
+.lib-group > li { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; position: relative; }
+.lib-group > li + li .lib-row-wrap::before { content: ''; position: absolute; z-index: 2; top: 0; inset-inline: 56px 0; border-top: 1px solid var(--line); }
+.lib-row-wrap { position: relative; overflow: hidden; }
+.lib-row { position: relative; z-index: 1; display: flex; align-items: center; gap: 4px; background: var(--surface); transition: transform 0.22s ease; touch-action: pan-y; }
+.lib-row .row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 8px 16px; border: 0; border-radius: 0; background: transparent; text-align: start; }
+.lib-row .row-icon { flex: none; width: 28px; display: grid; place-items: center; color: var(--accent); font-size: 1.3rem; }
+.lib-row .row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.lib-row .row-text strong { font-size: 1.05rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-row .row-text .muted { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-row .row-count { flex: none; color: var(--muted); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.lib-row .row-chevron { flex: none; color: var(--muted); opacity: 0.7; }
+.lib-row .row-delete { flex: none; width: 40px; min-height: 40px; padding: 0; margin-inline-start: 8px; border: 0; background: none; color: var(--danger); display: grid; place-items: center; }
+.lib-row .drag-grip { flex: none; width: 44px; min-height: 52px; display: grid; place-items: center; color: var(--muted); touch-action: none; cursor: grab; }
+.swipe-actions { position: absolute; inset-block: 0; right: 0; display: flex; }
+.swipe-actions button { flex: 1; min-height: 0; border: 0; border-radius: 0; display: grid; place-items: center; align-content: center; gap: 2px; font-size: 0.75rem; font-weight: 700; color: var(--accent-ink); background: var(--accent); }
+.swipe-actions button.danger { color: #fff; }
+.swipe-actions button.danger { background: var(--danger); }
+.lib-group > li.dragging .lib-row { box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 30%, transparent); outline: 2px solid var(--accent); outline-offset: -2px; transform: scale(1.02); }
+.lib-group > li.drag-shift .lib-row { opacity: 0.85; }
+.lists-page:has(.fab-wrap) { padding-bottom: 84px; }
+/* Library rows reuse the card class names for tests and colours, not their card look. */
+.lib-row.list-card, .lib-row.note-card, .lib-row.folder-card, .lib-row.notes-root { padding: 0; min-height: 0; gap: 4px; border: 0; border-radius: 0; box-shadow: none; width: auto; }
+.lib-group .lib-row-wrap { border-radius: 0; }
+.lib-row-wrap:not(.swiped) .swipe-actions { visibility: hidden; }

@@ -70,22 +70,8 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   );
   const listEntries = useListEntries(familyId);
   const [listId, setListId] = useState<string | null>(null);
-  // The lists screen remembers its last tab: checklists (null) or notes ('' or a folder).
-  const [noteFolder, setNoteFolderState] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem('listsTab') === 'notes' ? '' : null;
-    } catch {
-      return null;
-    }
-  });
-  const setNoteFolder = (f: string | null) => {
-    setNoteFolderState(f);
-    try {
-      localStorage.setItem('listsTab', f === null ? 'lists' : 'notes');
-    } catch {
-      /* private mode: the tab just isn't remembered */
-    }
-  };
+  // The lists screen: the library (null), "פתקים כלליים" ('') or a folder.
+  const [noteFolder, setNoteFolder] = useState<string | null>(null);
   const birthdays = useBirthdays(familyId);
   // undefined: closed; null: the whole book; an id: that birthday.
   const [birthdayOpen, setBirthdayOpen] = useState<string | null | undefined>(undefined);
@@ -293,8 +279,8 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (
             <button key={v.id} className={view === v.id ? 'active' : ''} aria-current={view === v.id ? 'page' : undefined} onClick={() => {
-                // Tapping "רשימות" again goes back to the top of its tab.
-                if (v.id === 'lists' && view === 'lists') { setListId(null); if (noteFolder) setNoteFolder(''); }
+                // Tapping "רשימות" again goes back to the library.
+                if (v.id === 'lists' && view === 'lists') { setListId(null); setNoteFolder(null); }
                 setView(v.id);
               }}>
               <Icon name={v.icon} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { GripVertical } from 'lucide-react';
 
 const HOLD_MS = 400;
 
@@ -100,5 +101,26 @@ export function useDragOrder<T>(items: T[], keyOf: (t: T) => string, commit: (it
     },
   });
 
-  return { ordered, row };
+  /** In edit mode a grip lifts its row at once, without holding. */
+  const grip = (id: string, title: string) => (
+    <span
+      role="button"
+      tabIndex={0}
+      className="drag-grip"
+      aria-label={`גרירה לשינוי הסדר: ${title}`}
+      onPointerDown={(e) => {
+        if (items.length < 2) return;
+        e.preventDefault();
+        e.stopPropagation();
+        cancelHold();
+        rows.current.get(id)?.setPointerCapture?.(e.pointerId);
+        drag.current = { id, ids: items.map(keyOf), moved: false };
+        render((n) => n + 1);
+      }}
+    >
+      <GripVertical size={20} aria-hidden="true" />
+    </span>
+  );
+
+  return { ordered, row, grip };
 }

@@ -53,7 +53,8 @@ import { ZoomViewer } from './ZoomViewer';
 import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { MoreMenu } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
-import { KeyRound, Lock, LockOpen, Pencil, Pin, PinOff, RotateCcw, Shapes, Trash2 } from 'lucide-react';
+import { ChevronDown, Folder, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { LibRow } from './LibRow';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -88,25 +89,15 @@ export function ListsView({
   return (
     <main className="list-page lists-page" aria-label="רשימות">
       {open?.kind === 'note' ? (
-        <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId ?? ''); setOpenId(null); }} />
+        <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId && all.some((l) => l.id === open.parentId) ? open.parentId : null); setOpenId(null); }} />
       ) : open && open.kind !== 'folder' ? (
         <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
       ) : (
-        <>
-          <div className="planner-tabs" role="tablist" aria-label="רשימות ופתקים">
-            <button role="tab" aria-selected={inFolder === null} className={inFolder === null ? 'on' : ''} onClick={() => setFolder(null)}>
-              <Icon name="list" size={18} /> רשימות
-            </button>
-            <button role="tab" aria-selected={inFolder !== null} className={inFolder !== null ? 'on' : ''} onClick={() => setFolder('')}>
-              <Icon name="book" size={18} /> פתקים
-            </button>
-          </div>
-          {inFolder !== null ? (
-            <Notebook all={all} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
-          ) : (
-            <ListIndex lists={lists} entries={entries ?? []} onOpen={setOpenId} />
-          )}
-        </>
+        inFolder === null ? (
+          <Library all={all} entries={entries ?? []} setFolder={setFolder} onOpen={setOpenId} />
+        ) : (
+          <Notebook all={all} entries={entries ?? []} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
+        )
       )}
     </main>
   );
@@ -121,86 +112,285 @@ function Progress({ done, total }: { done: number; total: number }) {
   );
 }
 
-function ListIndex({
-  lists,
+const OPEN_KEY = 'libraryOpen';
+function readOpen(): { notes: boolean; lists: boolean } {
+  try {
+    return { notes: true, lists: true, ...JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') };
+  } catch {
+    return { notes: true, lists: true };
+  }
+}
+
+/** Sends a list or an unlocked note to WhatsApp as text. */
+function shareItem(item: FamilyList, entries: ListEntry[]) {
+  if (item.kind === 'note') {
+    const text = `${iconEmoji(item.emoji)} *${item.title}*${item.body ? `\n\n${item.body}` : ''}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    return;
+  }
+  const mine = entries.filter((e) => e.listId === item.id).sort(byOrder);
+  const cats = item.categories ?? [];
+  const catOf = (e: ListEntry) => (e.category && cats.includes(e.category) ? e.category : '');
+  shareList(item, ['', ...cats].map((c) => ({ name: c, rows: mine.filter((e) => catOf(e) === c) })));
+}
+
+/** Deletes a list, or a note with its files, after asking. */
+async function removeItem(familyId: string, item: FamilyList, entries: ListEntry[]) {
+  const what = item.kind === 'note' ? 'הפתק' : 'הרשימה';
+  if (!confirm(`למחוק את ${what} "${item.title}"${item.kind === 'note' ? ' וכל הקבצים שבו' : ' וכל מה שבה'}?`)) return;
+  if (item.kind === 'note') deleteNote(familyId, item, await fetchNoteFiles(familyId, item));
+  else deleteList(familyId, item.id, entries.filter((e) => e.listId === item.id));
+}
+
+/** A new list or note: its name and icon. */
+function NewItemForm({ kind, onCreate, onCancel }: { kind: 'list' | 'note'; onCreate: (title: string, emoji: string) => void; onCancel: () => void }) {
+  const note = kind === 'note';
+  const [title, setTitle] = useState('');
+  const [emoji, setEmoji] = useState(iconValue(note ? 'note' : 'clipboard'));
+  return (
+    <form className="card list-new" onSubmit={(e) => { e.preventDefault(); if (title.trim()) onCreate(title, emoji); }}>
+      <label>
+        <span className="field-label">{note ? 'שם הפתק' : 'שם הרשימה'}</span>
+        <input className="full" value={title} maxLength={60} autoFocus placeholder={note ? 'למשל: קודים וסיסמאות לבית' : 'למשל: ציוד לטיול'} onChange={(e) => setTitle(e.target.value)} />
+      </label>
+      {!note && (
+        <div className="chips" role="group" aria-label="רעיונות">
+          {LIST_IDEAS.map((i) => (
+            <button key={i.title} type="button" className="chip" onClick={() => { setTitle(i.title); setEmoji(i.emoji); }}>
+              <ListIcon value={i.emoji} size={16} /> {i.title}
+            </button>
+          ))}
+        </div>
+      )}
+      <IconPicker value={emoji} onPick={setEmoji} />
+      <div className="sheet-actions">
+        <button className="primary" disabled={!title.trim()}>{note ? 'יצירת הפתק' : 'יצירת הרשימה'}</button>
+        <button type="button" onClick={onCancel}>ביטול</button>
+      </div>
+    </form>
+  );
+}
+
+/** A section heading that folds its rows away, as in the phone's Notes. */
+function SectionHead({ title, open, onToggle, count }: { title: string; open: boolean; onToggle: () => void; count: number }) {
+  return (
+    <button type="button" className="lib-section" aria-expanded={open} onClick={onToggle}>
+      <span>{title}</span>
+      {!open && count > 0 && <span className="muted lib-section-count">{count}</span>}
+      <ChevronDown className={open ? 'lib-chevron' : 'lib-chevron shut'} size={22} aria-hidden="true" />
+    </button>
+  );
+}
+
+/**
+ * The library: "פתקים" (general notes and the folders) and "רשימות" (the
+ * checklists), each folding open or shut. Rows swipe left for share and
+ * delete; "עריכה" shows delete buttons and grips to reorder.
+ */
+function Library({
+  all,
   entries,
+  setFolder,
   onOpen,
 }: {
-  lists: FamilyList[] | undefined;
+  all: FamilyList[];
   entries: ListEntry[];
+  setFolder: (id: string) => void;
   onOpen: (id: string) => void;
 }) {
   const { familyId } = useFamily();
+  const [openSec, setOpenSec] = useState(readOpen);
+  const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState<'list' | 'note' | null>(null);
-  const [title, setTitle] = useState('');
-  const [emoji, setEmoji] = useState(iconValue('clipboard'));
-  const sorted = (lists ?? []).filter((l) => !l.kind).sort(byPinThenTitle);
-  const drag = useDragOrder(sorted, (l) => l.id, (items) => saveOrder(familyId, items));
-  const note = creating === 'note';
+  const [search, setSearch] = useState('');
+  const toggle = (k: 'notes' | 'lists') => {
+    const next = { ...openSec, [k]: !openSec[k] };
+    setOpenSec(next);
+    try {
+      localStorage.setItem(OPEN_KEY, JSON.stringify(next));
+    } catch {
+      /* not remembered */
+    }
+  };
+  const isFolder = (id: string) => all.some((l) => l.id === id && l.kind === 'folder');
+  const at = (l: FamilyList) => (l.parentId && isFolder(l.parentId) ? l.parentId : '');
+  const checklists = all.filter((l) => !l.kind).sort(byPinThenTitle);
+  const folders = all.filter((l) => l.kind === 'folder' && at(l) === '').sort(byPinThenTitle);
+  const rootNotes = all.filter((l) => l.kind === 'note' && at(l) === '').sort(byPinThenTitle);
+  const listDrag = useDragOrder(checklists, (l) => l.id, (items) => saveOrder(familyId, items));
+  const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
+  const rootDrag = useDragOrder(rootNotes, (l) => l.id, (items) => saveOrder(familyId, items));
+  const shut = (l: FamilyList) => {
+    const fl = lockOf(all, l.parentId);
+    return !!fl && !keyAlive(fl.salt ?? '');
+  };
+  const q = search.trim();
+  const found = q
+    ? all.filter((l) => (l.kind === 'note' && !shut(l) && `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q)) || (!l.kind && l.title.includes(q))).sort(byPinThenTitle)
+    : [];
+  const count = (id: string) => {
+    const n = all.filter((l) => l.kind === 'note' && at(l) === id).length;
+    const f = all.filter((l) => l.kind === 'folder' && at(l) === id).length;
+    return n + f;
+  };
+  const progress = (l: FamilyList) => {
+    const mine = entries.filter((e) => e.listId === l.id);
+    const done = mine.filter((e) => e.done).length;
+    return mine.length === 0 ? 'ריקה' : done === mine.length ? `הכול מסומן ✓ (${done})` : `${done} מתוך ${mine.length}`;
+  };
+  const rename = (l: FamilyList) => {
+    const name = prompt('שם חדש', l.title)?.trim();
+    if (name) updateList(familyId, l.id, { title: name.slice(0, 60) });
+  };
+  const removeFolder = (f: FamilyList) => {
+    if (all.some((l) => l.kind && l.parentId === f.id)) return alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
+    if (confirm(`למחוק את התיקייה "${f.title}"?`)) deleteList(familyId, f.id, []);
+  };
+  const itemActions = (l: FamilyList) => [
+    ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
+    { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
+  ];
+  const newFolder = () => {
+    const name = prompt('שם התיקייה (למשל: בית, רכב, ביטוחים)')?.trim();
+    if (name) createFolder(familyId, name, '');
+  };
 
-  const start = (kind: 'list' | 'note') => {
-    setCreating(kind);
-    setTitle('');
-    setEmoji(iconValue(kind === 'note' ? 'note' : 'clipboard'));
-  };
-  const create = () => {
-    if (!title.trim()) return;
-    const id = note ? createNote(familyId, title, emoji) : createList(familyId, title, emoji);
-    setCreating(null);
-    setTitle('');
-    onOpen(id);
-  };
+  const row = (l: FamilyList) =>
+    l.kind === 'note' ? (
+      <LibRow
+        className="note-card"
+        icon={<ListIcon value={l.emoji} size={22} />}
+        title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</>}
+        sub={at(l) ? `📁 ${folderPath(all, at(l)).join(' › ')}` : l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
+        onOpen={() => onOpen(l.id)}
+        actions={itemActions(l)}
+      />
+    ) : (
+      <LibRow className="list-card" icon={<ListIcon value={l.emoji} size={22} />} title={l.title} sub={progress(l)} onOpen={() => onOpen(l.id)} actions={itemActions(l)} />
+    );
 
   return (
     <>
-      {creating ? (
-        <form className="card list-new" onSubmit={(e) => { e.preventDefault(); create(); }}>
-          <label>
-            <span className="field-label">{note ? 'שם הפתק' : 'שם הרשימה'}</span>
-            <input className="full" value={title} maxLength={60} autoFocus placeholder={note ? 'למשל: קודים וסיסמאות לבית' : 'למשל: ציוד לטיול'} onChange={(e) => setTitle(e.target.value)} />
-          </label>
-          {!note && (
-            <div className="chips" role="group" aria-label="רעיונות">
-              {LIST_IDEAS.map((i) => (
-                <button key={i.title} type="button" className="chip" onClick={() => { setTitle(i.title); setEmoji(i.emoji); }}>
-                  <ListIcon value={i.emoji} size={16} /> {i.title}
-                </button>
-              ))}
-            </div>
-          )}
-          <IconPicker value={emoji} onPick={setEmoji} />
-          <div className="sheet-actions">
-            <button className="primary" disabled={!title.trim()}>{note ? 'יצירת הפתק' : 'יצירת הרשימה'}</button>
-            <button type="button" onClick={() => setCreating(null)}>ביטול</button>
-          </div>
-        </form>
-      ) : (
-        <button className="primary new-list" onClick={() => start('list')}>
-          + רשימה חדשה
-        </button>
+      <div className="lib-head">
+        <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש בפתקים וברשימות" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
+        {!q && (
+          <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
+            {editing ? 'סיום' : 'עריכה'}
+          </button>
+        )}
+      </div>
+
+      {creating && (
+        <NewItemForm
+          kind={creating}
+          onCancel={() => setCreating(null)}
+          onCreate={(title, emoji) => {
+            const id = creating === 'note' ? createNote(familyId, title, emoji) : createList(familyId, title, emoji);
+            setCreating(null);
+            onOpen(id);
+          }}
+        />
       )}
 
-      {lists !== undefined && sorted.length === 0 && !creating && (
-        <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
+      {q ? (
+        found.length === 0 ? (
+          <p className="empty">לא נמצא כלום עם "{q}".</p>
+        ) : (
+          <ul className="lib-group">{found.map((l) => <li key={l.id}>{row(l)}</li>)}</ul>
+        )
+      ) : (
+        <>
+          <section>
+            <SectionHead title="פתקים" open={openSec.notes} onToggle={() => toggle('notes')} count={folders.length + rootNotes.length} />
+            {openSec.notes && folders.length > 0 && (
+              <ul className="lib-group">
+                {folderDrag.ordered.map((f) => (
+                  <li key={f.id} {...folderDrag.row(f.id)}>
+                    <LibRow
+                      className="folder-card"
+                      icon={<Folder size={22} />}
+                      title={<>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</>}
+                      count={count(f.id)}
+                      onOpen={() => setFolder(f.id)}
+                      actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) }]}
+                      editing={editing}
+                      onRename={() => rename(f)}
+                      onDelete={() => removeFolder(f)}
+                      grip={folderDrag.grip(f.id, f.title)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {openSec.notes && rootDrag.ordered.length > 0 && (
+              <ul className="lib-group">
+                {rootDrag.ordered.map((l) => (
+                  <li key={l.id} {...rootDrag.row(l.id)}>
+                    <LibRow
+                      className="note-card"
+                      icon={<ListIcon value={l.emoji} size={22} />}
+                      title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</>}
+                      sub={<span className="note-preview">{l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
+                      onOpen={() => onOpen(l.id)}
+                      actions={itemActions(l)}
+                      editing={editing}
+                      onRename={() => rename(l)}
+                      onDelete={() => removeItem(familyId, l, entries)}
+                      grip={rootDrag.grip(l.id, l.title)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {openSec.notes && folders.length + rootNotes.length === 0 && (
+              <p className="empty">עוד אין פתקים. פתק הוא טקסט חופשי עם קבצים, ותיקיות עוזרות לסדר אותם (בית, רכב, ביטוחים).</p>
+            )}
+          </section>
+
+          <section>
+            <SectionHead title="רשימות" open={openSec.lists} onToggle={() => toggle('lists')} count={checklists.length} />
+            {openSec.lists &&
+              (checklists.length === 0 ? (
+                <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
+              ) : (
+                <ul className="lib-group">
+                  {listDrag.ordered.map((l) => (
+                    <li key={l.id} {...listDrag.row(l.id)}>
+                      <LibRow
+                        className="list-card"
+                        icon={<ListIcon value={l.emoji} size={22} />}
+                        title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</>}
+                        sub={progress(l)}
+                        onOpen={() => onOpen(l.id)}
+                        actions={itemActions(l)}
+                        editing={editing}
+                        onRename={() => rename(l)}
+                        onDelete={() => removeItem(familyId, l, entries)}
+                        grip={listDrag.grip(l.id, l.title)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ))}
+          </section>
+        </>
       )}
-      <ul className="list-cards">
-        {drag.ordered.map((l) => {
-          const mine = entries.filter((e) => e.listId === l.id);
-          const done = mine.filter((e) => e.done).length;
-          return (
-            <li key={l.id} {...drag.row(l.id)}>
-              <button className="list-card" onClick={() => onOpen(l.id)}>
-                <span className="list-emoji" aria-hidden="true"><ListIcon value={l.emoji} /></span>
-                <span className="list-card-main">
-                  <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</strong>
-                  <span className="muted">{mine.length === 0 ? 'ריקה' : done === mine.length ? `הכול מסומן ✓ (${done})` : `${done} מתוך ${mine.length}`}</span>
-                  {mine.length > 0 && <Progress done={done} total={mine.length} />}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+
+      {!creating && (
+        <div className="fab-wrap">
+          <MoreMenu
+            label="הוספה"
+            className="fab"
+            icon={<Plus size={28} strokeWidth={2.4} aria-hidden="true" />}
+            title="הוספה"
+            items={[
+              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => setCreating('note') },
+              { label: 'רשימה חדשה', icon: <ListChecks size={20} />, onClick: () => setCreating('list') },
+              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
+            ]}
+          />
+        </div>
+      )}
     </>
   );
 }
@@ -409,11 +599,13 @@ function ListDetail({
 /** The notebook: one folder's sub-folders and notes, with a path back up and a search. */
 function Notebook({
   all,
+  entries,
   folder,
   setFolder,
   onOpen,
 }: {
   all: FamilyList[];
+  entries: ListEntry[];
   folder: string;
   setFolder: (id: string | null) => void;
   onOpen: (id: string) => void;
@@ -422,16 +614,12 @@ function Notebook({
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState(iconValue('note'));
-  const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState(false);
   const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
   const [work, setWork] = useState('');
   const [, setTick] = useState(0);
   const here = all.find((l) => l.id === folder);
   const lock = lockOf(all, folder);
-  const shut = (l: FamilyList) => {
-    const fl = lockOf(all, l.parentId);
-    return !!fl && !keyAlive(fl.salt ?? '');
-  };
   // A locked folder closes again after a while without use.
   useEffect(() => {
     if (!lock) return;
@@ -442,13 +630,12 @@ function Notebook({
   const exists = (id: string) => id === '' || all.some((l) => l.id === id && l.kind === 'folder');
   // Anything whose folder is gone shows at the notebook's top, so nothing gets lost.
   const at = (l: FamilyList) => (exists(parentOf(l)) ? parentOf(l) : '');
-  const folders = all.filter((l) => l.kind === 'folder' && at(l) === folder).sort(byPinThenTitle);
-  const q = search.trim();
-  const notes = all
-    .filter((l) => l.kind === 'note' && (q ? !shut(l) && `${l.title}\n${l.locked ? '' : l.body ?? ''}`.includes(q) : at(l) === folder))
-    .sort(byPinThenTitle);
+  // The top-level folders live in the library; "פתקים כלליים" holds just the notes.
+  const folders = folder ? all.filter((l) => l.kind === 'folder' && at(l) === folder).sort(byPinThenTitle) : [];
+  const notes = all.filter((l) => l.kind === 'note' && at(l) === folder).sort(byPinThenTitle);
   const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
-  const noteDrag = useDragOrder(q ? [] : notes, (l) => l.id, (items) => saveOrder(familyId, items));
+  const noteDrag = useDragOrder(notes, (l) => l.id, (items) => saveOrder(familyId, items));
+  const up = () => setFolder(here && exists(parentOf(here)) && parentOf(here) ? parentOf(here) : null);
   const path = folder ? folderPath(all, folder) : [];
   const ancestors: string[] = [];
   for (let cur = here; cur?.parentId && exists(cur.parentId); cur = all.find((l) => l.id === cur!.parentId)) ancestors.unshift(cur.parentId);
@@ -459,7 +646,7 @@ function Notebook({
     return notesAndFolders(n, f) || 'ריקה';
   };
   const newFolder = () => {
-    const name = prompt(folder ? `שם התיקייה החדשה בתוך "${here?.title}"` : 'שם התיקייה (למשל: בית, רכב, ביטוחים)')?.trim();
+    const name = prompt(here ? `שם התיקייה החדשה בתוך "${here.title}"` : 'שם התיקייה (למשל: בית, רכב, ביטוחים)')?.trim();
     if (name) createFolder(familyId, name, folder);
   };
   const create = async () => {
@@ -530,6 +717,14 @@ function Notebook({
     const name = prompt('שם חדש לתיקייה', here?.title)?.trim();
     if (name && here) updateList(familyId, here.id, { title: name.slice(0, 60) });
   };
+  const deleteSub = (f: FamilyList) => {
+    if (all.some((l) => l.kind && at(l) === f.id)) return alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
+    if (confirm(`למחוק את התיקייה "${f.title}"?`)) deleteList(familyId, f.id, []);
+  };
+  const renameItem = (l: FamilyList) => {
+    const name = prompt('שם חדש', l.title)?.trim();
+    if (name) updateList(familyId, l.id, { title: name.slice(0, 60) });
+  };
   const deleteFolder = () => {
     if (!here) return;
     if (all.some((l) => l.kind && at(l) === here.id)) {
@@ -538,22 +733,21 @@ function Notebook({
     }
     if (confirm(`למחוק את התיקייה "${here.title}"?`)) {
       deleteList(familyId, here.id, []);
-      setFolder(parentOf(here));
+      up();
     }
   };
 
   return (
     <>
-      {folder && (
-        <button className="link back" onClick={() => setFolder(here && exists(parentOf(here)) ? parentOf(here) : '')}>
-          → {(here?.parentId && exists(here.parentId) && all.find((l) => l.id === here.parentId)?.title) || 'כל הפתקים'}
-        </button>
-      )}
+      <button className="link back" onClick={up}>
+        → {(here?.parentId && exists(here.parentId) && all.find((l) => l.id === here.parentId)?.title) || 'כל הפתקים'}
+      </button>
+      {!folder && <h2 className="lib-title">פתקים כלליים</h2>}
 
       {folder && (
         <div className="crumbs-row">
         <nav className="crumbs" aria-label="מיקום במחברת">
-          <button className="link-plain" onClick={() => setFolder('')}>📒 פתקים</button>
+          <button className="link-plain" onClick={() => setFolder(null)}>📒 פתקים</button>
           {ancestors.map((id) => (
             <span key={id}>
               <span className="muted" aria-hidden="true"> › </span>
@@ -586,11 +780,14 @@ function Notebook({
         <FolderGate folder={lock} onOpen={() => setTick((n) => n + 1)} />
       ) : (
       <>
-      {!folder && (
-        <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש בכל הפתקים" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
+      {!creating && folders.length + notes.length > 0 && (
+        <div className="lib-head end">
+          <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
+            {editing ? 'סיום' : 'עריכה'}
+          </button>
+        </div>
       )}
-
-      {creating ? (
+      {creating && (
         <form className="card list-new" onSubmit={(e) => { e.preventDefault(); create(); }}>
           <label>
             <span className="field-label">שם הפתק</span>
@@ -602,49 +799,70 @@ function Notebook({
             <button type="button" onClick={() => setCreating(false)}>ביטול</button>
           </div>
         </form>
-      ) : (
-        !q && (
-          <div className="new-list-row">
-            <button className="primary new-list" onClick={() => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); }}>+ פתק</button>
-            <button className="new-list new-note" onClick={newFolder}>+ תיקייה</button>
-          </div>
-        )
       )}
 
-      {!q && folders.length + notes.length === 0 && !creating && (
+      {folders.length + notes.length === 0 && !creating && (
         <p className="empty">{folder ? 'התיקייה ריקה. אפשר להוסיף כאן פתק או תת־תיקייה.' : 'עוד אין פתקים. פתק הוא טקסט חופשי עם קבצים, ותיקיות עוזרות לסדר אותם (בית, רכב, ביטוחים).'}</p>
       )}
-      {q && notes.length === 0 && <p className="empty">לא נמצאו פתקים עם "{q}".</p>}
 
-      <ul className="list-cards">
-        {!q && folderDrag.ordered.map((f) => (
-          <li key={f.id} {...folderDrag.row(f.id)}>
-            <button className="list-card folder-card" onClick={() => setFolder(f.id)}>
-              <span className="list-emoji" aria-hidden="true"><ListIcon value={iconValue('folder')} /></span>
-              <span className="list-card-main">
-                <strong>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</strong>
-                <span className="muted">{count(f.id)}</span>
-              </span>
-              <span className="chevron" aria-hidden="true">‹</span>
-            </button>
-          </li>
-        ))}
-        {(q ? notes : noteDrag.ordered).map((l) => {
-          const preview = l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0];
-          const where = q && at(l) ? folderPath(all, at(l)).join(' › ') : '';
-          return (
-            <li key={l.id} {...noteDrag.row(l.id)}>
-              <button className="list-card note-card" onClick={() => onOpen(l.id)}>
-                <span className="list-emoji" aria-hidden="true"><ListIcon value={l.emoji} /></span>
-                <span className="list-card-main">
-                  <strong>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</strong>
-                  <span className="muted note-preview">{where ? `📁 ${where}` : preview || 'פתק ריק'}</span>
-                </span>
-              </button>
+      {folders.length > 0 && (
+        <ul className="lib-group">
+          {folderDrag.ordered.map((f) => (
+            <li key={f.id} {...folderDrag.row(f.id)}>
+              <LibRow
+                className="folder-card"
+                icon={<Folder size={22} />}
+                title={<>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</>}
+                sub={count(f.id)}
+                onOpen={() => setFolder(f.id)}
+                actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) }]}
+                editing={editing}
+                onRename={() => renameItem(f)}
+                onDelete={() => deleteSub(f)}
+                grip={folderDrag.grip(f.id, f.title)}
+              />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
+      {notes.length > 0 && (
+        <ul className="lib-group">
+          {noteDrag.ordered.map((l) => (
+            <li key={l.id} {...noteDrag.row(l.id)}>
+              <LibRow
+                className="note-card"
+                icon={<ListIcon value={l.emoji} size={22} />}
+                title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</>}
+                sub={<span className="note-preview">{l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
+                onOpen={() => onOpen(l.id)}
+                actions={[
+                  ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
+                  { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
+                ]}
+                editing={editing}
+                onRename={() => renameItem(l)}
+                onDelete={() => removeItem(familyId, l, entries)}
+                grip={noteDrag.grip(l.id, l.title)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!creating && (
+        <div className="fab-wrap">
+          <MoreMenu
+            label="הוספה"
+            className="fab"
+            icon={<Plus size={28} strokeWidth={2.4} aria-hidden="true" />}
+            title={here ? `הוספה ל"${here.title}"` : 'הוספה'}
+            items={[
+              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
+              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
+            ]}
+          />
+        </div>
+      )}
 
       {locking && (
         <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lockFolder(); }}>

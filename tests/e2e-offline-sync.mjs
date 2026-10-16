@@ -27,6 +27,12 @@ async function upcomingView(page) {
   if (await toList.count()) await toList.click();
 }
 
+// The library's floating "+" offers a new note, list or folder.
+async function addNew(scope, item) {
+  await scope.getByRole('button', { name: 'הוספה', exact: true }).click();
+  await scope.page().getByRole('dialog', { name: /^הוספה/ }).getByRole('button', { name: item }).click();
+}
+
 async function planner(page, side) {
   await page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
   await page.getByRole('tablist', { name: 'יומן ומשימות' }).getByRole('tab', { name: side === 'tasks' ? /^משימות/ : 'לו״ז' }).click();
@@ -640,7 +646,7 @@ async function main() {
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     await dad.page.locator('.lists-tile').getByRole('button').first().click();
     const lists = dad.page.locator('.lists-page');
-    await lists.getByRole('button', { name: '+ רשימה חדשה' }).click();
+    await addNew(lists, 'רשימה חדשה');
     await lists.getByRole('group', { name: 'רעיונות' }).getByRole('button', { name: /ציוד לטיול/ }).click();
     await lists.getByRole('button', { name: 'יצירת הרשימה' }).click();
     await lists.getByLabel('הוספת שורות').fill('אוהל, שק שינה');
@@ -697,7 +703,7 @@ async function main() {
     await kid.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
     await kidLists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
     // Drag to reorder: a second list sorts first by name; Dad drags the trip list above it.
-    await lists.getByRole('button', { name: '+ רשימה חדשה' }).click();
+    await addNew(lists, 'רשימה חדשה');
     await lists.getByLabel('שם הרשימה').fill('אאא לבדיקה');
     await lists.getByRole('button', { name: 'יצירת הרשימה' }).click();
     await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
@@ -719,26 +725,44 @@ async function main() {
     await dad.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('ציוד לטיול'));
     await kid.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('ציוד לטיול'), null, { timeout: 10000 });
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'letting go after a drag does not open the list');
-    await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).click();
-    await menu(lists, 'מחיקת הרשימה');
-    await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).waitFor({ state: 'detached' });
     ok('holding a list and dragging it moves it up, for the whole family; letting go does not open it');
+    // Edit mode: a grip on each row and a delete button; a tap renames.
+    await lists.getByRole('button', { name: 'עריכה' }).click();
+    await lists.getByRole('button', { name: 'גרירה לשינוי הסדר: אאא לבדיקה' }).waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-edit.png` });
+    await answer('אאא למחיקה', () => lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).click());
+    await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor();
+    await lists.getByRole('button', { name: 'סיום' }).click();
+    // Swiping a row left shows share and delete.
+    {
+      const box = await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).boundingBox();
+      const y = box.y + box.height / 2;
+      await dad.page.mouse.move(box.x + box.width - 30, y);
+      await dad.page.mouse.down();
+      for (let i = 1; i <= 8; i++) await dad.page.mouse.move(box.x + box.width - 30 - i * 25, y);
+      await dad.page.mouse.up();
+    }
+    await lists.getByRole('button', { name: 'שיתוף' }).waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-swipe.png` });
+    await lists.getByRole('button', { name: 'מחיקה', exact: true }).click();
+    await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor({ state: 'detached' });
+    assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'swiping does not open the list');
+    ok('the library: edit mode renames, a left swipe shows share and delete');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-lists.png`, fullPage: true });
     ok('Dad made a trip packing list with categories; the daughter opens it from home and from the bottom bar, and resets the ticks');
 
     step('Notes');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
-    await lists.getByRole('tab', { name: 'פתקים' }).click();
-    await answer('בית', () => lists.getByRole('button', { name: '+ תיקייה' }).click());
+    await answer('בית', () => addNew(lists, 'תיקייה חדשה'));
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
-    await answer('ביטוחים', () => lists.getByRole('button', { name: '+ תיקייה' }).click());
+    await answer('ביטוחים', () => addNew(lists, 'תיקייה חדשה'));
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
     await lists.getByRole('navigation', { name: 'מיקום במחברת' }).getByText('ביטוחים').waitFor();
     assert.ok((await lists.getByRole('navigation', { name: 'מיקום במחברת' }).innerText()).includes('בית'), 'path shows the parent folder');
     await lists.getByRole('button', { name: '→ בית' }).click();
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).waitFor();
-    await lists.getByRole('button', { name: '+ פתק' }).click();
+    await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('קודים לבית');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('שער חניה: 1234\nאזעקה: 9876');
@@ -761,11 +785,9 @@ async function main() {
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('📁 בית').waitFor();
     await lists.getByLabel('חיפוש בפתקים').fill('');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notes-tab.png` });
-    await lists.getByRole('tab', { name: 'רשימות' }).click();
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
     assert.equal(await lists.locator('.list-card', { hasText: 'קודים לבית' }).count(), 0, 'notes stay out of the lists tab');
     await kid.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
-    await kidLists.getByRole('tab', { name: 'פתקים' }).click();
     await kidLists.locator('.folder-card', { hasText: 'בית' }).click();
     await kidLists.locator('.note-card', { hasText: 'קודים לבית' }).click();
     await kidLists.locator('.note-file').nth(1).waitFor({ timeout: 10000 });
@@ -773,7 +795,6 @@ async function main() {
     await kidLists.getByLabel('תוכן הפתק').fill('שער חניה: 1234\nאזעקה: 9876\nוויפי: levi2024');
     await kidLists.getByLabel('תוכן הפתק').blur();
     await kidLists.getByLabel('תיקיית הפתק').selectOption({ label: 'בית › ביטוחים' });
-    await lists.getByRole('tab', { name: 'פתקים' }).click();
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).getByText('פתק אחד').waitFor({ timeout: 10000 });
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
@@ -786,8 +807,6 @@ async function main() {
     await lists.locator('.folder-card', { hasText: 'בית' }).waitFor();
     await dad.page.reload();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await dad.page.locator('.lists-page').getByRole('tab', { name: 'פתקים', selected: true }).waitFor();
-    await dad.page.locator('.lists-page').getByRole('tab', { name: 'רשימות' }).click();
     await kidLists.getByRole('button', { name: '→ ביטוחים' }).click();
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
@@ -796,8 +815,7 @@ async function main() {
 
     step('Private notes');
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await lists.getByRole('tab', { name: 'פתקים' }).click();
-    await lists.getByRole('button', { name: '+ פתק' }).click();
+    await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('תעודות זהות');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('אבא: 012345678');
@@ -815,9 +833,8 @@ async function main() {
     assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אבא: 012345678');
     await kid.page.reload();
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await kidLists.getByRole('tab', { name: 'פתקים' }).click();
     await kidLists.getByLabel('חיפוש בפתקים').fill('זהות');
-    await kidLists.getByText('לא נמצאו פתקים עם "זהות".').waitFor();
+    await kidLists.getByText(`לא נמצא כלום עם "זהות".`).waitFor();
     await lists.locator('.who-sees').getByRole('button', { name: 'שינוי' }).click();
     await lists.locator('.who-edit').getByRole('button', { name: 'kid' }).click();
     await lists.locator('.who-edit').getByRole('button', { name: 'שמירה' }).click();
@@ -833,15 +850,14 @@ async function main() {
     await lists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor({ timeout: 10000 });
     await lists.locator('.note-file').first().waitFor({ timeout: 10000 });
     await menu(lists, 'מחיקת הפתק');
-    await lists.getByRole('button', { name: '+ פתק' }).waitFor();
+    await lists.getByRole('button', { name: 'הוספה', exact: true }).waitFor();
     await kidLists.getByLabel('חיפוש בפתקים').fill('');
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
     ok('Dad made a private note the daughter cannot see, shared it with her (she cannot change who sees it), then made it a family note again');
 
     step('Password-locked notes');
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await lists.getByRole('tab', { name: 'פתקים' }).click();
-    await lists.getByRole('button', { name: '+ פתק' }).click();
+    await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('קוד אזעקה');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('אזעקה: 9876');
@@ -886,7 +902,6 @@ async function main() {
     await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).getByText('🔐 נעול בסיסמה').waitFor();
     // The daughter needs the password; a wrong one is refused.
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await kidLists.getByRole('tab', { name: 'פתקים' }).click();
     await kidLists.locator('.note-card', { hasText: 'קוד אזעקה' }).click({ timeout: 10000 });
     await kidLists.getByLabel('סיסמת הפתק').fill('nope');
     await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
@@ -910,7 +925,7 @@ async function main() {
     await lists.locator('.note-file img').first().waitFor({ timeout: 15000 });
     assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אזעקה: 9876\nכספת: 4321');
     await menu(lists, 'מחיקת הפתק');
-    await lists.getByRole('button', { name: '+ פתק' }).waitFor();
+    await lists.getByRole('button', { name: 'הוספה', exact: true }).waitFor();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
     ok('Dad locked a note with a password: the server holds only ciphertext; the daughter opens it with the password; only Dad removes it');
 
@@ -925,10 +940,9 @@ async function main() {
       return null;
     };
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await lists.getByRole('tab', { name: 'פתקים' }).click();
-    await answer('מסמכים', () => lists.getByRole('button', { name: '+ תיקייה' }).click());
+    await answer('מסמכים', () => addNew(lists, 'תיקייה חדשה'));
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).click();
-    await lists.getByRole('button', { name: '+ פתק' }).click();
+    await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('דרכון');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('דרכון: 111');
@@ -937,9 +951,8 @@ async function main() {
     await lists.getByLabel('תוכן הפתק').blur();
     await lists.getByRole('button', { name: '→ מסמכים' }).click();
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
-    await kidLists.getByRole('tab', { name: 'פתקים' }).click();
     await kidLists.locator('.folder-card', { hasText: 'מסמכים' }).click({ timeout: 10000 });
-    await kidLists.getByRole('button', { name: '+ פתק' }).click();
+    await addNew(kidLists, 'פתק חדש');
     await kidLists.getByLabel('שם הפתק').fill('של הבת');
     await kidLists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await kidLists.getByLabel('תוכן הפתק').fill('הבת: 222');
