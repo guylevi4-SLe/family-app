@@ -57,7 +57,7 @@ import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Loc
 import { LibRow } from './LibRow';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
-import { confirmDelete } from './ConfirmSheet';
+import { confirmAsk, confirmDelete } from './ConfirmSheet';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -1293,7 +1293,17 @@ function NoteEditor({
               ? { label: 'ביטול נעיצה', icon: <PinOff size={20} />, onClick: () => updateNote(familyId, note, { pinned: false }) }
               : { label: 'נעיצה למעלה', icon: <Pin size={20} />, onClick: () => updateNote(familyId, note, { pinned: true }) },
             { label: 'העברה לתיקייה', icon: <FolderInput size={20} />, disabled: busy, onClick: () => setMoving(true) },
-            !note.locked && !note.lockFolder && { label: 'שיתוף בווטסאפ', icon: <Icon name="whatsapp" size={20} />, onClick: () => { flush(); shareItem({ ...note, body: latest.current }, []); } },
+            {
+              label: 'שיתוף בווטסאפ',
+              icon: <Icon name="whatsapp" size={20} />,
+              onClick: async () => {
+                flush();
+                const body = latest.current;
+                // A locked note (or one in a locked folder) is open here only after its password; ask once more before it leaves the app.
+                if ((note.locked || note.lockFolder) && !(await confirmAsk('הפתק נעול, לשתף בכל זאת?', 'התוכן יישלח לווטסאפ ויהיה גלוי למי שיקבל אותו.', 'כן, לשתף', <Icon name="whatsapp" size={26} />))) return;
+                shareItem({ ...note, body }, []);
+              },
+            },
             note.locked && { label: 'נעילה עכשיו', icon: <Lock size={20} />, onClick: () => { flush(); lockNow(); } },
             note.locked && mine && !note.lockFolder && { label: 'הסרת הסיסמה', icon: <LockOpen size={20} />, disabled: !allImages, onClick: unlock },
             !note.locked && mine && !locking && { label: 'נעילה בסיסמה', icon: <KeyRound size={20} />, onClick: () => setLocking({ a: '', b: '' }) },

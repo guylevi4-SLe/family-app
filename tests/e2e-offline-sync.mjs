@@ -951,6 +951,18 @@ async function main() {
     assert.ok(!stored.body.stringValue.includes('9876') && !stored.body.stringValue.includes('4321'), `server holds no plain text: ${stored.body.stringValue}`);
     assert.equal(storedFiles.length, 1, 'one file');
     assert.ok(storedFiles[0].secret && !storedFiles[0].image, 'the file is stored encrypted');
+    // Open with its password, a locked note can be shared, after one more question.
+    await dad.page.evaluate(() => { window.__shared = null; window.open = (url) => { window.__shared = String(url); return null; }; });
+    await menu(lists, 'שיתוף בווטסאפ');
+    const shareAsk = dad.page.getByRole('alertdialog', { name: 'הפתק נעול, לשתף בכל זאת?' });
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/locked-share.png` });
+    await shareAsk.getByRole('button', { name: 'ביטול' }).click();
+    assert.equal(await dad.page.evaluate(() => window.__shared), null, 'cancel shares nothing');
+    await menu(lists, 'שיתוף בווטסאפ');
+    await shareAsk.getByRole('button', { name: 'כן, לשתף' }).click();
+    await dad.page.waitForFunction(() => window.__shared);
+    assert.match(decodeURIComponent(await dad.page.evaluate(() => window.__shared)), /כספת: 4321/);
+    ok('a locked note, once open, can be shared after a question');
     await menu(lists, 'נעילה עכשיו');
     await lists.getByLabel('סיסמת הפתק').waitFor();
     assert.equal(await lists.getByLabel('תוכן הפתק').count(), 0, 'locked: no text shown');

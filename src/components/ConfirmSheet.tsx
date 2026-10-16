@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-type Ask = { title: string; text: string; resolve: (ok: boolean) => void };
+type Ask = { title: string; text: string; yes?: string; icon?: ReactNode; resolve: (ok: boolean) => void };
 let show: ((a: Ask) => void) | null = null;
 
 /** Asks "are you sure?" in the app's own sheet before deleting; resolves true on "yes". */
 export function confirmDelete(title: string, text = 'אי אפשר לבטל את המחיקה.'): Promise<boolean> {
   if (!show) return Promise.resolve(window.confirm(title));
   return new Promise((resolve) => show!({ title, text, resolve }));
+}
+
+/** The same sheet for any other "are you sure?", with its own "yes" button and icon. */
+export function confirmAsk(title: string, text: string, yes: string, icon: ReactNode): Promise<boolean> {
+  if (!show) return Promise.resolve(window.confirm(title));
+  return new Promise((resolve) => show!({ title, text, yes, icon, resolve }));
 }
 
 /** Mounted once; shows the question {@link confirmDelete} asks. */
@@ -27,10 +34,10 @@ export function ConfirmHost() {
   return (
     <div className="sheet-backdrop" onClick={() => done(false)}>
       <div className="sheet more-sheet confirm-sheet" role="alertdialog" aria-label={ask.title} onClick={(e) => e.stopPropagation()}>
-        <span className="confirm-icon" aria-hidden="true"><Trash2 size={26} /></span>
+        <span className="confirm-icon" aria-hidden="true">{ask.icon ?? <Trash2 size={26} />}</span>
         <strong className="more-title">{ask.title}</strong>
         <p className="muted">{ask.text}</p>
-        <button className="confirm-yes" onClick={() => done(true)}>כן, למחוק</button>
+        <button className="confirm-yes" onClick={() => done(true)}>{ask.yes ?? 'כן, למחוק'}</button>
         <button className="more-cancel" onClick={() => done(false)}>ביטול</button>
       </div>
     </div>
