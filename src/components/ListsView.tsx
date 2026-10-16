@@ -53,9 +53,10 @@ import { ZoomViewer } from './ZoomViewer';
 import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { MoreMenu } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
-import { ChevronDown, Folder, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { LockMark } from './LockMark';
+import { MoveSheet } from './MoveSheet';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -247,8 +248,10 @@ function Library({
     if (all.some((l) => l.kind && l.parentId === f.id)) return alert('אפשר למחוק רק תיקייה ריקה. קודם מעבירים או מוחקים את מה שבתוכה.');
     if (confirm(`למחוק את התיקייה "${f.title}"?`)) deleteList(familyId, f.id, []);
   };
+  const [moving, setMoving] = useState<FamilyList | null>(null);
   const itemActions = (l: FamilyList) => [
     ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
+    ...(l.kind === 'note' ? [{ label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) }] : []),
     { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
   ];
   const newFolder = () => {
@@ -377,6 +380,7 @@ function Library({
         </>
       )}
 
+      {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
       {!creating && (
         <div className="fab-wrap">
           <MoreMenu
@@ -617,6 +621,7 @@ function Notebook({
   const [emoji, setEmoji] = useState(iconValue('note'));
   const [editing, setEditing] = useState(false);
   const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
+  const [moving, setMoving] = useState<FamilyList | null>(null);
   const [work, setWork] = useState('');
   const [, setTick] = useState(0);
   const here = all.find((l) => l.id === folder);
@@ -838,6 +843,7 @@ function Notebook({
                 onOpen={() => onOpen(l.id)}
                 actions={[
                   ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
+                  { label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) },
                   { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
                 ]}
                 editing={editing}
@@ -850,6 +856,7 @@ function Notebook({
         </ul>
       )}
 
+      {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
       {!creating && (
         <div className="fab-wrap">
           <MoreMenu
@@ -1129,6 +1136,7 @@ function NoteEditor({
   const [error, setError] = useState('');
   const [zoom, setZoom] = useState<string | null>(null);
   const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
+  const [moving, setMoving] = useState(false);
   const [picking, setPicking] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const editing = useRef(false);
@@ -1275,6 +1283,7 @@ function NoteEditor({
             note.pinned
               ? { label: 'ביטול נעיצה', icon: <PinOff size={20} />, onClick: () => updateNote(familyId, note, { pinned: false }) }
               : { label: 'נעיצה למעלה', icon: <Pin size={20} />, onClick: () => updateNote(familyId, note, { pinned: true }) },
+            { label: 'העברה לתיקייה', icon: <FolderInput size={20} />, disabled: busy, onClick: () => setMoving(true) },
             note.locked && { label: 'נעילה עכשיו', icon: <Lock size={20} />, onClick: () => { flush(); lockNow(); } },
             note.locked && mine && !note.lockFolder && { label: 'הסרת הסיסמה', icon: <LockOpen size={20} />, disabled: !allImages, onClick: unlock },
             !note.locked && mine && !locking && { label: 'נעילה בסיסמה', icon: <KeyRound size={20} />, onClick: () => setLocking({ a: '', b: '' }) },
@@ -1351,25 +1360,7 @@ function NoteEditor({
 
       {zoomed && images.get(zoomed.id) && <ZoomViewer src={images.get(zoomed.id)!} alt={zoomed.name} onClose={() => setZoom(null)} />}
 
-      <label className="note-move">
-        <span className="muted">📁 תיקייה:</span>
-        <select
-          aria-label="תיקיית הפתק"
-          value={all.some((l) => l.id === note.parentId && l.kind === 'folder') ? note.parentId : ''}
-          disabled={busy}
-          onChange={(e) => moveTo(e.target.value)}
-        >
-          <option value="">בלי תיקייה (ראשי)</option>
-          {all
-            .filter((l) => l.kind === 'folder')
-            .map((f) => {
-              const lock = lockOf(all, f.id);
-              return { id: f.id, label: folderPath(all, f.id).join(' › ') + (lock ? ' (נעולה)' : ''), shut: !!lock && !rememberedKey(lock.salt) };
-            })
-            .sort((a, b) => a.label.localeCompare(b.label, 'he'))
-            .map((f) => <option key={f.id} value={f.id} disabled={f.shut}>{f.label}</option>)}
-        </select>
-      </label>
+      {moving && <MoveSheet all={all} note={note} onPick={moveTo} onClose={() => setMoving(false)} />}
 
       {locking && (
         <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lock(); }}>

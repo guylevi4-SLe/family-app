@@ -935,3 +935,4 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .lib-row-wrap:not(.swiped) .swipe-actions { visibility: hidden; }
 .lock-mark { display: inline-block; vertical-align: -0.125em; margin-inline-end: 0.3em; color: var(--accent); flex: none; }
 button .lock-mark, .primary .lock-mark { color: inherit; }
+.move-current { margin-inline-start: auto; color: var(--accent); }

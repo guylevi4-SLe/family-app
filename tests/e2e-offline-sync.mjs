@@ -794,7 +794,10 @@ async function main() {
     assert.equal(await kidLists.getByLabel('תוכן הפתק').inputValue(), 'שער חניה: 1234\nאזעקה: 9876');
     await kidLists.getByLabel('תוכן הפתק').fill('שער חניה: 1234\nאזעקה: 9876\nוויפי: levi2024');
     await kidLists.getByLabel('תוכן הפתק').blur();
-    await kidLists.getByLabel('תיקיית הפתק').selectOption({ label: 'בית › ביטוחים' });
+    await kidLists.getByRole('button', { name: 'אפשרויות' }).click();
+    await kidLists.getByRole('dialog', { name: /^אפשרויות/ }).getByRole('button', { name: 'העברה לתיקייה' }).click();
+    if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-move.png` });
+    await kidLists.getByRole('dialog', { name: /^העברה לתיקייה/ }).getByRole('button', { name: 'בית › ביטוחים' }).click();
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).getByText('פתק אחד').waitFor({ timeout: 10000 });
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
@@ -989,7 +992,9 @@ async function main() {
     await kid.page.waitForFunction(() => document.querySelector('.note-body')?.value === 'הבת: 222', null, { timeout: 15000 });
     await kidLists.getByText('בתיקייה נעולה, פתוח כרגע').waitFor();
     // Moving it out of the folder opens it up.
-    await kidLists.getByLabel('תיקיית הפתק').selectOption({ label: 'בלי תיקייה (ראשי)' });
+    await kidLists.getByRole('button', { name: 'אפשרויות' }).click();
+    await kidLists.getByRole('dialog', { name: /^אפשרויות/ }).getByRole('button', { name: 'העברה לתיקייה' }).click();
+    await kidLists.getByRole('dialog', { name: /^העברה לתיקייה/ }).getByRole('button', { name: 'בלי תיקייה (ראשי)' }).click();
     await kidLists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor({ timeout: 15000 });
     await kid.page.waitForTimeout(1000);
     const out = await serverNote('של הבת');
