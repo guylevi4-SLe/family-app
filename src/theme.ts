@@ -51,4 +51,34 @@ function paintFavicon() {
     link.type = 'image/svg+xml';
     link.href = `data:image/svg+xml,${encodeURIComponent(svg)}`;
   }
+  paintTouchIcon(bg, accent, ink);
+}
+
+// The home-screen icon too: the iPhone takes it (as a PNG) when the app is added to the home screen.
+function paintTouchIcon(bg: string, accent: string, ink: string) {
+  const link = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
+  if (!link) return;
+  const draw = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 180;
+    const g = c.getContext('2d');
+    if (!g) return;
+    g.fillStyle = bg;
+    g.fillRect(0, 0, 180, 180);
+    g.scale(180 / 192, 180 / 192);
+    const bubble = new Path2D(LOGO_PATH);
+    g.fillStyle = accent;
+    g.strokeStyle = accent;
+    g.lineWidth = 6;
+    g.lineJoin = 'round';
+    g.fill(bubble);
+    g.stroke(bubble);
+    g.fillStyle = ink;
+    g.font = '800 50px Heebo, Arial, sans-serif';
+    g.textAlign = 'center';
+    g.direction = 'rtl';
+    g.fillText("לוי'ס", 96, 117);
+    link.href = c.toDataURL('image/png');
+  };
+  document.fonts?.ready.then(draw, draw) ?? draw();
 }
