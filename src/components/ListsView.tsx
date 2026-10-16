@@ -319,7 +319,7 @@ function Library({
         <>
           <section>
             <SectionHead title="פתקים" open={openSec.notes} onToggle={() => toggle('notes')} count={folders.length + rootNotes.length} />
-            {openSec.notes && folders.length > 0 && (
+            {openSec.notes && folders.length + rootNotes.length > 0 && (
               <ul className="lib-group">
                 {folderDrag.ordered.map((f) => (
                   <li key={f.id} {...folderDrag.row(f.id)}>
@@ -337,10 +337,6 @@ function Library({
                     />
                   </li>
                 ))}
-              </ul>
-            )}
-            {openSec.notes && rootDrag.ordered.length > 0 && (
-              <ul className="lib-group">
                 {rootDrag.ordered.map((l) => (
                   <li key={l.id} {...rootDrag.row(l.id)}>
                     <LibRow
