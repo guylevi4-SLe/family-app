@@ -3,6 +3,12 @@
 
 export const OTHER = 'אחר';
 
+/** Departments that were renamed: what older items, overrides and family orders still say → today's name. */
+const RENAMED: Record<string, string> = { 'טיפוח והיגיינה': 'טיפוח, היגיינה ופארם' };
+
+/** Today's name of a department, for one stored under an older name. */
+export const currentDept = (name: string) => RENAMED[name] ?? name;
+
 export const DEFAULT_DEPARTMENTS = [
   'פירות וירקות',
   'מוצרי חלב וביצים',
@@ -15,7 +21,7 @@ export const DEFAULT_DEPARTMENTS = [
   'משקאות',
   'קפואים',
   'ניקיון',
-  'טיפוח והיגיינה',
+  'טיפוח, היגיינה ופארם',
   'תינוקות',
   'בית וחד״פ',
   OTHER,
@@ -84,10 +90,13 @@ const WORDS: Record<string, string[]> = {
     'מרכך כביסה', 'מטליות', 'ספוגים', 'ספוג', 'שקיות זבל', 'נייר טואלט', 'מגבות נייר', 'נייר סופג',
     'מנקה חלונות', 'מסיר שומנים', 'אנטי קאלק', 'מטהר אוויר', 'כפפות', 'סנו', 'סיף', 'מגבונים לניקוי',
   ],
-  'טיפוח והיגיינה': [
+  'טיפוח, היגיינה ופארם': [
     'שמפו', 'מרכך', 'סבון', 'סבון ידיים', 'תחליב רחצה', 'משחת שיניים', 'מברשת שיניים', 'דאודורנט',
     'קרם', 'קרם הגנה', 'קרם ידיים', 'תחבושות', 'טמפונים', 'סכיני גילוח', 'קצף גילוח', 'צמר גפן',
     'מקלוני אוזניים', 'פלסטרים', 'אקמול', 'נורופן', 'ממחטות', 'טישו', 'חוט דנטלי', 'מי פה',
+    'אדוויל', 'אופטלגין', 'דקסמול', 'ויטמין', 'ויטמינים', 'ויטמין די', 'ברזל', 'אומגה 3', 'תוסף', 'תוספי תזונה',
+    'משחה', 'טיפות עיניים', 'טיפות אף', 'תרסיס לאף', 'סירופ', 'סירופ לשיעול', 'מדחום', 'תחבושת',
+    'אגד', 'פד', 'פדים', 'מסכות', 'אלכוג׳ל', 'ג׳ל אלכוהולי', 'קונדומים', 'בדיקת הריון', 'תמיסה לעדשות',
   ],
   'תינוקות': [
     'חיתולים', 'מגבונים', 'מטרנה', 'סימילאק', 'תמ"ל', 'דייסה', 'מחית', 'מוצץ', 'בקבוק', 'קרם החתלה',
@@ -126,7 +135,7 @@ export function normalize(name: string): string {
  */
 export function guessDepartment(norm: string, overrides: Map<string, string>): string {
   const own = overrides.get(norm);
-  if (own) return own;
+  if (own) return currentDept(own);
   const exact = DICTIONARY.get(norm);
   if (exact) return exact;
   let best = '';
@@ -143,7 +152,7 @@ export function guessDepartment(norm: string, overrides: Map<string, string>): s
 
 /** Departments in the family's order, with any new defaults appended. */
 export function orderedDepartments(familyOrder: string[] | undefined): string[] {
-  const order = (familyOrder ?? []).filter((d) => DEFAULT_DEPARTMENTS.includes(d));
+  const order = (familyOrder ?? []).map(currentDept).filter((d, i, a) => DEFAULT_DEPARTMENTS.includes(d) && a.indexOf(d) === i);
   for (const d of DEFAULT_DEPARTMENTS) if (!order.includes(d)) order.push(d);
   return order;
 }

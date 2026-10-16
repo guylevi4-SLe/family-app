@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import type { Item } from './items';
+import { currentDept } from './departments';
 import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
@@ -94,7 +95,7 @@ export function useItems(fid: string) {
   return useQuery<Item>(
     `items/${fid}`,
     () => collection(db, 'families', fid, 'items'),
-    (id, d, pending) => ({ id, ...(d as Omit<Item, 'id' | 'pending'>), pending }),
+    (id, d, pending) => ({ id, ...(d as Omit<Item, 'id' | 'pending'>), category: currentDept(String(d.category ?? '')), pending }),
   );
 }
 
@@ -126,7 +127,7 @@ export function useOverrides(fid: string) {
   const rows = useQuery<[string, string]>(
     `overrides/${fid}`,
     () => collection(db, 'families', fid, 'categoryOverrides'),
-    (id, d) => [id, d.category as string],
+    (id, d) => [id, currentDept(d.category as string)],
   );
   return new Map(rows ?? []);
 }

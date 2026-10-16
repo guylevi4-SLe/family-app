@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseItems } from '../src/data/parse';
+import { currentDept, guessDepartment, orderedDepartments } from '../src/data/departments';
 
 const one = (text: string) => parseItems(text)[0];
 
@@ -32,5 +33,17 @@ describe('parseItems', () => {
       { name: 'לחם', qty: '2' },
       { name: 'ביצים', qty: '' },
     ]);
+  });
+});
+
+describe('renamed department', () => {
+  it('older items, overrides and family orders move to the new name', () => {
+    expect(currentDept('טיפוח והיגיינה')).toBe('טיפוח, היגיינה ופארם');
+    expect(currentDept('ניקיון')).toBe('ניקיון');
+    const order = orderedDepartments(['טיפוח והיגיינה', 'ניקיון']);
+    expect(order.slice(0, 2)).toEqual(['טיפוח, היגיינה ופארם', 'ניקיון']);
+    expect(order.filter((d) => d === 'טיפוח, היגיינה ופארם')).toHaveLength(1);
+    expect(guessDepartment('שמפו', new Map([['שמפו', 'טיפוח והיגיינה']]))).toBe('טיפוח, היגיינה ופארם');
+    expect(guessDepartment('ויטמין די', new Map())).toBe('טיפוח, היגיינה ופארם');
   });
 });

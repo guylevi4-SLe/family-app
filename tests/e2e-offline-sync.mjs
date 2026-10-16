@@ -83,7 +83,7 @@ async function main() {
     await row(dad, 'לחם').waitFor();
     assert.deepEqual(await names(dad), ['חלב', 'לחם', 'עגבניות', 'שמפו']);
     const depts = await list(dad).locator('.dept h2').allTextContents();
-    assert.deepEqual(depts, ['פירות וירקות', 'מוצרי חלב וביצים', 'לחם ומאפים', 'טיפוח והיגיינה']);
+    assert.deepEqual(depts, ['פירות וירקות', 'מוצרי חלב וביצים', 'לחם ומאפים', 'טיפוח, היגיינה ופארם']);
     assert.equal(await row(dad, 'לחם').locator('.qty').textContent(), '2');
     await add(dad, 'קילו בשר טחון');
     await row(dad, 'בשר טחון').waitFor();
