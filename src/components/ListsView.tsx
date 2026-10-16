@@ -55,6 +55,7 @@ import { MoreMenu } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { ChevronDown, Folder, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
+import { LockMark } from './LockMark';
 
 const byOrder = (a: ListEntry, b: ListEntry) => a.order - b.order;
 
@@ -260,8 +261,8 @@ function Library({
       <LibRow
         className="note-card"
         icon={<ListIcon value={l.emoji} size={22} />}
-        title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</>}
-        sub={at(l) ? `📁 ${folderPath(all, at(l)).join(' › ')}` : l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
+        title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
+        sub={at(l) ? `📁 ${folderPath(all, at(l)).join(' › ')}` : l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
         onOpen={() => onOpen(l.id)}
         actions={itemActions(l)}
       />
@@ -309,7 +310,7 @@ function Library({
                     <LibRow
                       className="folder-card"
                       icon={<Folder size={22} />}
-                      title={<>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</>}
+                      title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
                       count={count(f.id)}
                       onOpen={() => setFolder(f.id)}
                       actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) }]}
@@ -329,8 +330,8 @@ function Library({
                     <LibRow
                       className="note-card"
                       icon={<ListIcon value={l.emoji} size={22} />}
-                      title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</>}
-                      sub={<span className="note-preview">{l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
+                      title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
+                      sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
                       onOpen={() => onOpen(l.id)}
                       actions={itemActions(l)}
                       editing={editing}
@@ -812,7 +813,7 @@ function Notebook({
               <LibRow
                 className="folder-card"
                 icon={<Folder size={22} />}
-                title={<>{f.locked && <span aria-label="נעולה">🔐 </span>}{f.title}</>}
+                title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
                 sub={count(f.id)}
                 onOpen={() => setFolder(f.id)}
                 actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) }]}
@@ -832,8 +833,8 @@ function Notebook({
               <LibRow
                 className="note-card"
                 icon={<ListIcon value={l.emoji} size={22} />}
-                title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי">🔒 </span>}{l.title}</>}
-                sub={<span className="note-preview">{l.locked ? '🔐 נעול בסיסמה' : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
+                title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
+                sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
                 onOpen={() => onOpen(l.id)}
                 actions={[
                   ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
@@ -866,7 +867,7 @@ function Notebook({
 
       {locking && (
         <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lockFolder(); }}>
-          <strong>🔐 נעילת התיקייה בסיסמה</strong>
+          <strong><LockMark />נעילת התיקייה בסיסמה</strong>
           <input type="password" autoComplete="new-password" placeholder="סיסמה (לפחות 4 תווים)" aria-label="סיסמה חדשה לתיקייה" value={locking.a} autoFocus onChange={(e) => setLocking({ ...locking, a: e.target.value })} />
           <input type="password" autoComplete="new-password" placeholder="שוב, לאימות" aria-label="אימות סיסמת התיקייה" value={locking.b} onChange={(e) => setLocking({ ...locking, b: e.target.value })} />
           {locking.b && locking.a !== locking.b && <p className="error">הסיסמאות לא זהות</p>}
@@ -908,13 +909,13 @@ function FolderGate({ folder, onOpen }: { folder: FamilyList; onOpen: () => void
   };
   return (
     <form className="card note-gate" onSubmit={(e) => { e.preventDefault(); if (password) open(); }}>
-      <strong>🔐 התיקייה "{folder.title}" נעולה בסיסמה</strong>
+      <strong><LockMark />התיקייה "{folder.title}" נעולה בסיסמה</strong>
       <label>
         <span className="field-label">הסיסמה של התיקייה</span>
         <input className="full" type="password" autoComplete="off" value={password} autoFocus aria-label="סיסמת התיקייה" onChange={(e) => setPassword(e.target.value)} />
       </label>
       {error && <p className="error" role="alert">{error}</p>}
-      <button className="primary" disabled={!password || busy}>{busy ? 'פותח…' : '🔓 פתיחה'}</button>
+      <button className="primary" disabled={!password || busy}>{busy ? 'פותח…' : <><LockMark kind="open" />פתיחה</>}</button>
       <p className="muted note-hint">את הסיסמה מקבלים ממי שנעל את התיקייה. אחרי הפתיחה, כל הפתקים שבתוכה פתוחים.</p>
     </form>
   );
@@ -938,7 +939,7 @@ function WhoSees({ note, files }: { note: FamilyList; files: NoteFile[] | undefi
     return (
       <div className="who-sees">
         <span>
-          <span className="muted">{note.viewers ? '🔒' : '👨‍👩‍👧'} רואים ועורכים: </span>
+          <span className="muted">{note.viewers ? <LockMark kind="private" /> : '👨‍👩‍👧'} רואים ועורכים: </span>
           <strong>{label}</strong>
         </span>
         {mine ? (
@@ -956,7 +957,7 @@ function WhoSees({ note, files }: { note: FamilyList; files: NoteFile[] | undefi
           כל המשפחה
         </button>
         <button className={editing !== null ? 'on' : ''} aria-pressed={editing !== null} onClick={() => setEditing(editing ?? [me.id])}>
-          🔒 רק מי שאבחר
+          <LockMark kind="private" />רק מי שאבחר
         </button>
       </div>
       {editing !== null && (
@@ -1050,7 +1051,7 @@ function NoteGate({ note, all, onBack, onOpen }: { note: FamilyList; all: Family
         <span className="list-emoji" aria-hidden="true"><ListIcon value={note.emoji} /></span>
         <div className="list-hero-main">
           <h2 className="list-title">{note.title}</h2>
-          <p className="muted list-sum">🔐 פתק נעול בסיסמה</p>
+          <p className="muted list-sum"><LockMark />פתק נעול בסיסמה</p>
         </div>
       </div>
       <form className="card note-gate" onSubmit={(e) => { e.preventDefault(); if (password) open(); }}>
@@ -1059,7 +1060,7 @@ function NoteGate({ note, all, onBack, onOpen }: { note: FamilyList; all: Family
           <input className="full" type="password" autoComplete="off" value={password} autoFocus aria-label="סיסמת הפתק" onChange={(e) => setPassword(e.target.value)} />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <button className="primary" disabled={!password || busy}>{busy ? 'פותח…' : '🔓 פתיחה'}</button>
+        <button className="primary" disabled={!password || busy}>{busy ? 'פותח…' : <><LockMark kind="open" />פתיחה</>}</button>
         <p className="muted note-hint">את הסיסמה מקבלים ממי שנעל את הפתק. היא לא נשמרת בשום מקום, וגם אנחנו לא יכולים לשחזר אותה.</p>
       </form>
     </>
@@ -1263,7 +1264,7 @@ function NoteEditor({
           )}
           <p className="muted list-sum">
             {note.pinned && '📌 נעוץ · '}
-            {!saved ? 'שומר…' : note.lockFolder ? '🔐 בתיקייה נעולה, פתוח כרגע' : note.locked ? '🔐 נעול בסיסמה, פתוח כרגע' : note.viewers ? '🔒 פתק פרטי' : 'פתק משפחתי, כולם יכולים לערוך'}
+            {!saved ? 'שומר…' : note.lockFolder ? <><LockMark />בתיקייה נעולה, פתוח כרגע</> : note.locked ? <><LockMark />נעול בסיסמה, פתוח כרגע</> : note.viewers ? <><LockMark kind="private" />פתק פרטי</> : 'פתק משפחתי, כולם יכולים לערוך'}
           </p>
         </div>
         <MoreMenu
@@ -1327,7 +1328,7 @@ function NoteEditor({
             {[...files].sort((a, b) => (a.createdAt?.toMillis() ?? Infinity) - (b.createdAt?.toMillis() ?? Infinity)).map((f) => (
               <li key={f.id} className="note-file">
                 <button className="note-thumb" aria-label={`הגדלת ${f.name}`} disabled={!images.get(f.id)} onClick={() => setZoom(f.id)}>
-                  {images.get(f.id) ? <img src={images.get(f.id)} alt="" /> : <span className="muted">🔐</span>}
+                  {images.get(f.id) ? <img src={images.get(f.id)} alt="" /> : <span className="muted"><LockMark /></span>}
                 </button>
                 <span className="note-file-name" title={f.name}>{f.name}</span>
                 <button
@@ -1363,7 +1364,7 @@ function NoteEditor({
             .filter((l) => l.kind === 'folder')
             .map((f) => {
               const lock = lockOf(all, f.id);
-              return { id: f.id, label: folderPath(all, f.id).join(' › ') + (lock ? ' 🔐' : ''), shut: !!lock && !rememberedKey(lock.salt) };
+              return { id: f.id, label: folderPath(all, f.id).join(' › ') + (lock ? ' (נעולה)' : ''), shut: !!lock && !rememberedKey(lock.salt) };
             })
             .sort((a, b) => a.label.localeCompare(b.label, 'he'))
             .map((f) => <option key={f.id} value={f.id} disabled={f.shut}>{f.label}</option>)}
@@ -1372,7 +1373,7 @@ function NoteEditor({
 
       {locking && (
         <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lock(); }}>
-          <strong>🔐 נעילת הפתק בסיסמה</strong>
+          <strong><LockMark />נעילת הפתק בסיסמה</strong>
           <input type="password" autoComplete="new-password" placeholder="סיסמה (לפחות 4 תווים)" aria-label="סיסמה חדשה" value={locking.a} autoFocus onChange={(e) => setLocking({ ...locking, a: e.target.value })} />
           <input type="password" autoComplete="new-password" placeholder="שוב, לאימות" aria-label="אימות הסיסמה" value={locking.b} onChange={(e) => setLocking({ ...locking, b: e.target.value })} />
           {locking.b && locking.a !== locking.b && <p className="error">הסיסמאות לא זהות</p>}

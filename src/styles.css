@@ -933,3 +933,5 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .lib-row.list-card, .lib-row.note-card, .lib-row.folder-card, .lib-row.notes-root { padding: 0; min-height: 0; gap: 4px; border: 0; border-radius: 0; box-shadow: none; width: auto; }
 .lib-group .lib-row-wrap { border-radius: 0; }
 .lib-row-wrap:not(.swiped) .swipe-actions { visibility: hidden; }
+.lock-mark { display: inline-block; vertical-align: -0.125em; margin-inline-end: 0.3em; color: var(--accent); flex: none; }
+button .lock-mark, .primary .lock-mark { color: inherit; }

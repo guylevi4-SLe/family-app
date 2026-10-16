@@ -824,10 +824,10 @@ async function main() {
     await lists.getByLabel('תוכן הפתק').blur();
     await lists.locator('.who-sees').getByText('כל המשפחה').waitFor();
     await lists.locator('.who-sees').getByRole('button', { name: 'שינוי' }).click();
-    await lists.getByRole('button', { name: '🔒 רק מי שאבחר' }).click();
+    await lists.getByRole('button', { name: 'רק מי שאבחר' }).click();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-who-sees.png` });
     await lists.locator('.who-edit').getByRole('button', { name: 'שמירה' }).click();
-    await lists.getByText('🔒 פתק פרטי').waitFor({ timeout: 10000 });
+    await lists.getByText('פתק פרטי').waitFor({ timeout: 10000 });
     await lists.locator('.who-sees').getByText('רק אני').waitFor();
     await lists.locator('.note-file').first().waitFor({ timeout: 10000 });
     assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אבא: 012345678');
@@ -869,7 +869,7 @@ async function main() {
     await lists.getByLabel('אימות הסיסמה').fill('levi1234');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-lock.png` });
     await lists.locator('.note-lock').getByRole('button', { name: 'נעילה' }).click();
-    await lists.getByText('🔐 נעול בסיסמה, פתוח כרגע').waitFor({ timeout: 15000 });
+    await lists.getByText('נעול בסיסמה, פתוח כרגע').waitFor({ timeout: 15000 });
     await lists.locator('.note-file img').first().waitFor({ timeout: 15000 });
     assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אזעקה: 9876');
     await lists.getByLabel('תוכן הפתק').fill('אזעקה: 9876\nכספת: 4321');
@@ -899,16 +899,16 @@ async function main() {
     await lists.getByLabel('סיסמת הפתק').waitFor();
     assert.equal(await lists.getByLabel('תוכן הפתק').count(), 0, 'locked: no text shown');
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).getByText('🔐 נעול בסיסמה').waitFor();
+    await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).getByText('נעול בסיסמה').waitFor();
     // The daughter needs the password; a wrong one is refused.
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
     await kidLists.locator('.note-card', { hasText: 'קוד אזעקה' }).click({ timeout: 10000 });
     await kidLists.getByLabel('סיסמת הפתק').fill('nope');
-    await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await kidLists.getByRole('button', { name: 'פתיחה', exact: true }).click();
     await kidLists.getByText('הסיסמה לא נכונה').waitFor({ timeout: 10000 });
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-gate.png` });
     await kidLists.getByLabel('סיסמת הפתק').fill('levi1234');
-    await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await kidLists.getByRole('button', { name: 'פתיחה', exact: true }).click();
     await kid.page.waitForFunction(() => document.querySelector('.note-body')?.value.includes('כספת: 4321'), null, { timeout: 15000 });
     await kidLists.locator('.note-file img').first().waitFor({ timeout: 15000 });
     await kidLists.getByRole('button', { name: 'אפשרויות' }).click();
@@ -919,7 +919,7 @@ async function main() {
     // Dad opens it again and removes the password.
     await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).click();
     await lists.getByLabel('סיסמת הפתק').fill('levi1234');
-    await lists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await lists.getByRole('button', { name: 'פתיחה', exact: true }).click();
     await menu(lists, 'הסרת הסיסמה');
     await lists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor({ timeout: 15000 });
     await lists.locator('.note-file img').first().waitFor({ timeout: 15000 });
@@ -964,8 +964,8 @@ async function main() {
     await lists.getByLabel('סיסמה חדשה לתיקייה').fill('docs5678');
     await lists.getByLabel('אימות סיסמת התיקייה').fill('docs5678');
     await lists.locator('.note-lock').getByRole('button', { name: 'נעילה' }).click();
-    await lists.locator('.note-card', { hasText: 'של הבת' }).getByText('🔐 נעול בסיסמה').waitFor({ timeout: 20000 });
-    await lists.locator('.note-card', { hasText: 'דרכון' }).getByText('🔐 נעול בסיסמה').waitFor({ timeout: 20000 });
+    await lists.locator('.note-card', { hasText: 'של הבת' }).getByText('נעול בסיסמה').waitFor({ timeout: 20000 });
+    await lists.locator('.note-card', { hasText: 'דרכון' }).getByText('נעול בסיסמה').waitFor({ timeout: 20000 });
     await lists.getByRole('status').waitFor({ state: 'detached', timeout: 20000 });
     for (const [t, secret] of [['דרכון', '111'], ['של הבת', '222']]) {
       const n = await serverNote(t);
@@ -976,18 +976,18 @@ async function main() {
     await lists.getByLabel('סיסמת התיקייה').waitFor();
     assert.equal(await lists.locator('.note-card').count(), 0, 'a shut folder shows no notes');
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await lists.locator('.folder-card', { hasText: 'מסמכים' }).getByText('🔐').waitFor();
+    await lists.locator('.folder-card', { hasText: 'מסמכים' }).getByLabel('נעולה').waitFor();
     // The daughter opens the folder with its password; her note opens with no extra password.
     await kidLists.getByLabel('סיסמת התיקייה').waitFor({ timeout: 10000 });
     await kidLists.getByLabel('סיסמת התיקייה').fill('wrong');
-    await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await kidLists.getByRole('button', { name: 'פתיחה', exact: true }).click();
     await kidLists.getByText('הסיסמה לא נכונה').waitFor({ timeout: 10000 });
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/folder-gate.png` });
     await kidLists.getByLabel('סיסמת התיקייה').fill('docs5678');
-    await kidLists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await kidLists.getByRole('button', { name: 'פתיחה', exact: true }).click();
     await kidLists.locator('.note-card', { hasText: 'של הבת' }).click({ timeout: 10000 });
     await kid.page.waitForFunction(() => document.querySelector('.note-body')?.value === 'הבת: 222', null, { timeout: 15000 });
-    await kidLists.getByText('🔐 בתיקייה נעולה, פתוח כרגע').waitFor();
+    await kidLists.getByText('בתיקייה נעולה, פתוח כרגע').waitFor();
     // Moving it out of the folder opens it up.
     await kidLists.getByLabel('תיקיית הפתק').selectOption({ label: 'בלי תיקייה (ראשי)' });
     await kidLists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor({ timeout: 15000 });
@@ -998,7 +998,7 @@ async function main() {
     // Dad opens the folder and removes its password.
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).click();
     await lists.getByLabel('סיסמת התיקייה').fill('docs5678');
-    await lists.getByRole('button', { name: '🔓 פתיחה' }).click();
+    await lists.getByRole('button', { name: 'פתיחה', exact: true }).click();
     await menu(lists, 'הסרת הסיסמה');
     await lists.locator('.note-card', { hasText: 'דרכון' }).getByText('דרכון: 111').waitFor({ timeout: 20000 });
     await lists.getByRole('button', { name: 'אפשרויות' }).click();
