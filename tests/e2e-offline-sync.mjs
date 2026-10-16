@@ -590,6 +590,14 @@ async function main() {
     const scrollable = await viewer.locator('.zoom-box').evaluate((b) => b.scrollWidth > b.clientWidth);
     assert.ok(scrollable, 'zoomed timetable can be scrolled sideways, not cut');
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/schedule-zoom.png` });
+    // Sharing the image hands the phone's share sheet a real image file.
+    await kid.page.evaluate(() => {
+      window.__shared = null;
+      navigator.canShare = () => true;
+      navigator.share = async (d) => { window.__shared = d.files.map((f) => `${f.type} ${f.size > 1000}`).join(); };
+    });
+    await viewer.getByRole('button', { name: 'שיתוף התמונה' }).click();
+    assert.match(await kid.page.evaluate(() => window.__shared), /^image\/\w+ true$/);
     await viewer.getByRole('button', { name: 'סגירה' }).click();
     await kid.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('the daughter sees "my timetable" on her home screen and opens it');

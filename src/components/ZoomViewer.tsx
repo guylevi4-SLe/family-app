@@ -1,7 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Share } from 'lucide-react';
 
 const MIN = 1;
+
+/** The image as a file, built synchronously so sharing stays inside the tap (iOS requires that). */
+function toFile(src: string, name: string): File | null {
+  const m = /^data:([^;,]+);base64,(.*)$/.exec(src);
+  if (!m) return null;
+  const bin = atob(m[2]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const ext = m[1].split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
+  const base = name.replace(/\.[a-z0-9]+$/i, '').replace(/[\\/:*?"<>|]/g, '').trim() || 'תמונה';
+  return new File([bytes], `${base}.${ext}`, { type: m[1] });
+}
+
+/** Opens the phone's share sheet (WhatsApp is one of its choices); without one, downloads the image. */
+function shareImage(src: string, name: string) {
+  const file = toFile(src, name);
+  if (file && navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file] }).catch(() => {});
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = src;
+  a.download = file?.name ?? 'תמונה.jpg';
+  a.click();
+}
 const MAX = 5;
 
 /**
@@ -78,7 +104,10 @@ export function ZoomViewer({ src, alt, onClose }: { src: string; alt: string; on
     <div className="zoom-viewer" role="dialog" aria-label={alt} onClick={(e) => e.stopPropagation()}>
       <div className="zoom-bar">
         <button className="icon-button" aria-label="סגירה" onClick={onClose}>✕</button>
-        <span className="zoom-hint">צביטה או +/− להגדלה</span>
+        <span className="zoom-hint">צביטה להגדלה</span>
+        <button className="icon-button" aria-label="שיתוף התמונה" onClick={() => shareImage(src, alt)}>
+          <Share size={22} aria-hidden="true" />
+        </button>
         <button className="icon-button" aria-label="הקטנה" disabled={scale <= MIN} onClick={() => zoomTo(scale / 1.5)}>−</button>
         <button className="icon-button" aria-label="הגדלה" disabled={scale >= MAX} onClick={() => zoomTo(scale * 1.5)}>+</button>
       </div>
