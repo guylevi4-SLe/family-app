@@ -945,3 +945,4 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .lib-add { flex: none; width: 42px; height: 42px; min-height: 0; padding: 0; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
 .detail-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .detail-top .back { margin: 0; }
+.logo-home, .title-logo { unicode-bidi: isolate; }

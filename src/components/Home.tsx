@@ -226,7 +226,9 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         <header className="topbar">
           <h1 className="with-logo">
             {view === 'home' ? (
-              <BrandLogo className="title-logo" size={34} />
+              <span className="logo-home">
+                <BrandLogo className="title-logo" size={34} />
+              </span>
             ) : (
               // On every other screen the logo is the way back home.
               <button type="button" className="logo-home" aria-label="חזרה למסך הבית" onClick={() => go('home')}>
