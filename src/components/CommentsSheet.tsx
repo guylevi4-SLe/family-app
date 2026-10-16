@@ -430,7 +430,7 @@ export function Composer({
       {!notifyFirst && tagRow}
       {askAbout && (
         <button type="button" className="ask-whatsapp" onClick={openAsk}>
-          <Icon name="whatsapp" size={18} /> שאלה על המוצר בוואטסאפ
+          <Icon name="whatsapp" size={20} /> שאלה על המוצר בוואטסאפ
         </button>
       )}
       {asking && (

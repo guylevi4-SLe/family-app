@@ -532,6 +532,7 @@ async function main() {
       const sheet = p.getByRole('dialog', { name: 'תגובות על חלב' });
       if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/item-notes.png` });
       await sheet.getByLabel('כתיבת תגובה').fill('איזה אחוז שומן?');
+      if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/ask-button.png` });
       await sheet.getByRole('button', { name: 'שאלה על המוצר בוואטסאפ' }).click();
       const askBox = p.getByRole('dialog', { name: 'שאלה בוואטסאפ' });
       assert.equal(await askBox.getByRole('textbox', { name: 'השאלה' }).inputValue(), 'איזה אחוז שומן?', 'what was typed carries over');

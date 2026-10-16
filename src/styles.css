@@ -968,3 +968,16 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .paid-list li { display: flex; align-items: center; gap: 10px; }
 .paid-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .paid-list input { flex: 0 0 96px; min-height: 40px; padding: 0 10px; font-size: 16px; border-radius: 10px; }
+/* "Ask about the product" looks exactly like the shopping list's WhatsApp button. */
+.ask-whatsapp {
+  display: flex;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--grad);
+  border-color: transparent;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+}
