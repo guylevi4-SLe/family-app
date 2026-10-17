@@ -56,6 +56,8 @@ import { useDragOrder } from './useDragOrder';
 import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
+import { FormatBar, NoteView } from './NoteFormat';
+import { hasFormatting, toggleCheck, toWhatsApp } from '../data/noteFormat';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
 import { confirmAsk, confirmDelete } from './ConfirmSheet';
@@ -128,7 +130,7 @@ function readOpen(): { notes: boolean; lists: boolean } {
 /** Sends a list or an unlocked note to WhatsApp as text. */
 function shareItem(item: FamilyList, entries: ListEntry[]) {
   if (item.kind === 'note') {
-    const text = `${iconEmoji(item.emoji)} *${item.title}*${item.body ? `\n\n${item.body}` : ''}`;
+    const text = `${iconEmoji(item.emoji)} *${item.title}*${item.body ? `\n\n${toWhatsApp(item.body)}` : ''}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     return;
   }
@@ -1149,6 +1151,8 @@ function NoteEditor({
   const [moving, setMoving] = useState(false);
   const [picking, setPicking] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
   const editing = useRef(false);
   const timer = useRef<number>();
   const latest = useRef(body);
@@ -1328,15 +1332,30 @@ function NoteEditor({
 
       <WhoSees note={note} files={files} />
 
+      {/* Formatted when not typing; the text box stays in the page so a tap opens the keyboard at once. */}
+      {ready && !focused && hasFormatting(body) && (
+        <NoteView
+          text={body}
+          onEdit={() => {
+            const el = bodyRef.current;
+            if (!el) return;
+            el.focus();
+            el.setSelectionRange(el.value.length, el.value.length);
+          }}
+          onToggle={(i) => change(toggleCheck(latest.current, i))}
+        />
+      )}
+      {focused && <FormatBar target={bodyRef} onChange={change} />}
       <textarea
-        className="note-body"
+        ref={bodyRef}
+        className={`note-body ${ready && !focused && hasFormatting(body) ? 'note-editor-hidden' : ''}`}
         aria-label="תוכן הפתק"
         placeholder={ready ? 'כותבים כאן כל מה שצריך: מספרי טלפון, הוראות, קודים…' : 'פותח…'}
         value={body}
         disabled={!ready}
         maxLength={MAX_NOTE}
-        onFocus={() => { editing.current = true; }}
-        onBlur={() => { editing.current = false; flush(); }}
+        onFocus={() => { editing.current = true; setFocused(true); }}
+        onBlur={() => { editing.current = false; setFocused(false); flush(); }}
         onChange={(e) => change(e.target.value)}
       />
 

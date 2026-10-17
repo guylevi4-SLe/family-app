@@ -870,6 +870,30 @@ async function main() {
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).click();
     await dad.page.waitForFunction(() => document.querySelector('.note-body')?.value.includes('וויפי'), null, { timeout: 10000 });
+    // Formatting: the buttons add WhatsApp-style marks; out of editing the note shows formatted, and checkboxes tick.
+    {
+      const bodyBox = lists.getByLabel('תוכן הפתק', { exact: true });
+      const before = await bodyBox.inputValue();
+      await bodyBox.fill('# קודים\nשער חניה: 1234\n[ ] להחליף סוללה');
+      await bodyBox.evaluate((el) => { const i = el.value.indexOf('1234'); el.setSelectionRange(i, i + 4); });
+      await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).getByRole('button', { name: 'מודגש' }).click();
+      assert.equal(await bodyBox.inputValue(), '# קודים\nשער חניה: *1234*\n[ ] להחליף סוללה');
+      await bodyBox.blur();
+      const view = lists.getByRole('button', { name: 'עריכת תוכן הפתק' });
+      await view.locator('strong', { hasText: '1234' }).waitFor();
+      await view.locator('.nf-h1', { hasText: 'קודים' }).waitFor();
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-format.png` });
+      await view.getByRole('checkbox', { name: 'להחליף סוללה' }).click();
+      await view.locator('[role="checkbox"][aria-checked="true"]').waitFor();
+      assert.ok((await bodyBox.inputValue()).endsWith('[x] להחליף סוללה'), 'ticking the box changes the text');
+      await view.locator('.nf-h1').click();
+      await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).waitFor();
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-format-edit.png` });
+      await bodyBox.fill(before);
+      await bodyBox.blur();
+      await dad.page.waitForTimeout(1200);
+      ok('note formatting: buttons add marks, the note shows formatted, checkboxes tick');
+    }
     await lists.getByRole('button', { name: 'מחיקת icon-pink-512.png' }).click();
     await lists.locator('.note-file').nth(1).waitFor({ state: 'detached' });
     await lists.getByRole('button', { name: '→ ביטוחים' }).click();
