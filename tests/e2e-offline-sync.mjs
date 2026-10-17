@@ -889,6 +889,26 @@ async function main() {
       await view.locator('.nf-h1').click();
       await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).waitFor();
       if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-format-edit.png` });
+      // With a phone keyboard open (simulated: the visible area shrinks by 300px) the bar sits right on top of it.
+      const kbTop = await dad.page.evaluate(() => {
+        const vv = window.visualViewport;
+        const h = window.innerHeight - 300;
+        Object.defineProperty(vv, 'height', { configurable: true, get: () => h });
+        vv.dispatchEvent(new Event('resize'));
+        return h;
+      });
+      const onKb = dad.page.locator('.format-bar.on-keyboard');
+      await onKb.waitFor();
+      const box = await onKb.boundingBox();
+      assert.ok(Math.abs(box.y + box.height - kbTop) <= 1, `bar bottom ${box.y + box.height} at the keyboard top ${kbTop}`);
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-format-keyboard.png` });
+      await onKb.getByRole('button', { name: 'מודגש' }).click();
+      assert.equal(await lists.getByLabel('תוכן הפתק', { exact: true }).evaluate((el) => document.activeElement === el), true, 'the text box keeps the keyboard');
+      await dad.page.evaluate(() => {
+        delete window.visualViewport.height;
+        window.visualViewport.dispatchEvent(new Event('resize'));
+      });
+      await onKb.waitFor({ state: 'detached' });
       await bodyBox.fill(before);
       await bodyBox.blur();
       await dad.page.waitForTimeout(1200);

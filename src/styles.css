@@ -996,6 +996,7 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .note-view .nf-check.done span { text-decoration: line-through; color: var(--muted); }
 .note-view mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
 .note-editor-hidden { position: absolute; opacity: 0; pointer-events: none; height: 1px !important; min-height: 0 !important; width: 1px; padding: 0; border: 0; }
-.format-bar { position: sticky; top: 0; z-index: 3; display: flex; gap: 2px; overflow-x: auto; padding: 4px; margin-bottom: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
+.format-bar { position: sticky; top: calc(max(10px, env(safe-area-inset-top)) + 54px); z-index: 4; display: flex; gap: 2px; overflow-x: auto; padding: 4px; margin-bottom: 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
 .format-bar button { flex: none; display: grid; place-items: center; width: 38px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text); }
 .format-bar button:active { background: var(--accent-soft); color: var(--accent); }
+.format-bar.on-keyboard { position: fixed; left: 0; right: 0; z-index: 60; transform: translateY(-100%); margin: 0; border-radius: 0; border-inline: 0; border-bottom: 0; justify-content: center; padding: 4px 8px; }

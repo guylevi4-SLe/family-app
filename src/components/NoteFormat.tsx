@@ -1,4 +1,5 @@
-import type { ReactNode, RefObject } from 'react';
+import { useEffect, useState, type ReactNode, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { Bold, Heading, Highlighter, Italic, List, ListChecks, Strikethrough, Underline } from 'lucide-react';
 import { parseInline, parseLine, togglePrefix, wrapSelection, type Edit, type Inline } from '../data/noteFormat';
 
@@ -69,10 +70,40 @@ const TOOLS: { label: string; icon: ReactNode; run: (v: string, s: number, e: nu
   { label: 'תיבות סימון', icon: <ListChecks size={18} />, run: (v, s, e) => togglePrefix(v, s, e, '[ ] ') },
 ];
 
-/** Buttons that add the marks; they keep the keyboard and the selection where they are. */
+/** Where the on-screen keyboard starts (px from the top), or null when no keyboard is open. */
+function useKeyboardTop() {
+  const [top, setTop] = useState<number | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const covered = window.innerHeight - vv.height;
+      setTop(covered > 120 ? vv.offsetTop + vv.height : null);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+  return top;
+}
+
+/**
+ * Buttons that add the marks; they keep the keyboard and the selection where they are.
+ * With the phone keyboard open the bar sits right on top of it, so scrolling never hides it.
+ */
 export function FormatBar({ target, onChange }: { target: RefObject<HTMLTextAreaElement>; onChange: (v: string) => void }) {
-  return (
-    <div className="format-bar" role="toolbar" aria-label="עיצוב טקסט">
+  const keyboardTop = useKeyboardTop();
+  const bar = (
+    <div
+      className={`format-bar ${keyboardTop !== null ? 'on-keyboard' : ''}`}
+      style={keyboardTop !== null ? { top: keyboardTop } : undefined}
+      role="toolbar"
+      aria-label="עיצוב טקסט"
+    >
       {TOOLS.map((t) => (
         <button
           key={t.label}
@@ -95,4 +126,5 @@ export function FormatBar({ target, onChange }: { target: RefObject<HTMLTextArea
       ))}
     </div>
   );
+  return keyboardTop !== null ? createPortal(bar, document.body) : bar;
 }
