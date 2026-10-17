@@ -886,6 +886,18 @@ async function main() {
       await view.getByRole('checkbox', { name: 'להחליף סוללה' }).click();
       await view.locator('[role="checkbox"][aria-checked="true"]').waitFor();
       assert.ok((await bodyBox.inputValue()).endsWith('[x] להחליף סוללה'), 'ticking the box changes the text');
+      // Selecting a bold word on the formatted view (no editing) shows the buttons; bold again takes the bold off.
+      await view.locator('strong', { hasText: '1234' }).evaluate((el) => {
+        const t = el.querySelector('[data-at]').firstChild;
+        const r = document.createRange();
+        r.setStart(t, 0);
+        r.setEnd(t, 4);
+        getSelection().removeAllRanges();
+        getSelection().addRange(r);
+      });
+      await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).getByRole('button', { name: 'מודגש' }).click();
+      await dad.page.waitForFunction(() => document.querySelector('textarea.note-body')?.value.includes('חניה: 1234\n'));
+      assert.equal(await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).count(), 0, 'the buttons go once used');
       await view.locator('.nf-h1').click();
       await bodyBox.evaluate((el) => document.activeElement === el);
       await dad.page.waitForTimeout(300);

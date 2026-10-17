@@ -56,7 +56,7 @@ import { useDragOrder } from './useDragOrder';
 import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
-import { FormatBar, NoteView } from './NoteFormat';
+import { FormatBar, NoteView, viewSelection } from './NoteFormat';
 import { hasFormatting, toggleCheck, toWhatsApp } from '../data/noteFormat';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
@@ -1154,11 +1154,18 @@ function NoteEditor({
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
   // The formatting buttons show while a word (or more) is selected in the note.
+  // A word can also be picked on the formatted view (long press), without opening the keyboard.
   const [selected, setSelected] = useState(false);
+  const viewRef = useRef<HTMLDivElement>(null);
+  const [viewSel, setViewSel] = useState<{ start: number; end: number } | null>(null);
   useEffect(() => {
     const check = () => {
       const el = bodyRef.current;
       setSelected(!!el && document.activeElement === el && el.selectionStart !== el.selectionEnd);
+      setViewSel((old) => {
+        const now = viewSelection(viewRef.current);
+        return old && now && old.start === now.start && old.end === now.end ? old : now;
+      });
     };
     const el = bodyRef.current;
     document.addEventListener('selectionchange', check);
@@ -1351,10 +1358,11 @@ function NoteEditor({
       {/* Formatted when not typing; the text box stays in the page so a tap opens the keyboard at once. */}
       {ready && !focused && hasFormatting(body) && (
         <NoteView
+          viewRef={viewRef}
           text={body}
           onEdit={() => {
             const el = bodyRef.current;
-            if (!el) return;
+            if (!el || viewSelection(viewRef.current)) return;
             el.focus();
             el.setSelectionRange(el.value.length, el.value.length);
           }}
@@ -1362,6 +1370,7 @@ function NoteEditor({
         />
       )}
       {focused && selected && <FormatBar target={bodyRef} onChange={change} />}
+      {!focused && viewSel && <FormatBar target={bodyRef} onChange={change} range={viewSel} />}
       <textarea
         ref={bodyRef}
         className={`note-body ${ready && !focused && hasFormatting(body) ? 'note-editor-hidden' : ''}`}

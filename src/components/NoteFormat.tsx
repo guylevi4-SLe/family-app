@@ -5,21 +5,46 @@ import { parseInline, parseLine, togglePrefix, wrapSelection, type Edit, type In
 
 const TAG: Record<string, string> = { b: 'strong', i: 'em', s: 's', u: 'u', hl: 'mark' };
 
-function runs(text: string): ReactNode[] {
-  return parseInline(text).map((r: Inline, k) =>
-    r.marks.reduceRight<ReactNode>((child, m) => {
+// Each run remembers where its text starts in the note (data-at), so a selection
+// made on the formatted view can be found in the text.
+function runsAt(text: string, base: number): ReactNode[] {
+  let pos = 0;
+  return parseInline(text).map((r: Inline, k) => {
+    pos = text.indexOf(r.text, pos);
+    const at = base + pos;
+    pos += r.text.length;
+    return r.marks.reduceRight<ReactNode>((child, m) => {
       const T = TAG[m] as 'strong';
       return <T>{child}</T>;
-    }, <span key={k}>{r.text}</span>),
-  ).map((n, k) => <span key={k}>{n}</span>);
+    }, <span key={k} data-at={at}>{r.text}</span>);
+  }).map((n, k) => <span key={k}>{n}</span>);
+}
+
+/** Where the selection on the formatted view sits in the note's text, or null when nothing there is selected. */
+export function viewSelection(view: HTMLElement | null): { start: number; end: number } | null {
+  const sel = window.getSelection();
+  if (!view || !sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const at = (node: Node, offset: number) => {
+    const span = node.nodeType === Node.TEXT_NODE ? node.parentElement : null;
+    const base = span && view.contains(span) ? span.dataset.at : undefined;
+    return base === undefined ? null : Number(base) + offset;
+  };
+  const r = sel.getRangeAt(0);
+  const a = at(r.startContainer, r.startOffset);
+  const b = at(r.endContainer, r.endOffset);
+  return a === null || b === null || a === b ? null : { start: Math.min(a, b), end: Math.max(a, b) };
 }
 
 /** The note, formatted. Tapping text starts editing; tapping a checkbox ticks it. */
-export function NoteView({ text, onEdit, onToggle }: { text: string; onEdit: () => void; onToggle: (line: number) => void }) {
+export function NoteView({ text, onEdit, onToggle, viewRef }: { text: string; onEdit: () => void; onToggle: (line: number) => void; viewRef?: RefObject<HTMLDivElement> }) {
+  let lineStart = 0;
   return (
-    <div className="note-body note-view" role="button" tabIndex={0} aria-label="עריכת תוכן הפתק" onClick={onEdit} onKeyDown={(e) => e.key === 'Enter' && onEdit()}>
+    <div ref={viewRef} className="note-body note-view" role="button" tabIndex={0} aria-label="עריכת תוכן הפתק" onClick={onEdit} onKeyDown={(e) => e.key === 'Enter' && onEdit()}>
       {text.split('\n').map((raw, i) => {
         const line = parseLine(raw);
+        const base = lineStart + raw.length - ('text' in line ? line.text.length : 0);
+        lineStart += raw.length + 1;
+        const runs = (t: string) => runsAt(t, base);
         switch (line.kind) {
           case 'empty':
             return <p key={i} className="nf-empty" />;
@@ -95,7 +120,7 @@ function useKeyboardTop() {
  * Buttons that add the marks; they keep the keyboard and the selection where they are.
  * With the phone keyboard open the bar sits right on top of it, so scrolling never hides it.
  */
-export function FormatBar({ target, onChange }: { target: RefObject<HTMLTextAreaElement>; onChange: (v: string) => void }) {
+export function FormatBar({ target, onChange, range }: { target: RefObject<HTMLTextAreaElement>; onChange: (v: string) => void; range?: { start: number; end: number } | null }) {
   const keyboardTop = useKeyboardTop();
   const bar = (
     <div
@@ -114,6 +139,12 @@ export function FormatBar({ target, onChange }: { target: RefObject<HTMLTextArea
           onClick={() => {
             const el = target.current;
             if (!el) return;
+            // A word picked on the formatted view: change the text without opening the keyboard.
+            if (range) {
+              onChange(t.run(el.value, range.start, range.end).value);
+              window.getSelection()?.removeAllRanges();
+              return;
+            }
             const r = t.run(el.value, el.selectionStart, el.selectionEnd);
             el.value = r.value;
             onChange(r.value);
