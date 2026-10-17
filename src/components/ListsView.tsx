@@ -55,6 +55,7 @@ import { MoreMenu } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
+import { NameField } from './NameField';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
 import { confirmAsk, confirmDelete } from './ConfirmSheet';
@@ -523,7 +524,7 @@ function ListDetail({
                 setRenaming(null);
               }}
             >
-              <input aria-label="שם הרשימה" value={renaming} maxLength={60} autoFocus onChange={(e) => setRenaming(e.target.value)} />
+              <NameField label="שם הרשימה" value={renaming} onChange={setRenaming} />
               <button className="small primary">שמירה</button>
             </form>
           ) : (
@@ -1269,7 +1270,7 @@ function NoteEditor({
                 setRenaming(null);
               }}
             >
-              <input aria-label="שם הפתק" value={renaming} maxLength={60} autoFocus onChange={(e) => setRenaming(e.target.value)} />
+              <NameField label="שם הפתק" value={renaming} onChange={setRenaming} />
               <button className="small primary">שמירה</button>
             </form>
           ) : (

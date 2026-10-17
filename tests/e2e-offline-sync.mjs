@@ -823,6 +823,17 @@ async function main() {
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
     await lists.getByLabel('תוכן הפתק').fill('שער חניה: 1234\nאזעקה: 9876');
     await lists.getByText('פתק משפחתי, כולם יכולים לערוך').waitFor();
+    // Renaming: a long name shows whole (wraps), the cursor starts at the end, Enter saves.
+    await lists.getByRole('button', { name: 'שינוי שם הפתק' }).click();
+    const nameField = lists.getByLabel('שם הפתק');
+    await nameField.fill('קודים לבית ולמחסן ולחניה של הבניין');
+    assert.ok(await nameField.evaluate((el) => el.scrollHeight <= el.clientHeight + 1), 'the whole long name is visible');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-rename.png` });
+    await nameField.fill('קודים לבית');
+    await nameField.press('Enter');
+    await lists.getByRole('button', { name: 'שינוי שם הפתק' }).waitFor();
+    assert.equal(await lists.locator('.list-title').innerText(), 'קודים לבית');
+    ok('renaming a note shows the whole name and saves with Enter');
     await lists.getByLabel('בחירת קובץ לפתק').setInputFiles([`${process.env.TMPDIR || '/tmp'}/timetable-e2e.pdf`, 'public/icon-pink-512.png']);
     await lists.locator('.note-file').nth(1).waitFor({ timeout: 20000 });
     await menu(lists, 'נעיצה למעלה');
