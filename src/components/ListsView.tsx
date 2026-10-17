@@ -1153,6 +1153,22 @@ function NoteEditor({
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const [focused, setFocused] = useState(false);
+  // The formatting buttons show while a word (or more) is selected in the note.
+  const [selected, setSelected] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const el = bodyRef.current;
+      setSelected(!!el && document.activeElement === el && el.selectionStart !== el.selectionEnd);
+    };
+    const el = bodyRef.current;
+    document.addEventListener('selectionchange', check);
+    const events = ['select', 'keyup', 'mouseup', 'touchend'] as const;
+    events.forEach((ev) => el?.addEventListener(ev, check));
+    return () => {
+      document.removeEventListener('selectionchange', check);
+      events.forEach((ev) => el?.removeEventListener(ev, check));
+    };
+  }, [ready]);
   const editing = useRef(false);
   const timer = useRef<number>();
   const latest = useRef(body);
@@ -1345,7 +1361,7 @@ function NoteEditor({
           onToggle={(i) => change(toggleCheck(latest.current, i))}
         />
       )}
-      {focused && <FormatBar target={bodyRef} onChange={change} />}
+      {focused && selected && <FormatBar target={bodyRef} onChange={change} />}
       <textarea
         ref={bodyRef}
         className={`note-body ${ready && !focused && hasFormatting(body) ? 'note-editor-hidden' : ''}`}

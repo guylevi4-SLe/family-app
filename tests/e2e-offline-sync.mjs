@@ -887,6 +887,10 @@ async function main() {
       await view.locator('[role="checkbox"][aria-checked="true"]').waitFor();
       assert.ok((await bodyBox.inputValue()).endsWith('[x] להחליף סוללה'), 'ticking the box changes the text');
       await view.locator('.nf-h1').click();
+      await bodyBox.evaluate((el) => document.activeElement === el);
+      await dad.page.waitForTimeout(300);
+      assert.equal(await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).count(), 0, 'no buttons while just typing');
+      await bodyBox.evaluate((el) => { const i = el.value.indexOf('קודים'); el.setSelectionRange(i, i + 5); });
       await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).waitFor();
       if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-format-edit.png` });
       // With a phone keyboard open (simulated: the visible area shrinks by 300px) the bar sits right on top of it.
