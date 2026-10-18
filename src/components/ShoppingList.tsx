@@ -199,7 +199,7 @@ export function ShoppingList({
           ref={inputRef}
           rows={1}
           value={text}
-          placeholder="מה להוסיף? אפשר כמה, עם פסיק"
+          placeholder="למשל: חלב, לחם, ביצים"
           aria-label="הוספת מוצרים"
           enterKeyHint="send"
           onChange={(e) => setText(e.target.value)}
