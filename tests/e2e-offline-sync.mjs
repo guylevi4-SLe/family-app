@@ -1084,7 +1084,7 @@ async function main() {
     await kidLists.getByRole('button', { name: 'אפשרויות' }).click();
     await kidLists.getByRole('dialog', { name: /^אפשרויות/ }).getByRole('button', { name: 'נעילה עכשיו' }).waitFor();
     assert.equal(await kidLists.getByRole('dialog').getByRole('button', { name: 'הסרת הסיסמה' }).count(), 0, 'only the creator removes the password');
-    await kidLists.getByRole('dialog').getByRole('button', { name: 'ביטול' }).click();
+    await kid.page.keyboard.press('Escape'); // the ⋮ menu closes like any popup menu
     await kidLists.getByRole('button', { name: '→ כל הפתקים' }).click();
     // Dad opens it again and removes the password.
     await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).click();
@@ -1177,7 +1177,7 @@ async function main() {
     await lists.getByRole('button', { name: 'אפשרויות' }).click();
     await lists.getByRole('dialog').getByRole('button', { name: 'נעילת התיקייה בסיסמה' }).waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/folder-menu.png` });
-    await lists.getByRole('dialog').getByRole('button', { name: 'ביטול' }).click();
+    await dad.page.keyboard.press('Escape');
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
     ok('Dad locked a folder: his note and the daughter\'s are encrypted; she opens the folder with its password, moves her note out (plain again); Dad removes the password');
@@ -1229,6 +1229,27 @@ async function main() {
     await dad.page.locator('.month-grid .day.today .mark.tk').waitFor();
     await kid.page.locator('.row', { hasText: 'לקנות מתנה' }).waitFor({ timeout: 10000 });
     ok('month view marks today; a task added on a calendar day shows there and in the daughter\'s calendar');
+    // The ⋮ menu opens as a small card at the top right, with quick lists of events and tasks.
+    await dad.page.getByRole('button', { name: 'אפשרויות', exact: true }).click();
+    const calMore = dad.page.getByRole('dialog', { name: /^אפשרויות/ });
+    const box = await calMore.boundingBox();
+    const pageW = dad.page.viewportSize().width;
+    assert.ok(box.y < 200 && box.x + box.width > pageW - 20, `menu at the top right: ${JSON.stringify(box)}`);
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-menu.png` });
+    await calMore.getByRole('button', { name: 'אירועים קרובים' }).click();
+    const evSheet = dad.page.getByRole('dialog', { name: 'אירועים קרובים' });
+    await evSheet.locator('.row', { hasText: 'טיול שנתי' }).waitFor();
+    await evSheet.locator('.row', { hasText: 'שיעור פרטי' }).first().waitFor();
+    assert.equal(await evSheet.locator('.row', { hasText: 'לקנות מתנה' }).count(), 0, 'no tasks in the events list');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-events.png` });
+    await evSheet.getByRole('button', { name: 'סגירה' }).click();
+    await calMenu(dad.page, 'אפשרויות', 'משימות');
+    const taskSheet = dad.page.getByRole('dialog', { name: 'משימות' });
+    await taskSheet.locator('.row', { hasText: 'לקנות מתנה' }).getByText('kid').waitFor();
+    assert.equal(await taskSheet.locator('.row', { hasText: 'טיול שנתי' }).count(), 0, 'no events in the tasks list');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-tasks.png` });
+    await taskSheet.getByRole('button', { name: 'סגירה' }).click();
+    ok('the calendar ⋮ menu opens at the top right and lists upcoming events and open tasks separately');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-month.png` });
     if (process.env.SCREENSHOT_DIR) {
       await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();

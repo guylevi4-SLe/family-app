@@ -1002,3 +1002,21 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .format-bar button { flex: none; display: grid; place-items: center; width: 38px; height: 36px; min-height: 0; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--text); }
 .format-bar button:active { background: var(--accent-soft); color: var(--accent); }
 .format-bar.on-keyboard { position: fixed; left: 0; right: 0; z-index: 60; transform: translateY(-100%); margin: 0; border-radius: 0; border-inline: 0; border-bottom: 0; justify-content: center; padding: 4px 8px; }
+
+/* "⋮" menus: a small card at the top right, under the button. */
+.menu-backdrop { position: fixed; inset: 0; z-index: 20; background: rgb(0 0 0 / 0.12); }
+.menu-pop {
+  position: fixed;
+  inset-inline-start: 12px;
+  width: min(270px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 14px 38px rgb(0 0 0 / 0.22);
+  overflow-wrap: anywhere;
+}
+.menu-title { display: block; padding: 8px 12px 4px; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.menu-pop .more-item { min-height: 48px; }
