@@ -111,11 +111,14 @@ export function ShoppingList({
             <button className="link" onClick={() => setShowBought(!showBought)} aria-expanded={showBought}>
               נקנו בשבוע האחרון ({bought.length}) {showBought ? '▴' : '▾'}
             </button>
-            <button className="link" onClick={() => setPaying(true)}>
-              רישום מחירים
-            </button>
             <button className="link" onClick={() => clearChecked(familyId, bought)}>
               ניקוי
+            </button>
+          </div>
+          <div className="list-actions">
+            <button className="small price-button" onClick={() => setPaying(true)}>
+              <span aria-hidden="true">₪</span>
+              רישום מחירים
             </button>
           </div>
           {showBought && (

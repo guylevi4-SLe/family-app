@@ -399,7 +399,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .list-page.with-bottom-add ~ .toast,
 .with-bottom-add .toast { bottom: calc(var(--nav-h) + 84px); }
 .list-actions { display: flex; justify-content: flex-start; margin: 4px 0 2px; }
-.whatsapp { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.whatsapp, .price-button { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 
 /* ---------- compact shopping list: plain rows, no cards, fits long lists ---------- */
 .shopping .dept { margin-top: 12px; }
@@ -432,7 +432,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 }
 .shopping .deleted .row { padding: 0 4px; }
 .shopping .list-actions { margin-bottom: 0; justify-content: center; }
-.shopping .whatsapp { min-height: 30px; padding: 0 10px; font-size: 0.8rem; border-radius: 999px; }
+.shopping .whatsapp, .shopping .price-button { min-height: 30px; padding: 0 10px; font-size: 0.8rem; border-radius: 999px; }
 
 .topbar .icon-button { color: var(--muted); }
 
@@ -563,9 +563,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .sheet.tall { min-height: calc(100dvh - env(safe-area-inset-top) - 16px); max-height: calc(100dvh - env(safe-area-inset-top) - 16px); }
 body:has(.sheet-backdrop) { overflow: hidden; }
 
-/* WhatsApp share: a solid, clearly visible button in the palette's colour. */
+/* WhatsApp share and price entry: solid, clearly visible buttons in the palette's colour. */
 .shopping .whatsapp,
-:root[data-palette] .shopping .whatsapp {
+.shopping .price-button,
+:root[data-palette] .shopping .whatsapp,
+:root[data-palette] .shopping .price-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;

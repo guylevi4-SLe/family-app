@@ -88,7 +88,7 @@ export function ItemSheet({
               ))}
             </ul>
           ) : (
-            <p className="muted small-text">עוד לא נרשם מחיר. אפשר להוסיף כאן, או אחרי הקנייה דרך "רישום מחירים" ב"נקנו".</p>
+            <p className="muted small-text">עוד לא נרשם מחיר. אפשר להוסיף כאן, או אחרי הקנייה דרך "רישום מחירים" ב"נקנו בשבוע האחרון".</p>
           )}
           <div className="paid-form">
             <input inputMode="decimal" placeholder="מחיר ₪" aria-label="מחיר חדש" value={paid.price} onChange={(e) => setPaid({ ...paid, price: e.target.value })} />
