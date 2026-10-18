@@ -115,12 +115,6 @@ export function ShoppingList({
               ניקוי
             </button>
           </div>
-          <div className="list-actions">
-            <button className="small price-button" onClick={() => setPaying(true)}>
-              <span aria-hidden="true">₪</span>
-              רישום מחירים
-            </button>
-          </div>
           {showBought && (
             <ul>
               {bought.map((it) => (
@@ -128,6 +122,12 @@ export function ShoppingList({
               ))}
             </ul>
           )}
+          <div className="list-actions price-actions">
+            <button className="small price-button" onClick={() => setPaying(true)}>
+              <span aria-hidden="true">₪</span>
+              רישום מחירים
+            </button>
+          </div>
         </section>
       )}
 
