@@ -938,6 +938,9 @@ async function main() {
         getSelection().removeAllRanges();
         getSelection().addRange(r);
       });
+      // Above the note, not under it, where a long note would push it out of sight.
+      const barBottom = await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).evaluate((el) => el.getBoundingClientRect().bottom);
+      assert.ok(barBottom <= (await view.evaluate((el) => el.getBoundingClientRect().top)), 'the buttons sit above the note');
       await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).getByRole('button', { name: 'מודגש' }).click();
       await dad.page.waitForFunction(() => document.querySelector('textarea.note-body')?.value.includes('חניה: 1234\n'));
       // The buttons go once used (on the selection change that follows the edit).

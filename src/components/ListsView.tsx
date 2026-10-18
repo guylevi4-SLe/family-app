@@ -1355,6 +1355,8 @@ function NoteEditor({
 
       <WhoSees note={note} files={files} />
 
+      {/* Above the note, so on a long note it stays in sight (it sticks to the top while scrolling). */}
+      {!focused && viewSel && <FormatBar target={bodyRef} onChange={change} range={viewSel} />}
       {/* Formatted when not typing; the text box stays in the page so a tap opens the keyboard at once. */}
       {ready && !focused && hasFormatting(body) && (
         <NoteView
@@ -1370,7 +1372,6 @@ function NoteEditor({
         />
       )}
       {focused && selected && <FormatBar target={bodyRef} onChange={change} />}
-      {!focused && viewSel && <FormatBar target={bodyRef} onChange={change} range={viewSel} />}
       <textarea
         ref={bodyRef}
         className={`note-body ${ready && !focused && hasFormatting(body) ? 'note-editor-hidden' : ''}`}
