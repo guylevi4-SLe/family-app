@@ -126,7 +126,9 @@ async function main() {
     await row(dad, "קוטג'").getByRole('button', { name: /עריכת/ }).click();
     const kindSheet = dad.page.getByRole('dialog', { name: /עריכת/ });
     await kindSheet.getByRole('group', { name: 'סוגים שקניתם בעבר' }).getByRole('button', { name: /קוטג' 3%/ }).click();
-    const tag = row(dad, "קוטג' 3%").getByRole('button', { name: 'מחיר אחרון ₪5.90 ברמי לוי' });
+    // Wait for the row on the open list: it is bought until the pick lands, and the bought section is open.
+    const tag = dad.page.locator('.dept:not(.bought):not(.deleted) .row', { has: dad.page.locator('.name', { hasText: /^קוטג' 3%$/ }) })
+      .getByRole('button', { name: 'מחיר אחרון ₪5.90 ברמי לוי' });
     await tag.waitFor({ timeout: 10000 });
     const rowH = await row(dad, "קוטג' 3%").evaluate((el) => el.getBoundingClientRect().height);
     const plainH = await row(dad, 'לחם').evaluate((el) => el.getBoundingClientRect().height);
@@ -248,8 +250,7 @@ async function main() {
     await kid.page.clock.setSystemTime(new Date(Date.now() + 8 * 86400000));
     // Any re-render re-checks the dates; toggling the bought section is one
     // (unless a re-render already emptied it).
-    const boughtToggle = kid.page.getByRole('button', { name: /נקנו בשבוע האחרון/ });
-    if (await boughtToggle.count()) await boughtToggle.click();
+    await kid.page.evaluate(() => document.querySelector('.bought .section-head button')?.click());
     await kid.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
     await kid.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
     assert.equal(await kid.page.locator('.bought .name', { hasText: 'שמפו' }).count(), 0);
@@ -267,6 +268,8 @@ async function main() {
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));
     await kid.page.reload();
     await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).waitFor();
+    // Right after the reload the tile can still be waiting for the list.
+    await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).locator('.tile-body', { hasText: 'עגבניות' }).waitFor({ timeout: 10000 });
     const tileText = await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).locator('.tile-body').innerText();
     const at = (n) => tileText.indexOf(n);
     assert.ok(at('עגבניות') === 0 && at('ביצים') > 0 && at('ביצים') < at('לחם'), `the shopping tile follows the department order: ${tileText}`);
@@ -920,7 +923,8 @@ async function main() {
       });
       await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).getByRole('button', { name: 'מודגש' }).click();
       await dad.page.waitForFunction(() => document.querySelector('textarea.note-body')?.value.includes('חניה: 1234\n'));
-      assert.equal(await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).count(), 0, 'the buttons go once used');
+      // The buttons go once used (on the selection change that follows the edit).
+      await lists.getByRole('toolbar', { name: 'עיצוב טקסט' }).waitFor({ state: 'detached', timeout: 5000 });
       await view.locator('.nf-h1').click();
       await bodyBox.evaluate((el) => document.activeElement === el);
       await dad.page.waitForTimeout(300);
