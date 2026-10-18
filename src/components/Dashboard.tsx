@@ -142,7 +142,7 @@ export function Dashboard({
       <section className="tile lists-tile">
         <button className="tile-head tile-link" onClick={() => openList(null)}>
           <span className="tile-icon"><Icon name="list" /></span>
-          <h2>רשימות</h2>
+          <h2>פתקים</h2>
           {sortedLists.length > 0 && <span className="tile-count">{sortedLists.length}</span>}
         </button>
         {sortedLists.length === 0 ? (

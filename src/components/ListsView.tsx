@@ -93,7 +93,7 @@ export function ListsView({
   // A folder that was deleted (by anyone) sends us back to the notebook's top.
   const inFolder = folder && !all.some((l) => l.id === folder && l.kind === 'folder') && lists ? '' : folder;
   return (
-    <main className="list-page lists-page" aria-label="רשימות">
+    <main className="list-page lists-page" aria-label="פתקים">
       {open?.kind === 'note' ? (
         <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId && all.some((l) => l.id === open.parentId) ? open.parentId : null); setOpenId(null); }} />
       ) : open && open.kind !== 'folder' ? (

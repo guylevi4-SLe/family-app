@@ -36,7 +36,7 @@ const VIEWS: { id: View; label: string; icon: IconName }[] = [
   { id: 'home', label: 'בית', icon: 'home' },
   { id: 'list', label: 'קניות', icon: 'cart' },
   { id: 'calendar', label: 'יומן', icon: 'calendar' },
-  { id: 'lists', label: 'רשימות', icon: 'list' },
+  { id: 'lists', label: 'פתקים', icon: 'list' },
   { id: 'chat', label: 'צ׳אט', icon: 'chat' },
 ];
 
@@ -283,7 +283,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         <nav className="bottom-nav" aria-label="ניווט">
           {VIEWS.map((v) => (
             <button key={v.id} className={view === v.id ? 'active' : ''} aria-current={view === v.id ? 'page' : undefined} onClick={() => {
-                // Tapping "רשימות" again goes back to the library.
+                // Tapping "פתקים" again goes back to the library.
                 if (v.id === 'lists' && view === 'lists') { setListId(null); setNoteFolder(null); }
                 setView(v.id);
               }}>

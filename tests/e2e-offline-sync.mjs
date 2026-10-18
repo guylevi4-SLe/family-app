@@ -496,7 +496,7 @@ async function main() {
       await send('@ר ציוד סקי: משקפת');
       await notice.filter({ hasText: 'נוסף ל"ציוד לסקי": משקפת' }).waitFor();
       await notice.getByRole('button', { name: 'פתיחה' }).click();
-      const page = p.getByRole('main', { name: 'רשימות' });
+      const page = p.getByRole('main', { name: 'פתקים' });
       await page.getByText('משקפת').waitFor();
       await page.getByText('כפפות').waitFor();
       assert.equal(await page.getByText('כובע').count(), 0, 'the cancelled list left nothing behind');
@@ -533,7 +533,7 @@ async function main() {
 
     {
       const p = dad.page;
-      await p.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
+      await p.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
       await p.getByRole('button', { name: 'חזרה למסך הבית' }).click();
       await p.locator('main.dashboard').waitFor();
       assert.equal(await p.getByRole('button', { name: 'חזרה למסך הבית' }).count(), 0, 'the home screen shows the plain logo');
@@ -776,7 +776,7 @@ async function main() {
     await kidLists.getByText('0 מתוך 7 מסומנים').waitFor();
     await kidLists.getByRole('button', { name: '→ כל הרשימות' }).click();
     await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
-    await kid.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
     await kidLists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
     // Drag to reorder: a second list sorts first by name; Dad drags the trip list above it.
     await addNew(lists, 'רשימה חדשה');
@@ -835,7 +835,7 @@ async function main() {
     ok('Dad made a trip packing list with categories; the daughter opens it from home and from the bottom bar, and resets the ticks');
 
     step('Notes');
-    await dad.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
     await answer('בית', () => addNew(lists, 'תיקייה חדשה'));
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await answer('ביטוחים', () => addNew(lists, 'תיקייה חדשה'));
@@ -880,7 +880,7 @@ async function main() {
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notes-tab.png` });
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
     assert.equal(await lists.locator('.list-card', { hasText: 'קודים לבית' }).count(), 0, 'notes stay out of the lists tab');
-    await kid.page.getByRole('navigation').getByRole('button', { name: 'רשימות' }).click();
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
     await kidLists.locator('.folder-card', { hasText: 'בית' }).click();
     await kidLists.locator('.note-card', { hasText: 'קודים לבית' }).click();
     await kidLists.locator('.note-file').nth(1).waitFor({ timeout: 10000 });
@@ -960,18 +960,18 @@ async function main() {
     await lists.getByRole('button', { name: 'מחיקת icon-pink-512.png' }).click();
     await lists.locator('.note-file').nth(1).waitFor({ state: 'detached' });
     await lists.getByRole('button', { name: '→ ביטוחים' }).click();
-    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await lists.locator('.folder-card', { hasText: 'בית' }).waitFor();
     await dad.page.reload();
-    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await kidLists.getByRole('button', { name: '→ ביטוחים' }).click();
-    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
     await dad.page.locator('.lists-tile').getByText('📌 קודים לבית').waitFor();
     ok('Dad made folders and a pinned note with a PDF and a photo; search finds it; the daughter edits it and moves it to a sub-folder');
 
     step('Private notes');
-    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('תעודות זהות');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
@@ -989,7 +989,7 @@ async function main() {
     await lists.locator('.note-file').first().waitFor({ timeout: 10000 });
     assert.equal(await lists.getByLabel('תוכן הפתק').inputValue(), 'אבא: 012345678');
     await kid.page.reload();
-    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await kidLists.getByLabel('חיפוש בפתקים').fill('זהות');
     await kidLists.getByText(`לא נמצא כלום עם "זהות".`).waitFor();
     await lists.locator('.who-sees').getByRole('button', { name: 'שינוי' }).click();
@@ -1014,7 +1014,7 @@ async function main() {
     ok('Dad made a private note the daughter cannot see, shared it with her (she cannot change who sees it), then made it a family note again');
 
     step('Password-locked notes');
-    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('קוד אזעקה');
     await lists.getByRole('button', { name: 'יצירת הפתק' }).click();
@@ -1071,7 +1071,7 @@ async function main() {
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
     await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).getByText('נעול בסיסמה').waitFor();
     // The daughter needs the password; a wrong one is refused.
-    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await kidLists.locator('.note-card', { hasText: 'קוד אזעקה' }).click({ timeout: 10000 });
     await kidLists.getByLabel('סיסמת הפתק').fill('nope');
     await kidLists.getByRole('button', { name: 'פתיחה', exact: true }).click();
@@ -1110,7 +1110,7 @@ async function main() {
       }
       return null;
     };
-    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await answer('מסמכים', () => addNew(lists, 'תיקייה חדשה'));
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).click();
     await addNew(lists, 'פתק חדש');
@@ -1121,7 +1121,7 @@ async function main() {
     await lists.locator('.note-file img').first().waitFor({ timeout: 20000 });
     await lists.getByLabel('תוכן הפתק').blur();
     await lists.getByRole('button', { name: '→ מסמכים' }).click();
-    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'רשימות' }).click();
+    await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await kidLists.locator('.folder-card', { hasText: 'מסמכים' }).click({ timeout: 10000 });
     await addNew(kidLists, 'פתק חדש');
     await kidLists.getByLabel('שם הפתק').fill('של הבת');
