@@ -24,14 +24,33 @@ function runsAt(text: string, base: number): ReactNode[] {
 export function viewSelection(view: HTMLElement | null): { start: number; end: number } | null {
   const sel = window.getSelection();
   if (!view || !sel || sel.isCollapsed || !sel.rangeCount) return null;
-  const at = (node: Node, offset: number) => {
-    const span = node.nodeType === Node.TEXT_NODE ? node.parentElement : null;
-    const base = span && view.contains(span) ? span.dataset.at : undefined;
-    return base === undefined ? null : Number(base) + offset;
+  const base = (t: Node) => {
+    const span = t.parentElement;
+    return span && view.contains(span) && span.dataset.at !== undefined ? Number(span.dataset.at) : null;
+  };
+  // A selection that covers a formatted word edge to edge can end on the element
+  // around it (iPhone does this) rather than in its text: use the text just inside.
+  const at = (node: Node, offset: number, end: boolean) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const b = base(node);
+      return b === null ? null : b + offset;
+    }
+    const point = document.createRange();
+    point.setStart(node, offset);
+    const walk = document.createTreeWalker(view, NodeFilter.SHOW_TEXT);
+    let found: number | null = null;
+    for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+      const b = base(t);
+      if (b === null) continue;
+      const len = (t as Text).length;
+      if (!end && point.comparePoint(t, 0) >= 0) return b;
+      if (end && point.comparePoint(t, len) <= 0) found = b + len;
+    }
+    return found;
   };
   const r = sel.getRangeAt(0);
-  const a = at(r.startContainer, r.startOffset);
-  const b = at(r.endContainer, r.endOffset);
+  const a = at(r.startContainer, r.startOffset, false);
+  const b = at(r.endContainer, r.endOffset, true);
   return a === null || b === null || a === b ? null : { start: Math.min(a, b), end: Math.max(a, b) };
 }
 
