@@ -47,13 +47,14 @@ export function ChatView({
   // Lists made or cancelled here a moment ago, before the lists listener catches up.
   const made = useRef<{ id: string; title: string }[]>([]);
   const cancelled = useRef(new Set<string>());
-  const endRef = useRef<HTMLDivElement>(null);
   const list = [...(comments ?? [])].sort(byTime);
 
   // Follow new messages, but stay in place when older ones are loaded above.
   const newest = list.length ? list[list.length - 1].id : '';
+  // To the page's real end: the fixed compose box and bottom bar cover the last
+  // stretch of the screen, so lining the last message up with it hides it.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
+    if (newest) window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [newest]);
 
   const titleOf = (c: Comment) => {
@@ -249,7 +250,6 @@ export function ChatView({
             </button>
           );
         })}
-        <div ref={endRef} />
       </div>
       <div className="chat-compose">
         {notice && (
