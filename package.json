@@ -8,7 +8,7 @@
     "test:rules": "firebase emulators:exec --only firestore --project demo-family \"vitest run tests/rules.test.ts\"",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-family",
     "test:e2e": "firebase emulators:exec --only auth,firestore --project demo-family tests/run-e2e.sh",
-    "test:unit": "vitest run tests/parse.test.ts tests/notify.test.ts tests/events.test.ts tests/birthdays.test.ts tests/commands.test.ts tests/mentions.test.ts tests/prices.test.ts tests/noteFormat.test.ts"
+    "test:unit": "vitest run tests/parse.test.ts tests/notify.test.ts tests/events.test.ts tests/birthdays.test.ts tests/commands.test.ts tests/mentions.test.ts tests/prices.test.ts tests/noteFormat.test.ts tests/bought.test.ts"
   },
   "dependencies": {
     "firebase": "^12.19.0",

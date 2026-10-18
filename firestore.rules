@@ -173,13 +173,14 @@ service cloud.firestore {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
           && onlyKeys(['name', 'norm', 'qty', 'category', 'checked', 'deleted',
-                       'addedAt', 'updatedAt', 'updatedBy'])
+                       'addedAt', 'checkedAt', 'updatedAt', 'updatedBy'])
           && shortString(data().name, 80) && data().name.size() > 0
           && shortString(data().norm, 80)
           && shortString(data().qty, 30)
           && shortString(data().category, 40)
           && data().checked is bool
           && data().deleted is bool
+          && (!('checkedAt' in data()) || data().checkedAt == null || data().checkedAt is timestamp)
           && data().updatedBy == me();
         // Items are soft-deleted so they can be restored.
         allow delete: if false;

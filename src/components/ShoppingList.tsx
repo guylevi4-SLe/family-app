@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
+import { splitBought } from '../data/bought';
 import { addItems, clearChecked, parseItems, updateItem, type Item } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
@@ -34,7 +35,14 @@ export function ShoppingList({
 
   const byId = useMemo(() => new Map((items ?? []).map((i) => [i.id, i])), [items]);
   const active = (items ?? []).filter((i) => !i.deleted && !i.checked);
-  const bought = (items ?? []).filter((i) => !i.deleted && i.checked);
+  // Bought items older than a week move to recently deleted. Every device does
+  // this when the list opens; the writes are identical, so it's safe offline too.
+  const { recent: bought, expired } = splitBought(items ?? [], Date.now());
+  const expiredKey = expired.map((i) => i.id).join('\n');
+  useEffect(() => {
+    if (expired.length) clearChecked(familyId, expired);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [familyId, expiredKey]);
   const cutoff = Date.now() - RECENT_DAYS * 86400000;
   const deleted = (items ?? [])
     .filter((i) => i.deleted && (i.updatedAt?.toMillis() ?? Date.now()) > cutoff)
@@ -101,7 +109,7 @@ export function ShoppingList({
         <section className="dept bought">
           <div className="section-head">
             <button className="link" onClick={() => setShowBought(!showBought)} aria-expanded={showBought}>
-              נקנו ({bought.length}) {showBought ? '▴' : '▾'}
+              נקנו בשבוע האחרון ({bought.length}) {showBought ? '▴' : '▾'}
             </button>
             <button className="link" onClick={() => setPaying(true)}>
               רישום מחירים
