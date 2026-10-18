@@ -240,6 +240,26 @@ async function main() {
     await row(kid, 'עגבניות').waitFor({ timeout: 10000 });
     ok('restored item reappears on the other phone');
 
+    step('Bought more than a week ago moves to "recently deleted", even offline');
+    await row(dad, 'שמפו').locator('.check-area').click();
+    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.deleted) .name')].some((n) => n.textContent === 'שמפו'));
+    await kid.context.setOffline(true);
+    await kid.page.clock.setSystemTime(new Date(Date.now() + 8 * 86400000));
+    // Any re-render re-checks the dates; opening the bought section is one.
+    await kid.page.getByRole('button', { name: /נקנו בשבוע האחרון/ }).click();
+    await kid.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
+    await kid.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
+    assert.equal(await kid.page.locator('.bought .name', { hasText: 'שמפו' }).count(), 0);
+    ok('a week later, offline, "שמפו" left "bought in the last week" for "recently deleted"');
+    await kid.page.clock.setSystemTime(new Date());
+    await kid.context.setOffline(false);
+    await kid.page.evaluate(() => window.dispatchEvent(new Event('online')));
+    await waitSynced(kid);
+    await dad.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
+    ok('the move reached the other phone after reconnecting');
+    await dad.page.locator('.deleted .row', { hasText: 'שמפו' }).getByRole('button', { name: 'החזרה לרשימה' }).click();
+    await row(kid, 'שמפו').waitFor({ timeout: 10000 });
+
     step('Home screen, tasks, calendar and comments');
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));
     await kid.page.reload();

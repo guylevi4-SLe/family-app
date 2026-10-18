@@ -19,6 +19,8 @@ export interface Item {
   checked: boolean;
   deleted: boolean;
   addedAt?: Timestamp | null;
+  /** When it was last marked bought; older items don't have it. */
+  checkedAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
   updatedBy: string;
   pending: boolean;
@@ -78,6 +80,7 @@ export function addItems(
 export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted'>>) {
   updateDoc(doc(itemsCol(fid), id), {
     ...fields,
+    ...(fields.checked ? { checkedAt: serverTimestamp() } : {}),
     updatedAt: serverTimestamp(),
     updatedBy: auth.currentUser!.uid,
   }).catch(reportWriteError);

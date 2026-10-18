@@ -290,6 +290,12 @@ describe('shopping list and comments', () => {
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'items', 'x'), { ...item('dad', 'x'), evil: 1 }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'items', 'x'), { ...item('dad', 'x'), updatedBy: 'someone' }));
   });
+  it('items record when they were bought', async () => {
+    const ref = doc(db('dad'), 'families', 'levi', 'items', 'חלב');
+    await assertSucceeds(updateDoc(ref, { checked: true, checkedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertSucceeds(updateDoc(ref, { checkedAt: null, updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(ref, { checkedAt: 'yesterday', updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+  });
   it('comments: authors edit their own, others cannot', async () => {
     await createInvite('dad', 'levi', 'CODE17', 'child');
     await requestToJoin('daughter', 'levi', 'CODE17', 'child');
