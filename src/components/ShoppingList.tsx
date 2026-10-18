@@ -27,7 +27,7 @@ export function ShoppingList({
   const lastPrice = (it: Item) => byKey.get(priceKey(it.name))?.[0];
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<Item | null>(null);
-  const [showBought, setShowBought] = useState(false);
+  const [showBought, setShowBought] = useState(true);
   const [showDeleted, setShowDeleted] = useState(false);
   const [undo, setUndo] = useState<{ item: Item; timer: number } | null>(null);
   const [paying, setPaying] = useState(false);

@@ -217,8 +217,9 @@ async function main() {
     ok("Dad's edit made while she was offline arrived");
     assert.equal(await row(dad, 'ביצים').count(), 1);
     ok('"ביצים" added on both phones became one item');
-    await dad.page.getByRole('button', { name: /נקנו/ }).click();
+    // The bought section opens by itself; recently deleted stays closed.
     await row(dad, 'חלב').waitFor();
+    assert.equal(await dad.page.locator('.deleted .name').count(), 0);
     ok('"חלב" checked offline arrived as bought');
     await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
     await dad.page.locator('.deleted .name', { hasText: 'עגבניות' }).waitFor();
@@ -245,8 +246,10 @@ async function main() {
     await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.deleted) .name')].some((n) => n.textContent === 'שמפו'));
     await kid.context.setOffline(true);
     await kid.page.clock.setSystemTime(new Date(Date.now() + 8 * 86400000));
-    // Any re-render re-checks the dates; opening the bought section is one.
-    await kid.page.getByRole('button', { name: /נקנו בשבוע האחרון/ }).click();
+    // Any re-render re-checks the dates; toggling the bought section is one
+    // (unless a re-render already emptied it).
+    const boughtToggle = kid.page.getByRole('button', { name: /נקנו בשבוע האחרון/ });
+    if (await boughtToggle.count()) await boughtToggle.click();
     await kid.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
     await kid.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
     assert.equal(await kid.page.locator('.bought .name', { hasText: 'שמפו' }).count(), 0);
