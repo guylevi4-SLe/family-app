@@ -603,13 +603,18 @@ async function main() {
       await p.reload();
       await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
       await p.locator('.comment', { hasText: 'הודעה מספר 55' }).waitFor();
+      // The newest message sits above the compose box, not hidden under it.
+      await p.waitForTimeout(500);
+      const lastBottom = await p.locator('.comment', { hasText: 'הודעה מספר 55' }).evaluate((e) => e.getBoundingClientRect().bottom);
+      const composeTop = await p.locator('.chat-compose').evaluate((e) => e.getBoundingClientRect().top);
+      assert.ok(lastBottom <= composeTop + 1, `the chat opens at its newest message (${lastBottom} vs ${composeTop})`);
       const shown = await p.locator('.chat .comment, .chat .chat-ref').count();
       assert.equal(shown, 50, 'the chat reads only the newest 50 messages');
       assert.equal(await p.locator('.comment', { hasText: /^.*הודעה מספר 5$/ }).count(), 0, 'older messages wait for the button');
       await p.getByRole('button', { name: 'הודעות קודמות' }).click();
       await p.locator('.comment', { hasText: 'ארוחת ערב' }).waitFor();
       assert.ok((await p.locator('.chat .comment, .chat .chat-ref').count()) > 50, '"הודעות קודמות" loads more');
-      ok('the chat loads the newest 50 messages, and older ones on request');
+      ok('the chat opens at its newest message and loads the newest 50, older ones on request');
       await planner(p, 'tasks');
       await p.getByRole('button', { name: /^\d+ תגובות על לתלות כביסה/ }).first().click();
       await p.getByRole('dialog', { name: 'תגובות על לתלות כביסה' }).locator('.comment', { hasText: 'תזכורת בשבילך' }).waitFor();
