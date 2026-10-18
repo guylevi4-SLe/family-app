@@ -931,11 +931,10 @@ async function main() {
       await view.locator('[role="checkbox"][aria-checked="true"]').waitFor();
       assert.ok((await bodyBox.inputValue()).endsWith('[x] להחליף סוללה'), 'ticking the box changes the text');
       // Selecting a bold word on the formatted view (no editing) shows the buttons; bold again takes the bold off.
+      // The selection wraps the bold element itself, as an iPhone makes it for a whole formatted word.
       await view.locator('strong', { hasText: '1234' }).evaluate((el) => {
-        const t = el.querySelector('[data-at]').firstChild;
         const r = document.createRange();
-        r.setStart(t, 0);
-        r.setEnd(t, 4);
+        r.selectNode(el);
         getSelection().removeAllRanges();
         getSelection().addRange(r);
       });
