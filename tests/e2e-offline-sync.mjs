@@ -267,18 +267,20 @@ async function main() {
     step('Home screen, tasks, calendar and comments');
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));
     await kid.page.reload();
-    await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).waitFor();
+    await kid.page.locator('.topbar h1', { hasText: "Levi's" }).waitFor();
+    await kid.page.locator('.greeting', { hasText: 'kid · יום' }).waitFor();
     // Right after the reload the tile can still be waiting for the list.
-    await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).locator('.tile-body', { hasText: 'עגבניות' }).waitFor({ timeout: 10000 });
-    const tileText = await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).locator('.tile-body').innerText();
-    const at = (n) => tileText.indexOf(n);
-    assert.ok(at('עגבניות') === 0 && at('ביצים') > 0 && at('ביצים') < at('לחם'), `the shopping tile follows the department order: ${tileText}`);
-    ok('start screen "home" shows the dashboard tiles');
+    const shopTile = kid.page.locator('.tile', { hasText: 'קניות' });
+    await shopTile.locator('.tile-body', { hasText: /\d+ פריטים/ }).waitFor({ timeout: 10000 });
+    const toBuy = Number(await shopTile.locator('.tile-count').innerText());
+    assert.equal(await shopTile.locator('.tile-body').innerText(), `${toBuy} פריטים`);
+    assert.equal(await kid.page.locator('.tile-grid .tile').count(), 6, 'six squares');
+    ok('start screen "home" shows the six squares under "Levi\'s" and a greeting');
     await planner(dad.page, 'tasks');
     await dad.page.getByLabel('משימה חדשה').fill('לתלות כביסה');
     await dad.page.getByRole('group', { name: 'אחראי' }).getByRole('button', { name: 'kid' }).click();
     await dad.page.getByLabel('הוספת משימה').click();
-    await kid.page.locator('.tile', { hasText: 'משימות' }).getByText('1 שלך: לתלות כביסה').waitFor({ timeout: 10000 });
+    await kid.page.locator('.tile', { hasText: 'משימות' }).getByText('1 שלך', { exact: true }).waitFor({ timeout: 10000 });
     ok('task assigned by Dad shows on the daughter\'s home screen as hers');
     await kid.page.locator('.tile', { hasText: 'משימות' }).click();
     await kid.page.getByRole('tab', { name: /^משימות/, selected: true }).waitFor();
@@ -366,11 +368,21 @@ async function main() {
       await dad.page.getByLabel('כתיבת הודעה').fill('@kid ארוחת ערב ב־7');
     }
     await dad.page.getByLabel('כתיבת הודעה').press('Enter');
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+    const chatTile = kid.page.locator('.tile', { hasText: 'צ׳אט' });
+    await chatTile.locator('.tile-count').waitFor({ timeout: 15000 });
+    assert.match(await chatTile.locator('.tile-body').innerText(), /^(הודעה חדשה|\d+ הודעות חדשות)$/);
+    ok('the daughter\'s chat square counts the new messages');
     await kid.page.goto(`${BASE}/?open=chat`);
     await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' }).locator('.notified', { hasText: 'kid' }).waitFor({ timeout: 15000 });
     await kid.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' }).locator('.tag', { hasText: '@kid' }).waitFor();
     if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat.png` });
     ok('Dad wrote in the family chat for the daughter; her notification link opens the chat');
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
+    await kid.page.locator('.tile', { hasText: 'צ׳אט' }).getByText('אין הודעות חדשות').waitFor();
+    assert.equal(await kid.page.locator('.tile', { hasText: 'צ׳אט' }).locator('.tile-count').count(), 0);
+    ok('after reading the chat the square shows nothing new');
+    await kid.page.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
     {
       const bubble = dad.page.locator('.comment', { hasText: 'ארוחת ערב ב־7' });
       await bubble.getByRole('button', { name: 'אפשרויות להודעה' }).click();
@@ -622,7 +634,7 @@ async function main() {
       await swipe(w * 0.85, w * 0.15);
       await kid.page.locator('.topbar h1', { hasText: 'קניות' }).waitFor({ timeout: 3000 });
       await swipe(w * 0.15, w * 0.85);
-      await kid.page.locator('.tile', { hasText: 'רשימת קניות' }).waitFor({ timeout: 3000 });
+      await kid.page.locator('.tile-grid').waitFor({ timeout: 3000 });
       await cdp.detach();
     }
     ok('a long sideways swipe moves between screens; a short one does not');
@@ -670,7 +682,7 @@ async function main() {
     await kid.page.getByRole('dialog').getByLabel('סגירה').click();
     ok('the daughter sees "my timetable" on her home screen and opens it');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
-    await dad.page.locator('.schedule-tile', { hasText: 'מערכת שעות' }).locator('.schedule-thumb').waitFor();
+    await dad.page.locator('.schedule-tile', { hasText: 'לחיצה לפתיחה' }).waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-schedule.png` });
     await dad.page.locator('.schedule-tile').click();
     await dad.page.getByRole('dialog', { name: 'מערכת שעות' }).getByRole('heading', { name: /של kid/ }).waitFor();
@@ -720,7 +732,7 @@ async function main() {
 
     step('Checklists');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
-    await dad.page.locator('.lists-tile').getByRole('button').first().click();
+    await dad.page.locator('.lists-tile').click();
     const lists = dad.page.locator('.lists-page');
     await addNew(lists, 'רשימה חדשה');
     await lists.getByRole('group', { name: 'רעיונות' }).getByRole('button', { name: /ציוד לטיול/ }).click();
@@ -769,7 +781,8 @@ async function main() {
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).getByText('1 מתוך 7').waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/lists.png` });
     await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
-    await kid.page.locator('.lists-tile').getByRole('button', { name: /ציוד לטיול/ }).click();
+    await kid.page.locator('.lists-tile').click();
+    await kid.page.locator('.lists-page .list-card', { hasText: 'ציוד לטיול' }).click();
     const kidLists = kid.page.locator('.lists-page');
     await kidLists.locator('.entry.checked', { hasText: 'אוהל' }).waitFor({ timeout: 10000 });
     await menu(kidLists, 'ניקוי סימונים');
@@ -966,8 +979,6 @@ async function main() {
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await kidLists.getByRole('button', { name: '→ ביטוחים' }).click();
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
-    await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'בית' }).click();
-    await dad.page.locator('.lists-tile').getByText('📌 קודים לבית').waitFor();
     ok('Dad made folders and a pinned note with a PDF and a photo; search finds it; the daughter edits it and moves it to a sub-folder');
 
     step('Private notes');

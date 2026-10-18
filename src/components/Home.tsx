@@ -209,7 +209,22 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const openTaskCount = (tasks ?? []).filter((t) => !t.deleted && !t.done).length;
   const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;
-  const title = view === 'home' ? (family?.name ?? '') : VIEWS.find((v) => v.id === view)!.label;
+  const title = view === 'home' ? "Levi's" : VIEWS.find((v) => v.id === view)!.label;
+
+  // The chat counts as read up to its newest message whenever it is open;
+  // on a phone that never opened it, everything already there counts as read.
+  const newestChat = useMemo(() => Math.max(0, ...(comments ?? []).map((c) => c.createdAt?.toMillis() ?? 0)), [comments]);
+  const [chatSeen, setChatSeen] = useState<number | null>(readChatSeen);
+  useEffect(() => {
+    if (comments === undefined || (view !== 'chat' && chatSeen !== null) || newestChat === chatSeen) return;
+    setChatSeen(newestChat);
+    try {
+      localStorage.setItem(CHAT_SEEN_KEY, String(newestChat));
+    } catch {
+      /* optional */
+    }
+  }, [view, comments, newestChat, chatSeen]);
+  const unreadChat = chatSeen === null ? 0 : (comments ?? []).filter((c) => c.authorUid !== me.id && (c.createdAt?.toMillis() ?? 0) > chatSeen).length;
 
   return (
     <FamilyContext.Provider
@@ -256,7 +271,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         )}
 
         <ErrorBoundary resetKey={view}>
-        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} listEntries={listEntries} birthdays={birthdays} deptOrder={family?.deptOrder} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); if (!id) setNoteFolder(null); setView('lists'); }} />}
+        {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} birthdays={birthdays} unreadChat={unreadChat} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); if (!id) setNoteFolder(null); setView('lists'); }} />}
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
           <main className="list-page planner">
@@ -314,6 +329,18 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
       </div>
     </FamilyContext.Provider>
   );
+}
+
+const CHAT_SEEN_KEY = 'chatSeenAt';
+
+/** When this phone last saw the chat (its newest message's time), or null if never. */
+function readChatSeen(): number | null {
+  try {
+    const v = localStorage.getItem(CHAT_SEEN_KEY);
+    return v === null ? null : Number(v) || 0;
+  } catch {
+    return null;
+  }
 }
 
 type PlanTab = 'schedule' | 'tasks';
