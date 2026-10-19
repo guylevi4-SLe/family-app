@@ -1461,7 +1461,6 @@ function IconButton({ value, onPick, open, setOpen }: { value: string; onPick: (
     <>
       <button className="list-emoji icon-change" aria-label="החלפת הסמל" aria-expanded={open} onClick={() => setOpen(!open)}>
         <ListIcon value={value} />
-        <span className="icon-change-mark" aria-hidden="true">✎</span>
       </button>
       {open && (
         <div className="icon-sheet card">

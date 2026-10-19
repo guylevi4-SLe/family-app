@@ -864,7 +864,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .list-icon-emoji { line-height: 1; }
 .list-hero { flex-wrap: wrap; }
 .icon-change { position: relative; padding: 0; border: 0; cursor: pointer; }
-.icon-change-mark { position: absolute; bottom: -3px; inset-inline-start: -3px; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); box-shadow: var(--shadow); color: var(--muted); font-size: 0.7rem; display: grid; place-items: center; }
 .icon-sheet { flex-basis: 100%; order: 10; display: grid; gap: 10px; }
 .icon-sheet-head { display: flex; align-items: center; justify-content: space-between; }
 .icon-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 6px; }
