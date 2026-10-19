@@ -56,6 +56,25 @@ export function ChatView({
   useEffect(() => {
     if (newest) window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [newest]);
+  // Photos load after that first scroll and push the last messages down, so for a few
+  // seconds after opening keep going back to the end whenever the chat grows, until
+  // the reader touches or scrolls the page themselves.
+  const chatRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = chatRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const follow = new ResizeObserver(() => window.scrollTo({ top: document.documentElement.scrollHeight }));
+    follow.observe(el);
+    const events = ['wheel', 'touchmove', 'pointerdown', 'keydown'] as const;
+    const stop = () => {
+      follow.disconnect();
+      window.clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, stop));
+    };
+    const timer = window.setTimeout(stop, 5000);
+    events.forEach((e) => window.addEventListener(e, stop, { passive: true }));
+    return stop;
+  }, []);
 
   const titleOf = (c: Comment) => {
     const rows: { id: string; name?: string; title?: string }[] =
@@ -230,7 +249,7 @@ export function ChatView({
 
   return (
     <main className="list-page chat-page">
-      <div className="comments chat">
+      <div ref={chatRef} className="comments chat">
         {comments === undefined && <p className="muted">טוען…</p>}
         {comments?.length === 0 && <p className="muted">עדיין אין הודעות. כתבו משהו למשפחה!</p>}
         {hasOlder && (

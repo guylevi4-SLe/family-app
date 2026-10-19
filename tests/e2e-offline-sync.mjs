@@ -608,6 +608,16 @@ async function main() {
       const lastBottom = await p.locator('.comment', { hasText: 'הודעה מספר 55' }).evaluate((e) => e.getBoundingClientRect().bottom);
       const composeTop = await p.locator('.chat-compose').evaluate((e) => e.getBoundingClientRect().top);
       assert.ok(lastBottom <= composeTop + 1, `the chat opens at its newest message (${lastBottom} vs ${composeTop})`);
+      // A photo that finishes loading a moment later (stood in for by a tall block) does not hide the newest message.
+      await p.locator('.comment', { hasText: 'הודעה מספר 54' }).evaluate((e) => {
+        const tall = document.createElement('div');
+        tall.style.height = '600px';
+        e.append(tall);
+      });
+      await p.waitForTimeout(300);
+      const lastAfter = await p.locator('.comment', { hasText: 'הודעה מספר 55' }).evaluate((e) => e.getBoundingClientRect().bottom);
+      assert.ok(lastAfter <= composeTop + 1, `a late photo keeps the newest message in view (${lastAfter} vs ${composeTop})`);
+      await p.locator('.comment', { hasText: 'הודעה מספר 54' }).evaluate((e) => e.lastChild.remove());
       const shown = await p.locator('.chat .comment, .chat .chat-ref').count();
       assert.equal(shown, 50, 'the chat reads only the newest 50 messages');
       assert.equal(await p.locator('.comment', { hasText: /^.*הודעה מספר 5$/ }).count(), 0, 'older messages wait for the button');
