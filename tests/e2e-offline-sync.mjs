@@ -923,7 +923,7 @@ async function main() {
     await lists.getByLabel('בחירת קובץ לפתק').setInputFiles([`${process.env.TMPDIR || '/tmp'}/timetable-e2e.pdf`, 'public/icon-pink-512.png']);
     await lists.locator('.note-file').nth(1).waitFor({ timeout: 20000 });
     await menu(lists, 'נעיצה למעלה');
-    await lists.getByText('📌 נעוץ', { exact: false }).waitFor();
+    await lists.getByText('נעוץ ·', { exact: false }).waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-detail.png`, fullPage: true });
     await lists.getByRole('button', { name: 'הגדלת timetable-e2e.pdf' }).click();
     const closeZoom = dad.page.getByRole('button', { name: 'סגירה', exact: true });
@@ -935,7 +935,7 @@ async function main() {
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notebook-folder.png` });
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
     await lists.getByLabel('חיפוש בפתקים').fill('אזעקה');
-    await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('📁 בית').waitFor();
+    await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('בית', { exact: true }).waitFor();
     await lists.getByLabel('חיפוש בפתקים').fill('');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notes-tab.png` });
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
@@ -1276,8 +1276,10 @@ async function main() {
     for (const n of [1, 8, 15]) {
       await dad.page.locator('.dept', { hasText: dayLabelFor(n) }).locator('.row', { hasText: 'שיעור פרטי' }).waitFor({ timeout: 5000 });
     }
-    assert.ok(await dad.page.locator('.row', { hasText: 'שיעור פרטי' }).first().innerText().then((t) => t.includes('🔁 כל')), 'weekly label');
+    assert.ok(await dad.page.locator('.row', { hasText: 'שיעור פרטי' }).first().innerText().then((t) => t.includes('כל ')), 'weekly label');
+    assert.equal(await dad.page.locator('.row', { hasText: 'שיעור פרטי' }).first().locator('.until .lead-icon svg').count() > 0, true, 'repeat icon');
     ok('a weekly event shows up every week');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/icons-calendar.png` });
     await dad.page.getByRole('button', { name: 'לוח חודשי' }).click();
     for (const n of [1, 2, 3]) {
       const day = new Date(); day.setDate(day.getDate() + n);

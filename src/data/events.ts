@@ -69,9 +69,9 @@ export function repeatLabel(e: Pick<FamilyEvent, 'repeat' | 'repeatUntil' | 'dat
   if (e.repeat !== 'weekly') return '';
   const [y, m, d] = e.date.split('-').map(Number);
   const day = new Date(y, m - 1, d).toLocaleDateString('he-IL', { weekday: 'long' });
-  if (!e.repeatUntil) return `🔁 כל ${day}`;
+  if (!e.repeatUntil) return `כל ${day}`;
   const [uy, um, ud] = e.repeatUntil.split('-').map(Number);
-  return `🔁 כל ${day} עד ${new Date(uy, um - 1, ud).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`;
+  return `כל ${day} עד ${new Date(uy, um - 1, ud).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}`;
 }
 
 /** "עד יום ג׳ · 13.10" for multi-day events, else ''. */

@@ -28,7 +28,8 @@ import { START_KEY, type Screen } from './Home';
 import { lastError } from './ErrorBoundary';
 import { disablePush, enablePush, pushState, type PushState } from '../push';
 import { MoreMenu } from './MoreMenu';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Bell, Pencil, Trash2 } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
 import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
 export function FamilySettings({
@@ -374,7 +375,7 @@ function PushCard({ uid }: { uid: string }) {
   };
   return (
     <section className="card">
-      <h3>🔔 התראות</h3>
+      <h3><InlineIcon icon={Bell} size={18} />התראות</h3>
       <p className="muted">{PUSH_TEXT[state]}</p>
       {error && <p className="error">{error}</p>}
       {state === 'off' && (

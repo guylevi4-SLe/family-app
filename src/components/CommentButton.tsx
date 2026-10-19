@@ -34,7 +34,8 @@ export function CommentButton({ type, id, title, always = false }: { type: Targe
         openComments(type, id, title);
       }}
     >
-      💬{count ? ` ${count}` : ` ${many}`}
+      <Icon name="chat" size={16} />
+      {count ? ` ${count}` : ` ${many}`}
     </button>
   );
 }

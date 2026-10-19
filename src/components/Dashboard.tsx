@@ -8,6 +8,8 @@ import { Icon, type IconName } from './Icon';
 import { defaultScheduleUid, type Schedule } from '../data/schedules';
 import type { FamilyList } from '../data/lists';
 import { birthdaysBetween, type Birthday } from '../data/birthdays';
+import { Cake } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
 
 export function Dashboard({
   items,
@@ -47,13 +49,14 @@ export function Dashboard({
   const inTwoWeeks = new Date();
   inTwoWeeks.setDate(inTwoWeeks.getDate() + 14);
   const agenda = [
-    ...upcoming.map((e) => ({ key: `${e.id}:${e.date}`, date: e.date < today ? today : e.date, time: e.time, title: e.title, now: e.date < today })),
+    ...upcoming.map((e) => ({ key: `${e.id}:${e.date}`, date: e.date < today ? today : e.date, time: e.time, title: e.title, now: e.date < today, bday: false })),
     ...birthdaysBetween(birthdays ?? [], today, isoDate(inTwoWeeks)).map((b) => ({
       key: `bd:${b.birthday.id}`,
       date: b.date,
       time: '',
-      title: `🎂 יום הולדת ל${b.birthday.name}${b.age !== null ? ` (${b.age})` : ''}`,
+      title: `יום הולדת ל${b.birthday.name}${b.age !== null ? ` (${b.age})` : ''}`,
       now: false,
+      bday: true,
     })),
   ].sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00')));
 
@@ -80,7 +83,14 @@ export function Dashboard({
           {notes === 0 ? 'לחיצה ליצירה' : notes === 1 ? 'רשימה או פתק אחד' : `${notes} רשימות ופתקים`}
         </Tile>
         <Tile icon="calendar" title="יומן" onClick={() => go('calendar')}>
-          {next ? `${next.now ? 'עכשיו' : dayLabel(next.date).split(' · ')[0]}: ${next.title}` : 'אין אירועים קרובים'}
+          {next ? (
+            <>
+              {next.now ? 'עכשיו' : dayLabel(next.date).split(' · ')[0]}: {next.bday && <InlineIcon icon={Cake} size={14} />}
+              {next.title}
+            </>
+          ) : (
+            'אין אירועים קרובים'
+          )}
         </Tile>
         <Tile icon="chat" title="צ׳אט" count={unreadChat} onClick={() => go('chat')}>
           {unreadChat === 0 ? 'אין הודעות חדשות' : unreadChat === 1 ? 'הודעה חדשה' : `${unreadChat} הודעות חדשות`}

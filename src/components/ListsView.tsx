@@ -53,7 +53,8 @@ import { ZoomViewer } from './ZoomViewer';
 import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { MoreMenu } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
-import { ChevronDown, Folder, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
+import { ChevronDown, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
 import { FormatBar, NoteView, viewSelection } from './NoteFormat';
@@ -267,8 +268,8 @@ function Library({
       <LibRow
         className="note-card"
         icon={<ListIcon value={l.emoji} size={22} />}
-        title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
-        sub={at(l) ? `📁 ${folderPath(all, at(l)).join(' › ')}` : l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
+        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
+        sub={at(l) ? <><InlineIcon icon={Folder} size={14} />{folderPath(all, at(l)).join(' › ')}</> : l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
         onOpen={() => onOpen(l.id)}
         actions={itemActions(l)}
       />
@@ -279,7 +280,10 @@ function Library({
   return (
     <>
       <div className="lib-head">
-        <input className="full notebook-search" type="search" value={search} placeholder="🔍 חיפוש" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
+        <span className="search-box">
+          <Search size={18} aria-hidden="true" />
+          <input className="full notebook-search" type="search" value={search} placeholder="חיפוש" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
+        </span>
         {!q && (
           <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
             {editing ? 'סיום' : 'עריכה'}
@@ -345,7 +349,7 @@ function Library({
                     <LibRow
                       className="note-card"
                       icon={<ListIcon value={l.emoji} size={22} />}
-                      title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
+                      title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
                       sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
                       onOpen={() => onOpen(l.id)}
                       actions={itemActions(l)}
@@ -375,7 +379,7 @@ function Library({
                       <LibRow
                         className="list-card"
                         icon={<ListIcon value={l.emoji} size={22} />}
-                        title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.title}</>}
+                        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.title}</>}
                         sub={progress(l)}
                         onOpen={() => onOpen(l.id)}
                         actions={itemActions(l)}
@@ -766,7 +770,7 @@ function Notebook({
       {folder && (
         <div className="crumbs-row">
         <nav className="crumbs" aria-label="מיקום במחברת">
-          <button className="link-plain" onClick={() => setFolder(null)}>📒 פתקים</button>
+          <button className="link-plain" onClick={() => setFolder(null)}>פתקים</button>
           {ancestors.map((id) => (
             <span key={id}>
               <span className="muted" aria-hidden="true"> › </span>
@@ -864,7 +868,7 @@ function Notebook({
               <LibRow
                 className="note-card"
                 icon={<ListIcon value={l.emoji} size={22} />}
-                title={<>{l.pinned && <span aria-label="נעוץ">📌 </span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
+                title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
                 sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
                 onOpen={() => onOpen(l.id)}
                 actions={[
@@ -958,7 +962,7 @@ function WhoSees({ note, files }: { note: FamilyList; files: NoteFile[] | undefi
     return (
       <div className="who-sees">
         <span>
-          <span className="muted">{note.viewers ? <LockMark kind="private" /> : '👨‍👩‍👧'} רואים ועורכים: </span>
+          <span className="muted">{note.viewers ? <LockMark kind="private" /> : <InlineIcon icon={Users} size={15} />} רואים ועורכים: </span>
           <strong>{label}</strong>
         </span>
         {mine ? (
@@ -1308,7 +1312,7 @@ function NoteEditor({
             </h2>
           )}
           <p className="muted list-sum">
-            {note.pinned && '📌 נעוץ · '}
+            {note.pinned && <><InlineIcon icon={Pin} size={14} />נעוץ · </>}
             {!saved ? 'שומר…' : note.lockFolder ? <><LockMark />בתיקייה נעולה, פתוח כרגע</> : note.locked ? <><LockMark />נעול בסיסמה, פתוח כרגע</> : note.viewers ? <><LockMark kind="private" />פתק פרטי</> : 'פתק משפחתי, כולם יכולים לערוך'}
           </p>
         </div>
@@ -1387,7 +1391,7 @@ function NoteEditor({
 
       <section className="note-files" aria-label="קבצים מצורפים">
         <div className="list-section-head">
-          <h3>📎 קבצים</h3>
+          <h3><InlineIcon icon={Paperclip} size={16} />קבצים</h3>
           <span className="muted">{files?.length || ''}</span>
         </div>
         <input

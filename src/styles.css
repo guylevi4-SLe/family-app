@@ -1042,3 +1042,7 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .lead-icon svg { display: block; }
 .notified .lead-icon { margin-inline-end: 2px; }
 .msg-menu-list svg { flex: none; }
+.birthday-row .bday-icon { color: var(--accent); display: grid; place-items: center; }
+.search-box { position: relative; display: flex; flex: 1; min-width: 0; }
+.search-box > svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.search-box .notebook-search { padding-inline-start: 38px; flex: 1; margin: 0; }

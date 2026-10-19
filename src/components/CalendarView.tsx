@@ -22,7 +22,8 @@ import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 import { MoreMenu } from './MoreMenu';
 import { TasksView } from './TasksView';
-import { BookOpen, CalendarClock, CalendarDays, CalendarPlus, Cake, ChevronLeft, ChevronRight, List, ListChecks, ListTodo, Plus } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
+import { BookOpen, CalendarClock, MapPin, Repeat, CalendarDays, CalendarPlus, Cake, ChevronLeft, ChevronRight, List, ListChecks, ListTodo, Plus } from 'lucide-react';
 
 type Mode = 'list' | 'month';
 const MODE_KEY = 'calendarMode';
@@ -338,7 +339,7 @@ function BirthdayRow({ on, onOpen }: { on: BirthdayOn; onOpen: () => void }) {
   return (
     <li className="row birthday-row">
       <button className="check-area" onClick={onOpen}>
-        <span className="time bday-icon" aria-hidden="true">🎂</span>
+        <span className="time bday-icon" aria-hidden="true"><Cake size={22} strokeWidth={2} /></span>
         <span className="name">
           {birthdayTitle(on.birthday).replace('🎂 ', '')}
           <span className="sub">
@@ -441,8 +442,8 @@ function EventRow({
           <span className="sub">
             {showDate && <span>{dayLabel(event.date)}</span>}
             {untilLabel(event) && <span className="until">{untilLabel(event)}</span>}
-            {repeatLabel(event) && <span className="until">{repeatLabel(event)}</span>}
-            {event.location && <span>📍 {event.location}</span>}
+            {repeatLabel(event) && <span className="until"><InlineIcon icon={Repeat} size={14} />{repeatLabel(event)}</span>}
+            {event.location && <span><InlineIcon icon={MapPin} size={14} />{event.location}</span>}
             {people.length > 0 && <span className="who-tag">{people.join(', ')}</span>}
           </span>
         </span>

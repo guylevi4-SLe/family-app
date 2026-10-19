@@ -15,6 +15,8 @@ import {
   type BirthdayOn,
 } from '../data/birthdays';
 import { useFamily } from './FamilyContext';
+import { Cake, CalendarPlus, PartyPopper } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2024, i, 1).toLocaleDateString('he-IL', { month: 'long' }));
 const groupLabel = (g: BirthdayGroup) => BIRTHDAY_GROUPS.find((x) => x.id === g)?.label ?? '';
@@ -22,8 +24,14 @@ const groupLabel = (g: BirthdayGroup) => BIRTHDAY_GROUPS.find((x) => x.id === g)
 export function whenLabel(on: BirthdayOn) {
   const n = daysUntil(on.date);
   const age = on.age !== null ? (n === 0 ? ` · מלאו ${on.age}` : ` · ימלאו ${on.age}`) : '';
-  const when = n === 0 ? 'היום! 🎉' : n === 1 ? 'מחר' : `בעוד ${n} ימים`;
-  return `${when}${age}`;
+  const when = n === 0 ? 'היום!' : n === 1 ? 'מחר' : `בעוד ${n} ימים`;
+  return (
+    <>
+      {when}
+      {n === 0 && <InlineIcon icon={PartyPopper} size={14} />}
+      {age}
+    </>
+  );
 }
 
 /** The family's birthday book: upcoming first, by group, each one can go to a personal calendar. */
@@ -54,7 +62,7 @@ export function BirthdaysSheet({
         ) : (
           <>
             <div className="sheet-head">
-              <h2>🎂 ימי הולדת</h2>
+              <h2><InlineIcon icon={Cake} size={20} />ימי הולדת</h2>
               <button className="icon-button" aria-label="סגירה" onClick={onClose}>
                 ✕
               </button>
@@ -102,7 +110,7 @@ export function BirthdaysSheet({
             </ul>
             {(birthdays?.length ?? 0) > 1 && (
               <button className="small" onClick={() => downloadBirthdays(birthdays!)}>
-                📅 כל ימי ההולדת ליומן אפל / אאוטלוק (קובץ אחד)
+                <InlineIcon icon={CalendarPlus} size={16} />כל ימי ההולדת ליומן אפל / אאוטלוק (קובץ אחד)
               </button>
             )}
           </>
@@ -133,7 +141,7 @@ function BirthdayForm({ birthday, on, onDone }: { birthday: Birthday | null; on?
   return (
     <form className="bday-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
       <div className="sheet-head">
-        <h2>{birthday ? `🎂 ${birthday.name}` : '🎂 יום הולדת חדש'}</h2>
+        <h2><InlineIcon icon={Cake} size={20} />{birthday ? birthday.name : 'יום הולדת חדש'}</h2>
         <button type="button" className="icon-button" aria-label="חזרה" onClick={onDone}>
           ✕
         </button>

@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { deleteSchedule, saveSchedule, scheduleImage, type Schedule } from '../data/schedules';
 import { memberName, useFamily } from './FamilyContext';
 import { ZoomViewer } from './ZoomViewer';
+import { BookOpen } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
 
 /** Shows a member's weekly timetable; they (or an admin) can upload a PDF or photo to replace it. */
 export function ScheduleSheet({
@@ -41,7 +43,7 @@ export function ScheduleSheet({
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet tall" role="dialog" aria-label="מערכת שעות" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>📚 מערכת השעות {whose}</h2>
+          <h2><InlineIcon icon={BookOpen} size={20} />מערכת השעות {whose}</h2>
           <button className="icon-button" aria-label="סגירה" onClick={onClose}>
             ✕
           </button>
@@ -51,7 +53,7 @@ export function ScheduleSheet({
             {members.map((m) => (
               <button key={m.id} type="button" className={m.id === uid ? 'chip on' : 'chip'} aria-pressed={m.id === uid} onClick={() => { setUid(m.id); setZoom(false); }}>
                 {m.id === me.id ? 'שלי' : m.displayName.split(' ')[0]}
-                {schedules?.some((s) => s.id === m.id) ? ' 📚' : ''}
+                {schedules?.some((s) => s.id === m.id) && <InlineIcon icon={BookOpen} size={14} />}
               </button>
             ))}
           </div>

@@ -91,7 +91,7 @@ export function TasksView({ tasks }: { tasks: Task[] | undefined }) {
         </button>
       </div>
 
-      {tasks !== undefined && open.length === 0 && <p className="empty">אין משימות פתוחות 🎉</p>}
+      {tasks !== undefined && open.length === 0 && <p className="empty">אין משימות פתוחות</p>}
       {open.length > 0 && (
         <section className="dept">
           <ul>

@@ -1,6 +1,7 @@
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { abandonRequest, type JoinRequest } from '../data/family';
+import { Hourglass, Lock } from 'lucide-react';
 
 export function Waiting({ familyId, request }: { familyId: string; request: JoinRequest | null }) {
   let title = 'ממתין לאישור';
@@ -15,7 +16,7 @@ export function Waiting({ familyId, request }: { familyId: string; request: Join
   const pending = request?.status === 'pending';
   return (
     <main className="center-page">
-      <div className="brand-mark" aria-hidden="true">{pending ? '⏳' : '🔒'}</div>
+      <div className="brand-mark" aria-hidden="true">{pending ? <Hourglass size={44} strokeWidth={1.8} /> : <Lock size={44} strokeWidth={1.8} />}</div>
       <h1>{title}</h1>
       <p className="muted">{text}</p>
       {!pending && (
