@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
-import { addItems, clearChecked, parseItems, updateItem, byUrgency, type Item } from '../data/items';
+import { addItems, clearChecked, parseItems, updateItem, byUrgency, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
@@ -98,7 +98,7 @@ export function ShoppingList({
             <h2>{dept}</h2>
             <ul>
               {list.map((it) => (
-                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} />
+                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
               ))}
             </ul>
           </section>
@@ -118,7 +118,7 @@ export function ShoppingList({
           {showBought && (
             <ul>
               {bought.map((it) => (
-                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} />
+                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
               ))}
             </ul>
           )}
@@ -219,7 +219,7 @@ export function ShoppingList({
   );
 }
 
-function ItemRow({ item, last, onToggle, onEdit }: { item: Item; last?: PriceEntry; onToggle: () => void; onEdit: () => void }) {
+function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last?: PriceEntry; onToggle: () => void; onEdit: () => void; onUrgency: (u: Urgency) => void }) {
   return (
     <li className={`row ${item.checked ? 'checked' : ''}`}>
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
@@ -227,8 +227,20 @@ function ItemRow({ item, last, onToggle, onEdit }: { item: Item; last?: PriceEnt
         {/* Name and tags wrap onto a second line when they don't fit next to the buttons. */}
         <span className="item-main">
           <span className="name">{item.name}</span>
-          {item.urgency === 'high' && <span className="urgency high">דחוף</span>}
-          {item.urgency === 'low' && <span className="urgency low">לא דחוף</span>}
+          {item.urgency && (
+            // Tapping the tag takes it off instead of ticking the item.
+            <span
+              className={`urgency ${item.urgency}`}
+              role="button"
+              aria-label={`הסרת התג ${item.urgency === 'high' ? 'דחוף' : 'לא דחוף'} מ${item.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUrgency('');
+              }}
+            >
+              {item.urgency === 'high' ? 'דחוף' : 'לא דחוף'}
+            </span>
+          )}
           {item.qty && (
             // The quantity opens the edit sheet (to change it) instead of ticking the item.
             <span

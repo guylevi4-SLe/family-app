@@ -112,10 +112,10 @@ async function main() {
     await qtySheet.waitFor({ state: 'detached' });
     await row(dad, 'לחם').locator('.urgency.high', { hasText: 'דחוף' }).waitFor({ timeout: 10000 });
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/urgency-row.png` });
-    await row(dad, 'לחם').getByRole('button', { name: 'עריכת לחם' }).click();
-    await qtySheet.getByRole('button', { name: 'דחוף', exact: true }).click();
-    await qtySheet.getByRole('button', { name: 'שמירה' }).click();
+    // Tapping the tag takes it off and does not tick the item.
+    await row(dad, 'לחם').getByRole('button', { name: 'הסרת התג דחוף מלחם', exact: true }).click();
     await row(dad, 'לחם').locator('.urgency').waitFor({ state: 'detached' });
+    assert.equal(await row(dad, 'לחם').locator('.check-area').getAttribute('aria-pressed'), 'false', 'tapping the tag does not tick the item');
     ok('tapping the quantity opens the edit sheet; an item can be marked urgent and back to normal');
     await add(dad, "קוטג' 3%");
     await row(dad, "קוטג' 3%").locator('.check-area').click();
