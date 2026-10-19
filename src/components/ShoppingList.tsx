@@ -224,30 +224,41 @@ function ItemRow({ item, last, onToggle, onEdit }: { item: Item; last?: PriceEnt
     <li className={`row ${item.checked ? 'checked' : ''}`}>
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
         <span className="box" aria-hidden="true">{item.checked ? '✓' : ''}</span>
-        <span className="name">{item.name}</span>
-        {item.urgency === 'high' && <span className="urgency high">דחוף</span>}
-        {item.urgency === 'low' && <span className="urgency low">לא דחוף</span>}
-        {item.qty && (
-          // The quantity opens the edit sheet (to change it) instead of ticking the item.
-          <span
-            className="qty"
-            role="button"
-            aria-label={`שינוי כמות ${item.name}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-          >
-            {item.qty}
-          </span>
-        )}
-        {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}
+        {/* Name and tags wrap onto a second line when they don't fit next to the buttons. */}
+        <span className="item-main">
+          <span className="name">{item.name}</span>
+          {item.urgency === 'high' && <span className="urgency high">דחוף</span>}
+          {item.urgency === 'low' && <span className="urgency low">לא דחוף</span>}
+          {item.qty && (
+            // The quantity opens the edit sheet (to change it) instead of ticking the item.
+            <span
+              className="qty"
+              role="button"
+              aria-label={`שינוי כמות ${item.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              {item.qty}
+            </span>
+          )}
+          {last && (
+            <span
+              className="price-tag"
+              role="button"
+              aria-label={`מחיר אחרון ${formatPrice(last.price)}${last.store ? ` ב${last.store}` : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              {formatPrice(last.price)}
+            </span>
+          )}
+          {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}
+        </span>
       </button>
-      {last && (
-        <button className="price-tag" aria-label={`מחיר אחרון ${formatPrice(last.price)}${last.store ? ` ב${last.store}` : ''}`} onClick={onEdit}>
-          {formatPrice(last.price)}
-        </button>
-      )}
       <CommentButton type="item" id={item.id} title={item.name} />
       <button className="icon-button edit" aria-label={`עריכת ${item.name}`} onClick={onEdit}>
         <Icon name="edit" size={18} />

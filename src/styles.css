@@ -949,7 +949,7 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .detail-top .back { margin: 0; }
 .logo-home, .title-logo { unicode-bidi: isolate; }
 /* ---------- prices ---------- */
-.shopping .row .price-tag { min-height: 40px; min-width: 0; padding: 0 6px; border: 0; background: none; color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.shopping .row .price-tag { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bought-toast { flex-direction: column; align-items: stretch; gap: 6px; padding: 8px 10px; }
 .bought-toast .toast-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-inline-start: 6px; }
 .paid-form { display: flex; gap: 6px; align-items: center; }
@@ -1028,3 +1028,10 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .urgency-pick button { min-height: 30px; padding: 0 12px; font-size: 0.85rem; border-radius: 999px; background: var(--surface); color: var(--muted); border: 1px solid var(--border, color-mix(in srgb, var(--muted) 30%, transparent)); box-shadow: none; }
 .urgency-pick button.on { color: var(--text); font-weight: 700; border-color: var(--text); }
 .urgency-pick button.high.on { color: #fff; background: #d93a3a; border-color: #d93a3a; }
+
+/* A shopping row: name, tags, quantity and price share a line, and wrap under the name when they don't fit. */
+.shopping .check-area { min-width: 0; }
+.shopping .item-main { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; padding: 4px 0; }
+.shopping .item-main .name { overflow-wrap: anywhere; }
+.shopping .item-main .qty { margin-inline-end: 0; }
+.shopping .item-main .pending-dot, .shopping .qty + .pending-dot { margin-inline-start: 0; }

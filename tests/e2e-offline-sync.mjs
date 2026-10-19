@@ -136,12 +136,29 @@ async function main() {
     await kindSheet.getByRole('group', { name: 'סוגים שקניתם בעבר' }).getByRole('button', { name: /קוטג' 3%/ }).click();
     // Wait for the row on the open list: it is bought until the pick lands, and the bought section is open.
     const tag = dad.page.locator('.dept:not(.bought):not(.deleted) .row', { has: dad.page.locator('.name', { hasText: /^קוטג' 3%$/ }) })
-      .getByRole('button', { name: 'מחיר אחרון ₪5.90 ברמי לוי' });
+      .getByRole('button', { name: 'מחיר אחרון ₪5.90 ברמי לוי', exact: true });
     await tag.waitFor({ timeout: 10000 });
     const rowH = await row(dad, "קוטג' 3%").evaluate((el) => el.getBoundingClientRect().height);
     const plainH = await row(dad, 'לחם').evaluate((el) => el.getBoundingClientRect().height);
     assert.equal(rowH, plainH, 'the price tag does not make the row taller');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-tag.png` });
+    // A tag, a quantity and a price together stay on screen: they wrap under the name instead of being cut off.
+    await tag.click();
+    await kindSheet.getByLabel('כמות', { exact: true }).fill('2 ק"ג');
+    await kindSheet.getByRole('button', { name: 'לא דחוף' }).click();
+    await kindSheet.getByRole('button', { name: 'שמירה' }).click();
+    await kindSheet.waitFor({ state: 'detached' });
+    const full = row(dad, "קוטג' 3%");
+    await full.locator('.urgency.low').waitFor();
+    const fits = await full.evaluate((r) => {
+      const box = r.getBoundingClientRect();
+      return [...r.querySelectorAll('.name, .urgency, .qty, .price-tag, .edit')].every((el) => {
+        const b = el.getBoundingClientRect();
+        return b.left >= box.left - 1 && b.right <= box.right + 1 && b.right <= window.innerWidth;
+      });
+    });
+    assert.ok(fits, 'name, tag, quantity, price and edit button all fit on screen');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/row-tags.png` });
     await tag.click();
     await kindSheet.getByRole('list', { name: 'היסטוריית מחירים' }).getByText('רמי לוי').waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/price-sheet.png` });
