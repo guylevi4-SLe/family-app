@@ -18,12 +18,22 @@ export interface Item {
   category: string;
   checked: boolean;
   deleted: boolean;
+  /** 'high' = דחוף, 'low' = לא דחוף; empty or missing = רגיל. */
+  urgency?: Urgency;
   addedAt?: Timestamp | null;
   /** When it was last marked bought; older items don't have it. */
   checkedAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
   updatedBy: string;
   pending: boolean;
+}
+
+export type Urgency = '' | 'high' | 'low';
+
+/** Urgent items first, "not urgent" ones last; otherwise in the order they were added. */
+export function byUrgency(a: Item, b: Item) {
+  const rank = (i: Item) => (i.urgency === 'high' ? 0 : i.urgency === 'low' ? 2 : 1);
+  return rank(a) - rank(b) || (a.addedAt?.toMillis() ?? Infinity) - (b.addedAt?.toMillis() ?? Infinity);
 }
 
 export { parseItems, type ParsedItem } from './parse';
@@ -66,7 +76,8 @@ export function addItems(
         category: prev?.category && prev.category !== OTHER ? prev.category : guessDepartment(norm, overrides),
         checked: false,
         deleted: false,
-        ...(active ? {} : { addedAt: serverTimestamp() }),
+        // Bought or deleted before: it comes back as a plain item, not urgent from last time.
+        ...(active ? {} : { addedAt: serverTimestamp(), urgency: '' }),
         updatedAt: serverTimestamp(),
         updatedBy: uid,
       },
@@ -77,7 +88,7 @@ export function addItems(
   batch.commit().catch(reportWriteError);
 }
 
-export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted'>>) {
+export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted' | 'urgency'>>) {
   updateDoc(doc(itemsCol(fid), id), {
     ...fields,
     ...(fields.checked ? { checkedAt: serverTimestamp() } : {}),

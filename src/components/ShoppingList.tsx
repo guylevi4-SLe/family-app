@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
-import { addItems, clearChecked, parseItems, updateItem, type Item } from '../data/items';
+import { addItems, clearChecked, parseItems, updateItem, byUrgency, type Item } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
@@ -57,7 +57,7 @@ export function ShoppingList({
       map.get(dept)!.push(it);
     }
     for (const list of map.values()) {
-      list.sort((a, b) => (a.addedAt?.toMillis() ?? Infinity) - (b.addedAt?.toMillis() ?? Infinity));
+      list.sort(byUrgency);
     }
     return order.filter((d) => map.has(d)).map((d) => [d, map.get(d)!] as const);
   }, [active, deptOrder]);
@@ -225,6 +225,8 @@ function ItemRow({ item, last, onToggle, onEdit }: { item: Item; last?: PriceEnt
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
         <span className="box" aria-hidden="true">{item.checked ? '✓' : ''}</span>
         <span className="name">{item.name}</span>
+        {item.urgency === 'high' && <span className="urgency high">דחוף</span>}
+        {item.urgency === 'low' && <span className="urgency low">לא דחוף</span>}
         {item.qty && (
           // The quantity opens the edit sheet (to change it) instead of ticking the item.
           <span
@@ -259,7 +261,10 @@ function shareToWhatsApp(groups: (readonly [string, Item[]])[]) {
   const lines = ['🛒 *רשימת קניות*'];
   for (const [dept, list] of groups) {
     lines.push(`*${dept}*`);
-    for (const it of list) lines.push(`• ${it.name}${it.qty ? ` (${it.qty})` : ''}`);
+    for (const it of list) {
+      const tag = it.urgency === 'high' ? ' ❗דחוף' : it.urgency === 'low' ? ' (לא דחוף)' : '';
+      lines.push(`• ${it.name}${it.qty ? ` (${it.qty})` : ''}${tag}`);
+    }
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { normalize, orderedDepartments } from '../data/departments';
-import { addItems, setCategory, updateItem, type Item } from '../data/items';
+import { addItems, setCategory, updateItem, type Item, type Urgency } from '../data/items';
 import { addPrice, ago, deletePrice, formatPrice, parsePrice, priceKey, similarKinds, type PriceEntry } from '../data/prices';
 import { auth } from '../firebase';
 import { CommentButton } from './CommentButton';
@@ -26,6 +26,7 @@ export function ItemSheet({
 }) {
   const [name, setName] = useState(item.name);
   const [qty, setQty] = useState(item.qty);
+  const [urgency, setUrgency] = useState<Urgency>(item.urgency ?? '');
   const [paid, setPaid] = useState({ price: '', store: stores[0] ?? '' });
   const history = byKey.get(priceKey(name.trim() || item.name)) ?? [];
   const cheapest = history.length > 1 ? Math.min(...history.map((h) => h.price)) : null;
@@ -42,6 +43,7 @@ export function ItemSheet({
     const fields: Parameters<typeof updateItem>[2] = {};
     if (name.trim() && name.trim() !== item.name) fields.name = name.trim().slice(0, 80);
     if (qty.trim() !== item.qty) fields.qty = qty.trim().slice(0, 30);
+    if (urgency !== (item.urgency ?? '')) fields.urgency = urgency;
     if (Object.keys(fields).length) updateItem(familyId, item.id, fields);
     onClose();
   };
@@ -57,6 +59,14 @@ export function ItemSheet({
           כמות
           <input value={qty} maxLength={30} placeholder="למשל: 2, 1 ק״ג" onChange={(e) => setQty(e.target.value)} />
         </label>
+        {/* No tag means a normal item; tapping the chosen tag again takes it off. */}
+        <div className="urgency-pick" role="group" aria-label="דחיפות">
+          {([['high', 'דחוף'], ['low', 'לא דחוף']] as const).map(([v, label]) => (
+            <button key={v} type="button" aria-pressed={urgency === v} className={`${v} ${urgency === v ? 'on' : ''}`} onClick={() => setUrgency(urgency === v ? '' : v)}>
+              {label}
+            </button>
+          ))}
+        </div>
         {kinds.length > 0 && (
           <div className="kinds">
             <span className="field-label">סוגים שקניתם בעבר</span>

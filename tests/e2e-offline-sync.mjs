@@ -106,9 +106,17 @@ async function main() {
     const qtySheet = dad.page.getByRole('dialog', { name: 'עריכת לחם' });
     await qtySheet.getByText('כמות').waitFor();
     assert.equal(await row(dad, 'לחם').locator('.check-area').getAttribute('aria-pressed'), 'false', 'tapping the quantity does not tick the item');
+    await qtySheet.getByRole('button', { name: 'דחוף', exact: true }).click();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/urgency-sheet.png` });
     await qtySheet.getByRole('button', { name: 'שמירה' }).click();
     await qtySheet.waitFor({ state: 'detached' });
-    ok('tapping the quantity opens the edit sheet');
+    await row(dad, 'לחם').locator('.urgency.high', { hasText: 'דחוף' }).waitFor({ timeout: 10000 });
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/urgency-row.png` });
+    await row(dad, 'לחם').getByRole('button', { name: 'עריכת לחם' }).click();
+    await qtySheet.getByRole('button', { name: 'דחוף', exact: true }).click();
+    await qtySheet.getByRole('button', { name: 'שמירה' }).click();
+    await row(dad, 'לחם').locator('.urgency').waitFor({ state: 'detached' });
+    ok('tapping the quantity opens the edit sheet; an item can be marked urgent and back to normal');
     await add(dad, "קוטג' 3%");
     await row(dad, "קוטג' 3%").locator('.check-area').click();
     assert.equal(await dad.page.getByLabel('מחיר ששולם').count(), 0, 'ticking does not ask for a price');
