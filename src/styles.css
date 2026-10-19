@@ -653,7 +653,7 @@ body:has(.sheet-backdrop) { overflow: hidden; }
   background: var(--accent-soft); color: var(--muted); font: inherit; font-size: 0.85rem; text-align: start;
 }
 .chat-ref strong { color: var(--text); font-weight: 600; }
-.chat-ref span:last-child { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.chat-ref > span:last-child { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
 .chat-compose {
   position: fixed; inset-inline: 0; bottom: var(--nav-h); z-index: 7;
   max-width: 640px; margin: 0 auto; padding: 8px 16px 10px;
@@ -1036,3 +1036,9 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .time .time-end { display: block; font-size: 0.72rem; font-weight: 600; font-style: normal; color: var(--muted); }
 .more-subtitle { display: block; padding: 0 4px 8px; margin-top: -2px; font-size: 0.85rem; color: var(--muted); }
 .menu-subtitle { display: block; padding: 0 12px 4px; font-size: 0.78rem; color: var(--muted); }
+
+/* Line icons in place of emoji in the chat. */
+.lead-icon { display: inline-flex; vertical-align: -0.15em; color: var(--accent); margin-inline-end: 4px; }
+.lead-icon svg { display: block; }
+.notified .lead-icon { color: inherit; margin-inline-end: 2px; }
+.msg-menu-list svg { flex: none; }

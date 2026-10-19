@@ -10,8 +10,11 @@ import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
 import { byTime, CommentBubble, Composer, PhotoViewer } from './CommentsSheet';
 import { useFamily } from './FamilyContext';
+import { CalendarDays, CalendarPlus, Camera, Check, ClipboardList, ListChecks, ShoppingCart, X, type LucideIcon } from 'lucide-react';
+import { InlineIcon } from './ChatIcons';
 
-const KIND: Record<Exclude<TargetType, 'chat'>, string> = { item: '🛒', task: '✅', event: '📅' };
+const KIND: Record<Exclude<TargetType, 'chat'>, LucideIcon> = { item: ShoppingCart, task: ListChecks, event: CalendarDays };
+const COMMAND_ICON: Record<string, LucideIcon> = { shop: ShoppingCart, task: ListChecks, event: CalendarPlus, list: ClipboardList };
 
 /**
  * One family conversation. Chat messages show as bubbles; comments written on a
@@ -263,9 +266,13 @@ export function ChatView({
           const title = titleOf(c);
           return (
             <button key={c.id} type="button" className="chat-ref" onClick={() => openComments(c.targetType, c.targetId, title)}>
-              <span aria-hidden="true">{KIND[c.targetType]}</span>
+              <InlineIcon icon={KIND[c.targetType]} />
               <span>
-                <strong>{c.authorName}</strong> על <strong>{title || 'פריט שנמחק'}</strong>: {c.text || '📷 תמונה'}
+                <strong>{c.authorName}</strong> על <strong>{title || 'פריט שנמחק'}</strong>: {c.text || (
+                  <>
+                    <InlineIcon icon={Camera} size={14} /> תמונה
+                  </>
+                )}
               </span>
             </button>
           );
@@ -275,7 +282,7 @@ export function ChatView({
         {notice && (
           <div className={notice.ok ? 'command-notice' : 'command-notice error'} role="status">
             <span>
-              {notice.ok ? '✓ ' : ''}
+              {notice.ok && <InlineIcon icon={Check} />}
               {notice.text}
             </span>
             {notice.undo && (
@@ -289,7 +296,7 @@ export function ChatView({
               </button>
             )}
             <button type="button" className="link close" aria-label="סגירת ההודעה" onClick={() => setNotice(null)}>
-              ✕
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
         )}
@@ -300,7 +307,11 @@ export function ChatView({
           label="כתיבת הודעה"
           tagging
           onCommand={runCommand}
-          hints={(t) => suggestCommands(t).map((c) => ({ label: `@${c.key} ${c.emoji} ${c.word}`, insert: `@${c.word}: ` }))}
+          hints={(t) => suggestCommands(t).map((c) => ({ label: (
+              <>
+                @{c.key} <InlineIcon icon={COMMAND_ICON[c.kind]} size={15} /> {c.word}
+              </>
+            ), insert: `@${c.word}: ` }))}
           // "@רש" grows into "@רשימה: " and "@ש" into "@שגב ", whenever only one thing fits.
           autoComplete={(t) => autoCompleteTag(t, (members ?? []).filter((m) => m.id !== me.id).map(firstName), COMMANDS.map((c) => c.word))}
         />

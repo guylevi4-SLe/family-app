@@ -510,12 +510,12 @@ async function main() {
       await send('@ק במבה, 2 חלב');
       await notice.filter({ hasText: 'נוספו 2 מוצרים לקניות' }).waitFor();
       assert.equal(await box.inputValue(), '', 'a command clears the box');
-      await p.locator('.comment', { hasText: '🛒 לקניות: במבה, חלב (2 יח׳)' }).waitFor();
+      await p.locator('.comment', { hasText: 'לקניות: במבה, חלב (2 יח׳)' }).locator('.lead-icon svg').waitFor();
       ok('"@ק במבה, 2 חלב" adds to shopping and tells the family in the chat');
 
       await send('@מ להחליף נורה מחר לkid');
       await notice.filter({ hasText: 'נוספה משימה: להחליף נורה' }).waitFor();
-      await p.locator('.comment', { hasText: /✅ משימה: להחליף נורה · kid · מחר/ }).waitFor();
+      await p.locator('.comment', { hasText: /משימה: להחליף נורה · kid · מחר/ }).waitFor();
       ok('"@מ … מחר לkid" adds a task due tomorrow, assigned to the daughter');
 
       await send('@י חוג');
@@ -555,7 +555,8 @@ async function main() {
       assert.equal(await box.inputValue(), '@קניות: -גבינה', 'removing something not on the list stays in the box');
       await send('@קניות: -במבה');
       await notice.filter({ hasText: 'הוסר: במבה' }).waitFor();
-      await p.locator('.comment', { hasText: '🗑️ הוסר מהקניות: במבה' }).waitFor();
+      await p.locator('.comment', { hasText: 'הוסר מהקניות: במבה' }).waitFor();
+      if (process.env.SCREENSHOT_DIR) await p.screenshot({ path: `${process.env.SCREENSHOT_DIR}/chat-icons.png` });
       await p.getByRole('navigation').getByRole('button', { name: 'קניות' }).click();
       await p.getByText('חלב').first().waitFor();
       assert.equal(await p.locator('main').getByText('במבה', { exact: true }).count(), 0, 'במבה left the shopping list');
@@ -613,7 +614,7 @@ async function main() {
       assert.deepEqual(await p.evaluate(() => ({ text: window.__shared.text, files: (window.__shared.files ?? []).length })), { text: 'שאלה על "חלב" מרשימת הקניות:\nאיזה אחוז שומן?', files: 1 });
       await askBox.waitFor({ state: 'detached' });
       assert.equal(await sheet.getByLabel('כתיבת תגובה').inputValue(), '', 'the note box is cleared');
-      await sheet.locator('.comment', { hasText: '❓ איזה אחוז שומן?' }).waitFor();
+      await sheet.locator('.comment', { hasText: 'איזה אחוז שומן?' }).waitFor();
       await sheet.getByLabel('סגירה').click();
       await p.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
       ok('a product note can be sent as a WhatsApp question, and stays in its notes');

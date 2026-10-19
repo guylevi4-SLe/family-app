@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { addComment, deleteComment, editComment, shrinkPhoto, type Comment, type TargetType } from '../data/comments';
 import { useFamily } from './FamilyContext';
 import { Icon } from './Icon';
+import { AtSign, Bell, CircleHelp, MessageCircle, Pencil, Trash2 } from 'lucide-react';
+import { InlineIcon, leadIcon } from './ChatIcons';
+import type { ReactNode } from 'react';
 
 export const byTime = (a: Comment, b: Comment) => (a.createdAt?.toMillis() ?? Infinity) - (b.createdAt?.toMillis() ?? Infinity);
 
@@ -31,7 +34,7 @@ export function CommentsSheet({
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet tall" role="dialog" aria-label={`תגובות על ${title}`} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>💬 {title}</h2>
+          <h2><InlineIcon icon={MessageCircle} size={20} /> {title}</h2>
           <button className="icon-button" aria-label="סגירה" onClick={onClose}>
             ✕
           </button>
@@ -74,6 +77,7 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
   const press = useRef<number | undefined>(undefined);
   const menuRef = useRef<HTMLDivElement>(null);
   const canDelete = mine || me.role === 'admin';
+  const lead = c.text ? leadIcon(c.text) : null;
 
   // A tap anywhere else, or Escape, closes the menu.
   useEffect(() => {
@@ -137,12 +141,12 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
                 </button>
                 {mine && (
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); setDraft(c.text); }}>
-                    ✏️ עריכה
+                    <Pencil size={18} aria-hidden="true" /> עריכה
                   </button>
                 )}
                 {canDelete && (
                   <button type="button" role="menuitem" className="danger" onClick={() => { setMenu(false); if (window.confirm('למחוק את ההודעה?')) deleteComment(familyId, c.id); }}>
-                    🗑️ מחיקה
+                    <Trash2 size={18} aria-hidden="true" /> מחיקה
                   </button>
                 )}
               </div>
@@ -175,14 +179,15 @@ export function CommentBubble({ c, onPhoto }: { c: Comment; onPhoto: (src: strin
       ) : (
         c.text && (
           <p>
-            {splitTags(c.text, members.map(firstName)).map((part, i) =>
+            {lead && <InlineIcon icon={lead.Icon} />}
+            {splitTags(lead ? lead.rest : c.text, members.map(firstName)).map((part, i) =>
               part.tag ? <strong key={i} className="tag">{part.text}</strong> : part.text,
             )}
           </p>
         )
       )}
       {c.notify && c.notify.length > 0 && (
-        <span className="notified">🔔 {c.notify.map((u) => members.find((m) => m.id === u)?.displayName.split(' ')[0]).filter(Boolean).join(', ')}</span>
+        <span className="notified"><InlineIcon icon={Bell} size={14} /> {c.notify.map((u) => members.find((m) => m.id === u)?.displayName.split(' ')[0]).filter(Boolean).join(', ')}</span>
       )}
     </div>
   );
@@ -251,7 +256,7 @@ export function Composer({
   /** Handles a command instead of sending it: 'done' clears the box, 'keep' leaves it to fix, null sends it as written. */
   onCommand?: (text: string) => 'done' | 'keep' | null;
   /** Shortcuts offered above the box for what is being typed. */
-  hints?: (text: string) => { label: string; insert: string }[];
+  hints?: (text: string) => { label: ReactNode; insert: string }[];
   /** Rewrites what was typed (a shortcut grown into its full form), or null to keep it. */
   autoComplete?: (text: string) => string | null;
   /** A product's name: offers to ask about it on WhatsApp ("which washing-up liquid?"). */
@@ -327,7 +332,7 @@ export function Composer({
 
   const tagRow = !tagging && others.length > 0 && (
         <div className="notify-row">
-          <span className="assign-label">{notifyFirst ? '🔔' : '🏷️'} {notifyLabel}:</span>
+          <span className="assign-label"><InlineIcon icon={notifyFirst ? Bell : AtSign} size={15} /> {notifyLabel}:</span>
           <div className="chips" role="group" aria-label={notifyLabel}>
             {others.map((m) => {
               const on = notify.includes(m.id);
@@ -437,7 +442,7 @@ export function Composer({
         <div className="sheet-backdrop ask-backdrop" onClick={() => setAsking(false)}>
           <div className="sheet ask-sheet" role="dialog" aria-label="שאלה בוואטסאפ" onClick={(e) => e.stopPropagation()}>
             <div className="sheet-head">
-              <h2>❓ שאלה על {askAbout}</h2>
+              <h2><InlineIcon icon={CircleHelp} size={20} /> שאלה על {askAbout}</h2>
               <button type="button" className="icon-button" aria-label="סגירת השאלה" onClick={() => setAsking(false)}>
                 ✕
               </button>
