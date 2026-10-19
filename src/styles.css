@@ -590,7 +590,9 @@ body:has(.sheet-backdrop) { overflow: hidden; }
 
 /* WhatsApp share: a soft button in the palette's colour, easy to tap without shouting. */
 .shopping .whatsapp,
-:root[data-palette] .shopping .whatsapp {
+:root[data-palette] .shopping .whatsapp,
+.list-tools .whatsapp,
+:root[data-palette] .list-tools .whatsapp {
   display: inline-flex;
   align-items: center;
   gap: 8px;
