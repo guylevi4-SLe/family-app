@@ -798,12 +798,13 @@ async function main() {
       await scope.getByRole('button', { name: 'אפשרויות' }).click();
       await scope.getByRole('dialog', { name: /^אפשרויות/ }).getByRole('button', { name: item }).click();
     };
-    await answer('ביגוד', () => lists.getByRole('button', { name: '+ קטגוריה' }).click());
+    await answer('ביגוד', () => menu(lists, 'קטגוריה חדשה'));
     await lists.getByLabel('הוספת שורות').fill('חולצות, מכנסיים, גרביים');
     await lists.getByLabel('הוספת שורות').press('Enter');
-    await answer('רחצה', () => lists.getByRole('button', { name: '+ קטגוריה' }).click());
+    await answer('רחצה', () => menu(lists, 'קטגוריה חדשה'));
     await lists.getByLabel('הוספת שורות').fill('מברשת שיניים, משחה');
     await lists.getByLabel('הוספת שורות').press('Enter');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-bottom-add.png` });
     await lists.locator('.list-section', { hasText: 'רחצה' }).locator('.entry', { hasText: 'משחה' }).waitFor();
     await lists.locator('.list-section', { hasText: 'ביגוד' }).locator('.entry', { hasText: 'גרביים' }).waitFor();
     await lists.locator('.entry', { hasText: 'אוהל' }).locator('.entry-check').click();

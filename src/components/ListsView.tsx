@@ -54,7 +54,7 @@ import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { MoreMenu } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { InlineIcon } from './ChatIcons';
-import { ChevronDown, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { ChevronDown, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
 import { FormatBar, NoteView, viewSelection } from './NoteFormat';
@@ -550,6 +550,7 @@ function ListDetail({
           items={[
             { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => setRenaming(list.title) },
             { label: 'החלפת הסמל', icon: <Shapes size={20} />, onClick: () => setPicking(true) },
+            { label: 'קטגוריה חדשה', icon: <ListPlus size={20} />, onClick: newCategory },
             { label: 'ניקוי סימונים', icon: <RotateCcw size={20} />, disabled: done.length === 0, onClick: () => confirm('לנקות את כל הסימונים ולהתחיל מחדש?') && resetList(familyId, entries) },
             {
               label: 'מחיקת הרשימה',
@@ -567,24 +568,13 @@ function ListDetail({
         />
       </div>
 
-      <form className="add-box list-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <input ref={inputRef} value={text} placeholder="מה להוסיף? אפשר כמה, עם פסיק" aria-label="הוספת שורות" enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
-        <button className="primary add-button" aria-label="הוספה לרשימה" disabled={!text.trim()}>
-          +
-        </button>
-      </form>
-      <div className="list-target">
-        {cats.length > 0 && (
-          <label>
-            <span className="muted">מוסיפים ל:</span>
-            <select aria-label="להוסיף לקטגוריה" value={cats.includes(target) ? target : ''} onChange={(e) => setTarget(e.target.value)}>
-              <option value="">בלי קטגוריה</option>
-              {cats.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </label>
-        )}
-        <button type="button" className="link" onClick={newCategory}>+ קטגוריה</button>
-      </div>
+      {entries.length > 0 && (
+        <div className="list-tools">
+          <button className="whatsapp" onClick={() => shareList(list, sections)}>
+            <Icon name="whatsapp" size={20} /> שליחת הרשימה לוואטסאפ
+          </button>
+        </div>
+      )}
 
       {sections.map((sec) => {
         const todo = sec.rows.filter((e) => !e.done);
@@ -608,11 +598,22 @@ function ListDetail({
         );
       })}
 
-      <div className="list-tools">
-        <button className="whatsapp" disabled={entries.length === 0} onClick={() => shareList(list, sections)}>
-          <Icon name="whatsapp" size={20} /> שליחת הרשימה לוואטסאפ
+      {/* Like the shopping list: the add row stays at the bottom while the list scrolls. */}
+      <form className="add-box bottom-add list-add" onSubmit={(e) => { e.preventDefault(); add(); }}>
+        {cats.length > 0 && (
+          <label className="list-target">
+            <span className="muted">מוסיפים ל:</span>
+            <select aria-label="להוסיף לקטגוריה" value={cats.includes(target) ? target : ''} onChange={(e) => setTarget(e.target.value)}>
+              <option value="">בלי קטגוריה</option>
+              {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+        )}
+        <input ref={inputRef} value={text} placeholder="מה להוסיף? אפשר כמה, עם פסיק" aria-label="הוספת שורות" enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
+        <button className="primary add-button" aria-label="הוספה לרשימה" disabled={!text.trim()}>
+          +
         </button>
-      </div>
+      </form>
     </>
   );
 }
