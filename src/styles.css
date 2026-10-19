@@ -873,9 +873,11 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .cal-bar { display: flex; align-items: center; gap: 2px; margin: 2px 0 4px; }
 .cal-month { flex: 1; display: flex; align-items: center; gap: 2px; min-width: 0; }
 .cal-month h2, .cal-title { font-size: 1.12rem; font-weight: 800; white-space: nowrap; }
+/* Nothing in the bar may overlap: the month name gives way (smaller, then "…") before the buttons do. */
+.cal-month h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: clamp(0.9rem, 4.4vw, 1.12rem); }
 .cal-title { flex: 1; padding-inline-start: 4px; }
-.cal-month .icon-button { width: 36px; min-height: 40px; padding: 0; display: grid; place-items: center; color: var(--accent); }
-.cal-today { min-height: 30px; padding: 0 10px; font-size: 0.85rem; margin-inline-start: 4px; }
+.cal-month .icon-button { flex: none; width: 32px; min-width: 0; min-height: 40px; padding: 0; display: grid; place-items: center; color: var(--accent); }
+.cal-today { flex: none; white-space: nowrap; min-height: 30px; padding: 0 8px; font-size: 0.85rem; margin-inline-start: 4px; }
 .cal-bar .more-button { width: 40px; height: 40px; min-height: 40px; }
 .fab-wrap { position: fixed; z-index: 15; inset-inline-end: max(16px, calc(50% - 304px)); bottom: calc(var(--nav-h) + 16px); }
 .fab { width: 58px; height: 58px; min-height: 58px; padding: 0; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--grad); color: var(--accent-ink); box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 40%, transparent); }

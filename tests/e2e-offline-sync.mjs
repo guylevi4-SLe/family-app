@@ -1300,6 +1300,20 @@ async function main() {
     assert.equal(await evSheet.locator('.row', { hasText: 'לקנות מתנה' }).count(), 0, 'no tasks in the events list');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-events.png` });
     await evSheet.getByRole('button', { name: 'סגירה' }).click();
+    // In another month "היום" shows; on a narrow phone it must not sit on top of the view switch.
+    {
+      const size = dad.page.viewportSize();
+      await dad.page.setViewportSize({ width: 320, height: size.height });
+      await dad.page.getByRole('button', { name: 'החודש הבא' }).click();
+      const todayBtn = await dad.page.getByRole('button', { name: 'היום', exact: true }).boundingBox();
+      const toggle = await dad.page.getByRole('button', { name: 'תצוגת רשימה' }).boundingBox();
+      const apart = todayBtn.x + todayBtn.width <= toggle.x + 1 || toggle.x + toggle.width <= todayBtn.x + 1;
+      assert.ok(apart, `"היום" and the view switch do not overlap (${JSON.stringify(todayBtn)} / ${JSON.stringify(toggle)})`);
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-other-month.png` });
+      await dad.page.getByRole('button', { name: 'היום', exact: true }).click();
+      await dad.page.setViewportSize(size);
+      ok('in another month, "היום" and the view switch sit side by side, even on a narrow phone');
+    }
     await calMenu(dad.page, 'אפשרויות', 'משימות');
     const taskSheet = dad.page.getByRole('dialog', { name: 'משימות' });
     await taskSheet.locator('.row', { hasText: 'לקנות מתנה' }).getByText('kid').waitFor();
