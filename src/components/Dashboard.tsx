@@ -59,7 +59,8 @@ export function Dashboard({
 
   const live = (schedules ?? []).filter((s) => members.some((m) => m.id === s.id));
   const shown = live.find((s) => s.id === defaultScheduleUid(schedules, members.map((m) => m.id), me.id));
-  const notes = (lists ?? []).filter((l) => l.kind !== 'folder' && !l.lockFolder).length;
+  // Every list and note, those in a locked folder too (folders themselves aren't counted).
+  const notes = (lists ?? []).filter((l) => l.kind !== 'folder').length;
   const next = agenda[0];
 
   return (
