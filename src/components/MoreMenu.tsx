@@ -11,12 +11,15 @@ export type MenuItem = { label: string; icon: ReactNode; onClick: () => void; da
  */
 export function MoreMenu({
   title,
+  subtitle,
   items,
   label = 'אפשרויות',
   className = 'more-button',
   icon = <EllipsisVertical size={22} strokeWidth={2} aria-hidden="true" />,
 }: {
   title: string;
+  /** A small line under the title (e.g. which date new things get). */
+  subtitle?: string;
   items: (MenuItem | false | null | undefined)[];
   /** The trigger button: "⋮" unless given (e.g. a floating "+"). */
   label?: string;
@@ -76,6 +79,7 @@ export function MoreMenu({
           <div className="menu-backdrop" onClick={() => setOpen(false)}>
             <div className="menu-pop" style={place} role="dialog" aria-label={`${label}: ${title}`} onClick={(e) => e.stopPropagation()}>
               <strong className="menu-title">{title}</strong>
+              {subtitle && <span className="menu-subtitle">{subtitle}</span>}
               {list}
             </div>
           </div>
@@ -83,6 +87,7 @@ export function MoreMenu({
           <div className="sheet-backdrop" onClick={() => setOpen(false)}>
             <div className="sheet more-sheet" role="dialog" aria-label={`${label}: ${title}`} onClick={(e) => e.stopPropagation()}>
               <strong className="more-title">{title}</strong>
+              {subtitle && <span className="more-subtitle">{subtitle}</span>}
               {list}
               <button className="more-cancel" onClick={() => setOpen(false)}>ביטול</button>
             </div>

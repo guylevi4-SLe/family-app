@@ -48,7 +48,8 @@ export function CalendarView({
   tasks: Task[] | undefined;
   birthdays: Birthday[] | undefined;
   openSchedule: () => void;
-  openBirthdays: (id: string | null) => void;
+  /** An id opens that birthday; `newOn` opens a new one on that day and month. */
+  openBirthdays: (id: string | null, newOn?: { day: number; month: number }) => void;
   /** The tasks window, opened from the ⋮ menu or the home screen's tasks square. */
   tasksOpen: boolean;
   setTasksOpen: (open: boolean) => void;
@@ -206,10 +207,19 @@ export function CalendarView({
           label="הוספה"
           className="fab"
           icon={<Plus size={28} strokeWidth={2.4} aria-hidden="true" />}
-          title={mode === 'month' ? `הוספה ל${dayLabel(selected)}` : 'הוספה ליומן'}
+          title="הוספה ליומן"
+          subtitle={`תאריך: ${dayLabel(mode === 'month' ? selected : today)} (אפשר לשנות)`}
           items={[
             { label: 'אירוע חדש', icon: <CalendarPlus size={20} />, onClick: () => openNewEvent(mode === 'month' ? selected : null) },
             { label: 'משימה ליומן', icon: <ListTodo size={20} />, onClick: () => setAddingTask(mode === 'month' ? selected : today) },
+            {
+              label: 'יום הולדת',
+              icon: <Cake size={20} />,
+              onClick: () => {
+                const [, m, d] = (mode === 'month' ? selected : today).split('-').map(Number);
+                openBirthdays(null, { day: d, month: m });
+              },
+            },
           ]}
         />
       </div>

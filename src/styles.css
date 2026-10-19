@@ -1034,3 +1034,5 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .shopping .item-main .pending-dot, .shopping .qty + .pending-dot { margin-inline-start: 0; }
 .tasks-sheet .planner-body { padding-bottom: 0; }
 .time .time-end { display: block; font-size: 0.72rem; font-weight: 600; font-style: normal; color: var(--muted); }
+.more-subtitle { display: block; padding: 0 4px 8px; margin-top: -2px; font-size: 0.85rem; color: var(--muted); }
+.menu-subtitle { display: block; padding: 0 12px 4px; font-size: 0.78rem; color: var(--muted); }

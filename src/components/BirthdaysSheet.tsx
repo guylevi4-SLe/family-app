@@ -30,13 +30,16 @@ export function whenLabel(on: BirthdayOn) {
 export function BirthdaysSheet({
   birthdays,
   initialId,
+  newOn,
   onClose,
 }: {
   birthdays: Birthday[] | undefined;
   initialId: string | null;
+  /** Opens straight on a new birthday on this day and month (from the calendar's "+"). */
+  newOn?: { day: number; month: number };
   onClose: () => void;
 }) {
-  const [editing, setEditing] = useState<Birthday | 'new' | null>(() => birthdays?.find((b) => b.id === initialId) ?? null);
+  const [editing, setEditing] = useState<Birthday | 'new' | null>(() => (newOn ? 'new' : (birthdays?.find((b) => b.id === initialId) ?? null)));
   const [group, setGroup] = useState<BirthdayGroup | 'all'>('all');
   const upcoming = (birthdays ?? [])
     .filter((b) => group === 'all' || b.group === group)
@@ -47,7 +50,7 @@ export function BirthdaysSheet({
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet tall birthdays-sheet" role="dialog" aria-label="ימי הולדת" onClick={(e) => e.stopPropagation()}>
         {editing ? (
-          <BirthdayForm birthday={editing === 'new' ? null : editing} onDone={() => setEditing(null)} />
+          <BirthdayForm birthday={editing === 'new' ? null : editing} on={editing === 'new' ? newOn : undefined} onDone={() => setEditing(null)} />
         ) : (
           <>
             <div className="sheet-head">
@@ -109,12 +112,12 @@ export function BirthdaysSheet({
   );
 }
 
-function BirthdayForm({ birthday, onDone }: { birthday: Birthday | null; onDone: () => void }) {
+function BirthdayForm({ birthday, on, onDone }: { birthday: Birthday | null; on?: { day: number; month: number }; onDone: () => void }) {
   const { familyId } = useFamily();
   const [f, setF] = useState<BirthdayFields>(
     birthday
       ? { name: birthday.name, day: birthday.day, month: birthday.month, year: birthday.year, group: birthday.group }
-      : { name: '', day: 1, month: new Date().getMonth() + 1, year: null, group: 'family' },
+      : { name: '', day: on?.day ?? 1, month: on?.month ?? new Date().getMonth() + 1, year: null, group: 'family' },
   );
   const thisYear = new Date().getFullYear();
   const maxDay = daysInMonth(f.month, f.year ?? 2024);

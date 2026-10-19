@@ -1290,6 +1290,21 @@ async function main() {
     await dad.page.locator('.month-grid .day.today .mark.tk').waitFor();
     await kid.page.locator('.row', { hasText: 'לקנות מתנה' }).waitFor({ timeout: 10000 });
     ok('month view marks today; a task added on a calendar day shows there and in the daughter\'s calendar');
+    // The "+" says it adds to the calendar (on the picked date, which can be changed), and can add a birthday on that day.
+    {
+      await dad.page.getByRole('button', { name: 'הוספה', exact: true }).click();
+      const addMenu = dad.page.getByRole('dialog', { name: 'הוספה: הוספה ליומן' });
+      await addMenu.getByText(/^תאריך: היום .*\(אפשר לשנות\)$/).waitFor();
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/calendar-add-menu.png` });
+      await addMenu.getByRole('button', { name: 'יום הולדת' }).click();
+      const book = dad.page.getByRole('dialog', { name: 'ימי הולדת' });
+      const now = new Date();
+      assert.equal(await book.locator('select').nth(0).inputValue(), String(now.getDate()), 'the birthday starts on the picked day');
+      assert.equal(await book.locator('select').nth(1).inputValue(), String(now.getMonth() + 1), 'and month');
+      await book.getByRole('button', { name: 'חזרה' }).click();
+      await book.getByRole('button', { name: 'סגירה' }).click();
+      ok('the calendar "+" adds an event, a task or a birthday on the picked date');
+    }
     // The ⋮ menu opens as a small card at the top right, with quick lists of events and tasks.
     await dad.page.getByRole('button', { name: 'אפשרויות', exact: true }).click();
     const calMore = dad.page.getByRole('dialog', { name: /^אפשרויות/ });

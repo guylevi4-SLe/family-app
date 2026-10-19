@@ -75,6 +75,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const birthdays = useBirthdays(familyId);
   // undefined: closed; null: the whole book; an id: that birthday.
   const [birthdayOpen, setBirthdayOpen] = useState<string | null | undefined>(undefined);
+  const [birthdayNew, setBirthdayNew] = useState<{ day: number; month: number } | undefined>(undefined);
   const members = useMembers(familyId);
   const online = useOnline();
   const isAdmin = me.role === 'admin';
@@ -274,7 +275,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
           <main className="list-page planner">
-            <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={setBirthdayOpen} tasksOpen={tasksOpen} setTasksOpen={setTasksOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
+            <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={(id, newOn) => { setBirthdayNew(newOn); setBirthdayOpen(id); }} tasksOpen={tasksOpen} setTasksOpen={setTasksOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
           </main>
         )}
         {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} folder={noteFolder} setFolder={setNoteFolder} />}
@@ -299,7 +300,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           <CommentsSheet type={thread.type} targetId={thread.id} title={thread.title} comments={targetComments ?? []} onClose={() => setThread(null)} />
         )}
 
-        {birthdayOpen !== undefined && <BirthdaysSheet birthdays={birthdays} initialId={birthdayOpen} onClose={() => setBirthdayOpen(undefined)} />}
+        {birthdayOpen !== undefined && <BirthdaysSheet birthdays={birthdays} initialId={birthdayOpen} newOn={birthdayNew} onClose={() => setBirthdayOpen(undefined)} />}
 
         {scheduleFor && <ScheduleSheet schedules={schedules} initialUid={scheduleFor} onClose={() => setScheduleFor(null)} />}
 
