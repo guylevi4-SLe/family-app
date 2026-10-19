@@ -244,7 +244,9 @@ async function main() {
     ok("Dad's edit made while she was offline arrived");
     assert.equal(await row(dad, 'ביצים').count(), 1);
     ok('"ביצים" added on both phones became one item');
-    // The bought section opens by itself; recently deleted stays closed.
+    // Bought and recently deleted both start closed.
+    assert.equal(await row(dad, 'חלב').count(), 0, 'bought starts closed');
+    await dad.page.getByRole('button', { name: /נקנו בשבוע האחרון/ }).click();
     await row(dad, 'חלב').waitFor();
     assert.equal(await dad.page.locator('.deleted .name').count(), 0);
     ok('"חלב" checked offline arrived as bought');

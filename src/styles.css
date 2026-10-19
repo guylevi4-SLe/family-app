@@ -440,7 +440,7 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 }
 .shopping .deleted .row { padding: 0 4px; }
 .shopping .list-actions { margin-bottom: 0; justify-content: center; }
-.shopping .price-actions { margin-top: 6px; }
+.shopping .price-actions { margin-top: 6px; justify-content: flex-start; }
 .shopping .whatsapp, .shopping .price-button { min-height: 30px; padding: 0 10px; font-size: 0.8rem; border-radius: 999px; }
 .shopping .price-button { display: inline-flex; align-items: center; gap: 4px; }
 
