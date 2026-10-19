@@ -28,6 +28,11 @@ export interface Item {
   pending: boolean;
 }
 
+/** How a quantity shows: a bare number is a count of units ("2" → "2 יח׳"); anything else as typed. */
+export function qtyLabel(qty: string) {
+  return /^\d+$/.test(qty.trim()) ? `${qty.trim()} יח׳` : qty;
+}
+
 export type Urgency = '' | 'high' | 'low';
 
 /** Urgent items first, "not urgent" ones last; otherwise in the order they were added. */

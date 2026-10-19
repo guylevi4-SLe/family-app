@@ -84,7 +84,7 @@ async function main() {
     assert.deepEqual(await names(dad), ['חלב', 'לחם', 'עגבניות', 'שמפו']);
     const depts = await list(dad).locator('.dept h2').allTextContents();
     assert.deepEqual(depts, ['פירות וירקות', 'מוצרי חלב וביצים', 'לחם ומאפים', 'טיפוח, היגיינה ופארם']);
-    assert.equal(await row(dad, 'לחם').locator('.qty').textContent(), '2');
+    assert.equal(await row(dad, 'לחם').locator('.qty').textContent(), '2 יח׳', 'a bare number shows as units');
     await add(dad, 'קילו בשר טחון');
     await row(dad, 'בשר טחון').waitFor();
     assert.equal(await row(dad, 'בשר טחון').locator('.qty').textContent(), 'קילו');
@@ -97,7 +97,7 @@ async function main() {
     await dad.page.getByRole('button', { name: 'שליחת הרשימה לוואטסאפ' }).click();
     const sharedUrl = await dad.page.evaluate(() => window.__shared ?? '');
     const shared = new URL(sharedUrl).searchParams.get('text') ?? '';
-    assert.match(shared, /\*לחם ומאפים\*\n• לחם \(2\)/);
+    assert.match(shared, /\*לחם ומאפים\*\n• לחם \(2 יח׳\)/);
     assert.ok(!shared.includes('\n\n'), 'no blank lines between departments');
     ok('WhatsApp button opens a share with the list grouped by department');
 
@@ -240,7 +240,7 @@ async function main() {
     assert.deepEqual(dadNames, kidNames, 'both phones show the same list');
     assert.deepEqual(kidNames, ['ביצים', 'במבה', 'לחם', 'שמפו']);
     ok(`same list on both phones: ${kidNames.join(', ')}`);
-    assert.equal(await row(kid, 'לחם').locator('.qty').textContent(), '3');
+    assert.equal(await row(kid, 'לחם').locator('.qty').textContent(), '3 יח׳');
     ok("Dad's edit made while she was offline arrived");
     assert.equal(await row(dad, 'ביצים').count(), 1);
     ok('"ביצים" added on both phones became one item');
@@ -507,7 +507,7 @@ async function main() {
       await send('@ק במבה, 2 חלב');
       await notice.filter({ hasText: 'נוספו 2 מוצרים לקניות' }).waitFor();
       assert.equal(await box.inputValue(), '', 'a command clears the box');
-      await p.locator('.comment', { hasText: '🛒 לקניות: במבה, חלב (2)' }).waitFor();
+      await p.locator('.comment', { hasText: '🛒 לקניות: במבה, חלב (2 יח׳)' }).waitFor();
       ok('"@ק במבה, 2 חלב" adds to shopping and tells the family in the chat');
 
       await send('@מ להחליף נורה מחר לkid');

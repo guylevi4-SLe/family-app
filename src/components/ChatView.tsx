@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { addComment, CHAT_ID, deleteComment, type Comment, type TargetType } from '../data/comments';
-import { addItems, parseItems, updateItem, type Item } from '../data/items';
+import { addItems, parseItems, qtyLabel, updateItem, type Item } from '../data/items';
 import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, deleteEntry, deleteList, restoreEntry, type FamilyList, type ListEntry } from '../data/lists';
@@ -106,7 +106,7 @@ export function ChatView({
       for (const i of found) updateItem(familyId, i.id, { deleted: true });
       const line = say(
         [
-          parsed.length && `🛒 לקניות: ${parsed.map((p) => (p.qty ? `${p.name} (${p.qty})` : p.name)).join(', ')}`,
+          parsed.length && `🛒 לקניות: ${parsed.map((p) => (p.qty ? `${p.name} (${qtyLabel(p.qty)})` : p.name)).join(', ')}`,
           found.length && `🗑️ הוסר מהקניות: ${found.map((i) => i.name).join(', ')}`,
         ]
           .filter(Boolean)

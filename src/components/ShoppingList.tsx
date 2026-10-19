@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
-import { addItems, clearChecked, parseItems, updateItem, byUrgency, type Item, type Urgency } from '../data/items';
+import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
@@ -252,7 +252,7 @@ function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last
                 onEdit();
               }}
             >
-              {item.qty}
+              {qtyLabel(item.qty)}
             </span>
           )}
           {last && (
@@ -286,7 +286,7 @@ function shareToWhatsApp(groups: (readonly [string, Item[]])[]) {
     lines.push(`*${dept}*`);
     for (const it of list) {
       const tag = it.urgency === 'high' ? ' ❗דחוף' : it.urgency === 'low' ? ' (לא דחוף)' : '';
-      lines.push(`• ${it.name}${it.qty ? ` (${it.qty})` : ''}${tag}`);
+      lines.push(`• ${it.name}${it.qty ? ` (${qtyLabel(it.qty)})` : ''}${tag}`);
     }
   }
   window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener');
