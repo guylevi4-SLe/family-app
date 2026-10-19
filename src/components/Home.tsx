@@ -6,7 +6,6 @@ import { commentKey, type TargetType } from '../data/comments';
 import { ShoppingList } from './ShoppingList';
 import { FamilySettings } from './FamilySettings';
 import { Dashboard } from './Dashboard';
-import { TasksView } from './TasksView';
 import { CalendarView } from './CalendarView';
 import { CommentsSheet } from './CommentsSheet';
 import { ChatView } from './ChatView';
@@ -82,9 +81,10 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const requests = usePendingRequests(familyId, isAdmin);
   const firstScreen: Screen = readCachedStart() ?? (isScreen(startScreen) ? startScreen : 'home');
   const [view, setView] = useState<View>(firstScreen === 'tasks' ? 'calendar' : firstScreen);
-  const [plan, setPlan] = usePlanTab(firstScreen === 'tasks' ? 'tasks' : undefined);
+  // The calendar always opens on the calendar; "tasks" (the home square, a task's notification) opens it with the tasks window on top.
+  const [tasksOpen, setTasksOpen] = useState(firstScreen === 'tasks');
   const go = (s: Screen) => {
-    if (s === 'tasks' || s === 'calendar') setPlan(s === 'tasks' ? 'tasks' : 'schedule');
+    setTasksOpen(s === 'tasks');
     setView(s === 'tasks' ? 'calendar' : s);
   };
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -206,7 +206,6 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     return m;
   }, [targetComments]);
 
-  const openTaskCount = (tasks ?? []).filter((t) => !t.deleted && !t.done).length;
   const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;
   const title = view === 'home' ? "Levi's" : VIEWS.find((v) => v.id === view)!.label;
@@ -275,20 +274,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
           <main className="list-page planner">
-            <div className="planner-tabs" role="tablist" aria-label="יומן ומשימות">
-              <button role="tab" aria-selected={plan === 'schedule'} className={plan === 'schedule' ? 'on' : ''} onClick={() => setPlan('schedule')}>
-                <Icon name="calendar" size={18} /> לו״ז
-              </button>
-              <button role="tab" aria-selected={plan === 'tasks'} className={plan === 'tasks' ? 'on' : ''} onClick={() => setPlan('tasks')}>
-                <Icon name="tasks" size={18} /> משימות
-                {openTaskCount > 0 && <span className="planner-count">{openTaskCount}</span>}
-              </button>
-            </div>
-            {plan === 'tasks' ? (
-              <TasksView tasks={tasks} />
-            ) : (
-              <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={setBirthdayOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
-            )}
+            <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={setBirthdayOpen} tasksOpen={tasksOpen} setTasksOpen={setTasksOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
           </main>
         )}
         {view === 'lists' && <ListsView lists={lists} entries={listEntries} openId={listId} setOpenId={setListId} folder={noteFolder} setFolder={setNoteFolder} />}
@@ -301,6 +287,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
                 // Tapping "פתקים" again goes back to the library.
                 if (v.id === 'lists' && view === 'lists') { setListId(null); setNoteFolder(null); }
                 setView(v.id);
+                setTasksOpen(false);
               }}>
               <Icon name={v.icon} />
               {v.label}
@@ -341,30 +328,6 @@ function readChatSeen(): number | null {
   } catch {
     return null;
   }
-}
-
-type PlanTab = 'schedule' | 'tasks';
-const PLAN_KEY = 'planTab';
-
-/** Which side of the calendar screen is showing; remembered on this phone. */
-function usePlanTab(initial?: PlanTab) {
-  const [tab, setTab] = useState<PlanTab>(() => {
-    if (initial) return initial;
-    try {
-      return localStorage.getItem(PLAN_KEY) === 'tasks' ? 'tasks' : 'schedule';
-    } catch {
-      return 'schedule';
-    }
-  });
-  const set = (t: PlanTab) => {
-    setTab(t);
-    try {
-      localStorage.setItem(PLAN_KEY, t);
-    } catch {
-      /* optional */
-    }
-  };
-  return [tab, set] as const;
 }
 
 function SyncBadge({ online, pending }: { online: boolean; pending: number }) {

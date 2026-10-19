@@ -14,7 +14,7 @@ delete phone.defaultBrowserType;
 const step = (m) => console.log(`\n▶ ${m}`);
 const ok = (m) => console.log(`  ✓ ${m}`);
 
-/** Opens the calendar screen on one side: 'לו״ז' (schedule) or 'משימות' (tasks). */
+/** Opens the calendar screen ('schedule'), or the tasks window on top of it ('tasks'). */
 // The calendar's ⋮ menu and floating "+" open a sheet of actions.
 async function calMenu(page, button, item) {
   await page.getByRole('button', { name: button, exact: true }).click();
@@ -35,7 +35,7 @@ async function addNew(scope, item) {
 
 async function planner(page, side) {
   await page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
-  await page.getByRole('tablist', { name: 'יומן ומשימות' }).getByRole('tab', { name: side === 'tasks' ? /^משימות/ : 'לו״ז' }).click();
+  if (side === 'tasks') await calMenu(page, 'אפשרויות', 'משימות');
 }
 
 async function newPhone(browser, name) {
@@ -308,9 +308,11 @@ async function main() {
     await kid.page.locator('.tile', { hasText: 'משימות' }).getByText('1 שלך', { exact: true }).waitFor({ timeout: 10000 });
     ok('task assigned by Dad shows on the daughter\'s home screen as hers');
     await kid.page.locator('.tile', { hasText: 'משימות' }).click();
-    await kid.page.getByRole('tab', { name: /^משימות/, selected: true }).waitFor();
+    // The home square opens the calendar with the tasks window on top.
+    await kid.page.getByRole('dialog', { name: 'משימות' }).waitFor();
+    assert.equal(await kid.page.locator('.planner-tabs').count(), 0, 'the calendar has no tasks tab');
     await kid.page.locator('.row', { hasText: 'לתלות כביסה' }).getByRole('button', { name: /עריכת/ }).click();
-    await kid.page.getByRole('dialog').getByRole('button', { name: /תגוב/ }).click();
+    await kid.page.getByRole('dialog', { name: /עריכת/ }).getByRole('button', { name: /תגוב/ }).click();
     await kid.page.getByLabel('כתיבת תגובה').fill('אבל עשיתי אתמול!');
     await kid.page.getByLabel('כתיבת תגובה').press('Enter');
     await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).locator('.comment-chip', { hasText: '1' }).waitFor({ timeout: 10000 });
@@ -318,7 +320,7 @@ async function main() {
     await dad.page.getByText('אבל עשיתי אתמול!').waitFor();
     ok('daughter commented on the task; Dad sees the comment count and the text');
     {
-      await dad.page.getByLabel('סגירה').click();
+      await dad.page.getByRole('dialog', { name: /^תגובות על/ }).getByLabel('סגירה').click();
       await dad.page.locator('.row', { hasText: 'לתלות כביסה' }).getByRole('button', { name: /עריכת/ }).click();
       const sheet = dad.page.getByRole('dialog', { name: /עריכת/ });
       assert.equal(await sheet.getByRole('link', { name: 'יומן Google' }).count(), 0, 'no calendar export without a date');
@@ -374,7 +376,8 @@ async function main() {
     await kid.page.waitForTimeout(1500);
     assert.equal(await kid.page.getByRole('dialog', { name: 'תגובות על לחם' }).count(), 0, 'only jumps once per notification');
     ok('opening the app from its icon jumps to the newest unread notification, once');
-    await dad.page.getByLabel('סגירה').click();
+    await dad.page.getByRole('dialog', { name: /^תגובות על/ }).getByLabel('סגירה').click();
+    await dad.page.getByRole('dialog', { name: 'משימות' }).getByLabel('סגירה').click();
 
     await dad.page.getByRole('navigation').getByRole('button', { name: 'צ׳אט' }).click();
     await dad.page.locator('.chat-ref', { hasText: 'תזכורת בשבילך' }).waitFor({ timeout: 10000 });
@@ -653,7 +656,8 @@ async function main() {
       await planner(p, 'tasks');
       await p.getByRole('button', { name: /^\d+ תגובות על לתלות כביסה/ }).first().click();
       await p.getByRole('dialog', { name: 'תגובות על לתלות כביסה' }).locator('.comment', { hasText: 'תזכורת בשבילך' }).waitFor();
-      await p.getByRole('dialog').getByLabel('סגירה').click();
+      await p.getByRole('dialog', { name: /^תגובות על/ }).getByLabel('סגירה').click();
+      await p.getByRole('dialog', { name: 'משימות' }).getByLabel('סגירה').click();
       ok('an item still shows its whole comment thread, however old');
     }
 
@@ -1365,7 +1369,7 @@ async function main() {
       for (let i = 0; i < 200; i++) {
         const t = tabs[Math.floor(Math.random() * tabs.length)];
         await dad.page.getByRole('navigation').getByRole('button', { name: t }).click();
-        if (t === 'יומן') await dad.page.getByRole('tab', { name: Math.random() < 0.5 ? /^משימות/ : 'לו״ז' }).click();
+        if (t === 'יומן' && Math.random() < 0.5) await calMenu(dad.page, 'אפשרויות', 'משימות');
         if (t === 'רשימות' && Math.random() < 0.5) await dad.page.locator('.list-card').first().click().catch(() => {});
         await dad.page.waitForTimeout(Math.random() * 100);
         const st = await dad.page.evaluate(() => ({ app: !!document.querySelector('.app'), main: document.querySelector('main')?.innerText.length ?? -1 }));

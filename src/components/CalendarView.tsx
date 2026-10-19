@@ -20,6 +20,7 @@ import { whenLabel } from './BirthdaysSheet';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 import { MoreMenu } from './MoreMenu';
+import { TasksView } from './TasksView';
 import { BookOpen, CalendarClock, CalendarDays, CalendarPlus, Cake, ChevronLeft, ChevronRight, List, ListChecks, ListTodo, Plus } from 'lucide-react';
 
 type Mode = 'list' | 'month';
@@ -39,19 +40,24 @@ export function CalendarView({
   birthdays,
   openSchedule,
   openBirthdays,
+  tasksOpen,
+  setTasksOpen,
 }: {
   events: FamilyEvent[] | undefined;
   tasks: Task[] | undefined;
   birthdays: Birthday[] | undefined;
   openSchedule: () => void;
   openBirthdays: (id: string | null) => void;
+  /** The tasks window, opened from the ⋮ menu or the home screen's tasks square. */
+  tasksOpen: boolean;
+  setTasksOpen: (open: boolean) => void;
 }) {
   const { members } = useFamily();
   const [editing, setEditing] = useState<FamilyEvent | 'new' | null>(null);
   const [newDate, setNewDate] = useState<string | null>(null);
   const [addingTask, setAddingTask] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
-  const [quick, setQuick] = useState<'events' | 'tasks' | null>(null);
+  const [quick, setQuick] = useState<'events' | null>(null);
   const [mode, setModeState] = useState<Mode>(readMode);
   const today = isoDate(new Date());
   const [selected, setSelected] = useState(today);
@@ -139,7 +145,7 @@ export function CalendarView({
           title="יומן"
           items={[
             { label: 'אירועים קרובים', icon: <CalendarClock size={20} />, onClick: () => setQuick('events') },
-            { label: 'משימות', icon: <ListChecks size={20} />, onClick: () => setQuick('tasks') },
+            { label: 'משימות', icon: <ListChecks size={20} />, onClick: () => setTasksOpen(true) },
             { label: 'מערכת שעות', icon: <BookOpen size={20} />, onClick: openSchedule },
             { label: 'ימי הולדת', icon: <Cake size={20} />, onClick: () => openBirthdays(null) },
           ]}
@@ -226,7 +232,7 @@ export function CalendarView({
           onClose={() => setQuick(null)}
         />
       )}
-      {quick === 'tasks' && <OpenTasksSheet tasks={tasks} onClose={() => setQuick(null)} />}
+      {tasksOpen && <OpenTasksSheet tasks={tasks} onClose={() => setTasksOpen(false)} />}
     </div>
   );
 }
@@ -626,30 +632,18 @@ function UpcomingEventsSheet({
   );
 }
 
-/** From the ⋮ menu: open tasks, dated ones first by date, then the rest (same order as the tasks tab). */
+/** The family's tasks: add, "רק שלי", open ones by date, and the done ones at the bottom. */
 function OpenTasksSheet({ tasks, onClose }: { tasks: Task[] | undefined; onClose: () => void }) {
-  const open = (tasks ?? [])
-    .filter((t) => !t.deleted && !t.done)
-    .sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.title.localeCompare(b.title, 'he'));
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet tall" role="dialog" aria-label="משימות" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet tall tasks-sheet" role="dialog" aria-label="משימות" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <h2>משימות</h2>
           <button className="icon-button" aria-label="סגירה" onClick={onClose}>
             ✕
           </button>
         </div>
-        {tasks !== undefined && open.length === 0 && <p className="empty">אין משימות פתוחות 🎉</p>}
-        {open.length > 0 && (
-          <section className="dept">
-            <ul>
-              {open.map((t) => (
-                <TaskRow key={t.id} task={t} showDate />
-              ))}
-            </ul>
-          </section>
-        )}
+        <TasksView tasks={tasks} />
       </div>
     </div>
   );

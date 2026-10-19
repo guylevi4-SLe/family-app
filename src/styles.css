@@ -734,11 +734,6 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .entry-edit select { min-height: 38px; }
 .entry-edit-actions { display: flex; gap: 6px; }
 /* ---------- calendar screen: לו״ז | משימות ---------- */
-.planner-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin: 2px 0 10px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
-.planner-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; border: 0; border-radius: 11px; background: none; color: var(--muted); font-weight: 600; }
-.planner-tabs button.on { background: var(--surface); color: var(--text); font-weight: 800; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1); }
-.planner-tabs button.on .icon { color: var(--accent); }
-.planner-count { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--grad); color: var(--accent-ink); font-size: 0.78rem; font-weight: 800; display: inline-grid; place-items: center; }
 .lists-page .back { justify-self: start; }
 
 /* ---------- birthdays ---------- */
@@ -1035,3 +1030,4 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .shopping .item-main .name { overflow-wrap: anywhere; }
 .shopping .item-main .qty { margin-inline-end: 0; }
 .shopping .item-main .pending-dot, .shopping .qty + .pending-dot { margin-inline-start: 0; }
+.tasks-sheet .planner-body { padding-bottom: 0; }
