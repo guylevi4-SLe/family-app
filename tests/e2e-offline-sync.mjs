@@ -1244,12 +1244,16 @@ async function main() {
     await calMenu(dad.page, 'הוספה', 'אירוע חדש');
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('חוג ציור');
     await dad.page.locator('input[type=time]').fill('17:30');
+    await dad.page.getByLabel('עד שעה (לא חובה)').fill('18:15');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/event-end-time.png` });
     await dad.page.getByRole('group', { name: 'מי משתתף' }).getByRole('button', { name: 'kid' }).click();
     await dad.page.getByRole('button', { name: 'שמירה' }).click();
     await kid.page.reload();
     await planner(kid.page, 'schedule');
     await kid.page.locator('.row', { hasText: 'חוג ציור' }).getByText('17:30').waitFor({ timeout: 10000 });
-    ok('event added by Dad appears in the daughter\'s calendar');
+    await kid.page.locator('.row', { hasText: 'חוג ציור' }).getByText('עד 18:15').waitFor();
+    if (process.env.SCREENSHOT_DIR) await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/event-end-row.png` });
+    ok('event added by Dad (17:30 until 18:15) appears in the daughter\'s calendar');
     await calMenu(dad.page, 'הוספה', 'אירוע חדש');
     await dad.page.getByPlaceholder('למשל: חוג כדורסל').fill('טיול שנתי');
     await dad.page.getByLabel('כמה ימים').check();

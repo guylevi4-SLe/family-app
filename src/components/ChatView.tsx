@@ -179,6 +179,7 @@ export function ChatView({
         location: '',
         people: w.people,
         endDate: '',
+        endTime: '',
         repeat: w.weekly ? 'weekly' : '',
         repeatUntil: '',
       });

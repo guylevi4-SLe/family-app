@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/firebase', () => ({ auth: {}, db: {} }));
-import { expandEvents, googleCalendarLink, icsText, type FamilyEvent } from '../src/data/events';
+import { expandEvents, googleCalendarLink, icsText, timeLabel, type FamilyEvent } from '../src/data/events';
 
 const base: FamilyEvent = { id: 'e', title: 'שיעור פרטי', date: '2026-10-15', time: '16:00', location: '', people: [], deleted: false, pending: false };
 
@@ -36,5 +36,15 @@ describe('calendar export', () => {
     const url = new URL(googleCalendarLink(lesson));
     expect(url.searchParams.get('dates')).toBe('20261015T160000/20261015T170000');
     expect(url.searchParams.get('ctz')).toBe('Asia/Jerusalem');
+  });
+});
+
+describe('end time', () => {
+  const base = { id: 'e', title: 'חוג', date: '2026-11-03', endDate: '', time: '17:30', location: '', people: [], deleted: false, pending: false };
+  it('shows "17:30–18:15" and copies to Google with that length', () => {
+    expect(timeLabel({ time: '17:30', endTime: '18:15' })).toBe('17:30–18:15');
+    expect(timeLabel({ time: '17:30', endTime: '' })).toBe('17:30');
+    expect(googleCalendarLink({ ...base, endTime: '18:15' })).toContain('dates=20261103T173000%2F20261103T181500');
+    expect(googleCalendarLink(base)).toContain('dates=20261103T173000%2F20261103T183000');
   });
 });

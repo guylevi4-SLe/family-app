@@ -11,6 +11,7 @@ export interface FamilyEvent {
   repeatUntil?: string; // last possible date of a weekly event, '' = no end
   seriesStart?: string; // on a shown occurrence: the series' first date (not stored)
   time: string; // HH:MM or ''
+  endTime?: string; // HH:MM when it ends (after `time`), else '' or missing
   location: string;
   people: string[];
   deleted: boolean;
@@ -19,9 +20,13 @@ export interface FamilyEvent {
 
 export type EventFields = Pick<FamilyEvent, 'title' | 'date' | 'time' | 'location' | 'people'> & {
   endDate: string;
+  endTime: string;
   repeat: '' | 'weekly';
   repeatUntil: string;
 };
+
+/** "17:00–17:30", or just "17:00" without an end time. */
+export const timeLabel = (e: Pick<FamilyEvent, 'time' | 'endTime'>) => (e.time && e.endTime && e.endTime > e.time ? `${e.time}–${e.endTime}` : e.time);
 
 /** Last day of the event (the start day for one-day events). */
 export const lastDay = (e: Pick<FamilyEvent, 'date' | 'endDate'>) => (e.endDate && e.endDate > e.date ? e.endDate : e.date);
@@ -88,6 +93,8 @@ export function saveEvent(fid: string, id: string | null, fields: EventFields) {
     repeat: fields.repeat,
     repeatUntil: fields.repeat && fields.repeatUntil > fields.date ? fields.repeatUntil : '',
     time: fields.time,
+    // An end time only means something on a one-day event with a start time.
+    endTime: fields.time && !fields.endDate && fields.endTime > fields.time ? fields.endTime : '',
     location: fields.location.trim().slice(0, 120),
     people: fields.people.slice(0, 20),
   };
@@ -147,8 +154,9 @@ function range(e: FamilyEvent) {
     return { allDay: true, start: e.date.replace(/-/g, ''), end: next.replace(/-/g, '') };
   }
   const [hh, mm] = e.time.split(':').map(Number);
-  const endH = String(Math.min(hh + 1, 23)).padStart(2, '0');
-  return { allDay: false, start: localStamp(e.date, e.time), end: localStamp(lastDay(e), `${endH}:${String(mm).padStart(2, '0')}`) };
+  // Without an end time the copy lasts an hour.
+  const end = e.endTime && e.endTime > e.time ? e.endTime : `${String(Math.min(hh + 1, 23)).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  return { allDay: false, start: localStamp(e.date, e.time), end: localStamp(lastDay(e), end) };
 }
 
 function rrule(e: FamilyEvent) {

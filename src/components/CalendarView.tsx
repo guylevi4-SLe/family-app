@@ -11,6 +11,7 @@ import {
   googleCalendarLink,
   isoDate,
   saveEvent,
+  timeLabel,
   type EventFields,
   type FamilyEvent,
 } from '../data/events';
@@ -421,7 +422,10 @@ function EventRow({
   return (
     <li className="row">
       <button className="check-area" onClick={onOpen}>
-        <span className="time">{event.time || 'כל היום'}</span>
+        <span className="time">
+          {event.time || 'כל היום'}
+          {timeLabel(event) !== event.time && <span className="time-end">עד {event.endTime}</span>}
+        </span>
         <span className="name">
           {event.title}
           <span className="sub">
@@ -450,10 +454,11 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
           repeat: event.repeat ?? '',
           repeatUntil: event.repeatUntil ?? '',
           time: event.time,
+          endTime: event.endTime ?? '',
           location: event.location,
           people: event.people,
         }
-      : { title: '', date: initialDate, endDate: '', repeat: '', repeatUntil: '', time: '', location: '', people: [] },
+      : { title: '', date: initialDate, endDate: '', repeat: '', repeatUntil: '', time: '', endTime: '', location: '', people: [] },
   );
   const set = (patch: Partial<EventFields>) => setF((prev) => ({ ...prev, ...patch }));
   const [multi, setMulti] = useState(Boolean(event?.endDate));
@@ -462,7 +467,8 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
     f.title.trim() &&
     /^\d{4}-\d{2}-\d{2}$/.test(f.date) &&
     (!multi || (f.endDate && f.endDate > f.date)) &&
-    (!f.repeat || !f.repeatUntil || f.repeatUntil > f.date);
+    (!f.repeat || !f.repeatUntil || f.repeatUntil > f.date) &&
+    (!f.endTime || f.endTime > f.time);
 
   const save = () => {
     if (!valid) return;
@@ -490,17 +496,27 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
           ) : (
             <label>
               שעה (לא חובה)
-              <input type="time" value={f.time} onChange={(e) => set({ time: e.target.value })} />
+              <input type="time" value={f.time} onChange={(e) => set({ time: e.target.value, ...(e.target.value ? {} : { endTime: '' }) })} />
             </label>
           )}
         </div>
+        {/* How long: an optional end time once there is a start time. */}
+        {!multi && f.time && (
+          <div className="two-cols">
+            <span />
+            <label>
+              עד שעה (לא חובה)
+              <input type="time" value={f.endTime} min={f.time} aria-invalid={Boolean(f.endTime && f.endTime <= f.time)} onChange={(e) => set({ endTime: e.target.value })} />
+            </label>
+          </div>
+        )}
         <label className="check-line">
           <input
             type="checkbox"
             checked={multi}
             onChange={(e) => {
               setMulti(e.target.checked);
-              set(e.target.checked ? { endDate: f.endDate > f.date ? f.endDate : nextDay(f.date), time: '', repeat: '' } : { endDate: '' });
+              set(e.target.checked ? { endDate: f.endDate > f.date ? f.endDate : nextDay(f.date), time: '', endTime: '', repeat: '' } : { endDate: '' });
             }}
           />
           כמה ימים (למשל טיול או חופשה)
