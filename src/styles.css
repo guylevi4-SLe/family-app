@@ -478,6 +478,22 @@ body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
   --shadow: 0 8px 24px rgba(120, 20, 60, 0.08);
   color-scheme: light;
 }
+:root[data-palette='sky'] {
+  /* White with a light-blue tint; the blue is deep enough for text and buttons (WCAG AA). */
+  --bg: #f5fafd;
+  --surface: #ffffff;
+  --surface-2: #e6f2fa;
+  --text: #0c1f2c;
+  --muted: #4f6676;
+  --line: #d5e6f2;
+  --accent: #0369a1;
+  --accent-2: #075985;
+  --accent-ink: #ffffff;
+  --warn: #9a5a00;
+  --danger: #b3261e;
+  --shadow: 0 8px 24px rgba(3, 60, 100, 0.08);
+  color-scheme: light;
+}
 :root[data-palette='orange'] {
   /* Warm ivory and terracotta orange; the orange is deepened slightly so text stays readable. */
   --bg: #faf9f5;
@@ -572,21 +588,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .sheet.tall { min-height: calc(100dvh - env(safe-area-inset-top) - 16px); max-height: calc(100dvh - env(safe-area-inset-top) - 16px); }
 body:has(.sheet-backdrop) { overflow: hidden; }
 
-/* WhatsApp share: a solid, clearly visible button in the palette's colour. */
+/* WhatsApp share: a soft button in the palette's colour, easy to tap without shouting. */
 .shopping .whatsapp,
 :root[data-palette] .shopping .whatsapp {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 42px;
+  min-height: 40px;
   padding: 0 16px;
   font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent-ink);
-  background: var(--grad);
-  border-color: transparent;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
   border-radius: 999px;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: none;
 }
 .task-options { padding-top: 2px; }
 .assign-row { display: flex; align-items: center; gap: 8px; }

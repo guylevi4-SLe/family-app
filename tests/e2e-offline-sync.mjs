@@ -1370,7 +1370,7 @@ async function main() {
       await add(dad, 'עגבניות, מלפפונים, 2 אבוקדו, חצי קילו ענבים, בצל, שישייה מים\nחלב 3%, 10 ביצים, גבינה צהובה, קוטג׳\nפיתות, קילו חזה עוף, אורז, פסטה, במבה, שקיות זבל, נייר טואלט');
       await row(dad, 'נייר טואלט').waitFor();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list-long.png` });
-      for (const [label, file] of [['צהוב ושחור', 'list-gold.png'], ['ירוק ולבן', 'list-green.png'], ['לבן וזהב', 'list-goldlight.png'], ['כתום ולבן', 'list-orange.png'], ['ורוד ולבן', null]]) {
+      for (const [label, file] of [['צהוב ושחור', 'list-gold.png'], ['ירוק ולבן', 'list-green.png'], ['לבן וזהב', 'list-goldlight.png'], ['כתום ולבן', 'list-orange.png'], ['תכלת ולבן', 'list-sky.png'], ['ורוד ולבן', null]]) {
         await dad.page.getByRole('button', { name: 'הגדרות' }).click();
         const wide = await dad.page.evaluate(() => {
           const sheet = document.querySelector('.sheet');
