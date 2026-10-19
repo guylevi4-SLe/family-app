@@ -1,4 +1,4 @@
-import { AtSign, Bell, CalendarPlus, Camera, CircleHelp, ClipboardList, ListChecks, ShoppingCart, SquareCheck, Trash2, type LucideIcon } from 'lucide-react';
+import { AtSign, Bell, Calendar, Camera, CircleHelp, ClipboardList, ListChecks, ShoppingCart, SquareCheck, Trash2, type LucideIcon } from 'lucide-react';
 
 // Saved chat lines start with an emoji (it also reads well in WhatsApp and notifications);
 // in the app it is drawn as a line icon instead.
@@ -7,7 +7,7 @@ const LEADS: [string, LucideIcon][] = [
   ['🗑', Trash2],
   ['☑', SquareCheck],
   ['✅', ListChecks],
-  ['📅', CalendarPlus],
+  ['📅', Calendar],
   ['📋', ClipboardList],
   ['❓', CircleHelp],
   ['📷', Camera],

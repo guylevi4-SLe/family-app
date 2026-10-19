@@ -10,11 +10,11 @@ import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
 import { byTime, CommentBubble, Composer, PhotoViewer } from './CommentsSheet';
 import { useFamily } from './FamilyContext';
-import { CalendarDays, CalendarPlus, Camera, Check, ClipboardList, ListChecks, ShoppingCart, X, type LucideIcon } from 'lucide-react';
+import { Calendar, Camera, Check, ClipboardList, ListChecks, ShoppingCart, X, type LucideIcon } from 'lucide-react';
 import { InlineIcon } from './ChatIcons';
 
-const KIND: Record<Exclude<TargetType, 'chat'>, LucideIcon> = { item: ShoppingCart, task: ListChecks, event: CalendarDays };
-const COMMAND_ICON: Record<string, LucideIcon> = { shop: ShoppingCart, task: ListChecks, event: CalendarPlus, list: ClipboardList };
+const KIND: Record<Exclude<TargetType, 'chat'>, LucideIcon> = { item: ShoppingCart, task: ListChecks, event: Calendar };
+const COMMAND_ICON: Record<string, LucideIcon> = { shop: ShoppingCart, task: ListChecks, event: Calendar, list: ClipboardList };
 
 /**
  * One family conversation. Chat messages show as bubbles; comments written on a

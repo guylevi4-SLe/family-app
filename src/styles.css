@@ -1040,5 +1040,5 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 /* Line icons in place of emoji in the chat. */
 .lead-icon { display: inline-flex; vertical-align: -0.15em; color: var(--accent); margin-inline-end: 4px; }
 .lead-icon svg { display: block; }
-.notified .lead-icon { color: inherit; margin-inline-end: 2px; }
+.notified .lead-icon { margin-inline-end: 2px; }
 .msg-menu-list svg { flex: none; }
