@@ -987,14 +987,14 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .ask-whatsapp {
   display: flex;
   gap: 8px;
-  min-height: 42px;
+  min-height: 40px;
   padding: 0 16px;
   font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent-ink);
-  background: var(--grad);
-  border-color: transparent;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 30%, transparent);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  box-shadow: none;
 }
 /* Notes: formatted view and the formatting buttons. */
 .note-view { min-height: 220px; cursor: text; background: var(--surface); border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
