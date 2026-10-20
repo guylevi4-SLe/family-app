@@ -958,6 +958,7 @@ async function main() {
     assert.equal(await lists.locator('.note-card').count(), 1, 'the empty quick note was not saved');
     await addNew(lists, 'קבלה חדשה');
     await lists.locator('h2', { hasText: /קבלה \d/ }).waitFor();
+    await lists.getByRole('button', { name: '+ צילום הקבלה' }).waitFor();
     await lists.getByRole('button', { name: /^→/ }).click();
     await lists.locator('.lib-section[aria-expanded="true"]', { hasText: 'קבלות' }).waitFor();
     await lists.locator('.note-card', { hasText: /קבלה \d/ }).waitFor();

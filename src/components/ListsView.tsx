@@ -1533,7 +1533,7 @@ function NoteEditor({
           </ul>
         )}
         <button className="note-attach" disabled={busy} onClick={() => fileRef.current?.click()}>
-          {busy ? 'רגע…' : '+ צירוף PDF או תמונה'}
+          {busy ? 'רגע…' : note.parentId && note.parentId === receiptsFolder(all)?.id ? '+ צילום הקבלה' : '+ צירוף PDF או תמונה'}
         </button>
         {error && <p className="error" role="alert">{error}</p>}
         <p className="muted note-hint">מקובץ PDF נשמרים 3 העמודים הראשונים, כתמונה.</p>
