@@ -1016,6 +1016,7 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .note-view .nf-check { display: flex; align-items: flex-start; gap: 8px; }
 .note-view .nf-check button { flex: none; width: 22px; height: 22px; min-height: 0; margin-top: 2px; padding: 0; border-radius: 6px; border: 2px solid var(--accent); background: var(--surface); color: var(--accent-ink); font-size: 0.8rem; line-height: 1; }
 .note-view .nf-check.done button { background: var(--accent); }
+.note-view .nf-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
 .note-view .nf-check.done span { text-decoration: line-through; color: var(--muted); }
 .note-view mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
 .note-editor-hidden { position: absolute; opacity: 0; pointer-events: none; height: 1px !important; min-height: 0 !important; width: 1px; padding: 0; border: 0; }

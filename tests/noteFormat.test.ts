@@ -17,6 +17,23 @@ describe('note formatting', () => {
     expect(hasFormatting('# קודים')).toBe(true);
     expect(hasFormatting('[ ] לקנות חלב')).toBe(true);
   });
+  it('finds web addresses', () => {
+    expect(parseInline('המתכון: https://example.com/a_b_c. תודה')).toEqual([
+      { text: 'המתכון: ', marks: [] },
+      { text: 'https://example.com/a_b_c', marks: [], href: 'https://example.com/a_b_c' },
+      { text: '. תודה', marks: [] },
+    ]);
+    expect(parseInline('https://x.co/_a_ ~b~')).toEqual([
+      { text: 'https://x.co/_a_', marks: [], href: 'https://x.co/_a_' },
+      { text: ' ', marks: [] },
+      { text: 'b', marks: ['s'] },
+    ]);
+    expect(parseInline('*www.shop.co.il*')).toEqual([{ text: 'www.shop.co.il', marks: ['b'], href: 'https://www.shop.co.il' }]);
+    expect(parseInline('(ראו http://a.com)')[1]).toEqual({ text: 'http://a.com', marks: [], href: 'http://a.com' });
+    expect(parseInline('nohttps://a.com').some((r) => r.href)).toBe(false);
+    expect(hasFormatting('אתר: www.example.com')).toBe(true);
+    expect(hasFormatting('www. ו-https://')).toBe(false);
+  });
   it('reads line kinds', () => {
     expect(parseLine('## בית')).toEqual({ kind: 'h2', text: 'בית' });
     expect(parseLine('[x] נעשה')).toEqual({ kind: 'check', done: true, text: 'נעשה' });

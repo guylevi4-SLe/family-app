@@ -1102,10 +1102,22 @@ async function main() {
         window.visualViewport.dispatchEvent(new Event('resize'));
       });
       await onKb.waitFor({ state: 'detached' });
+      // A web address shows as a link that opens in a new tab, without starting editing.
+      await bodyBox.fill('מתכון: https://example.com/a_b_ נשמע טוב');
+      await bodyBox.blur();
+      const link = view.locator('a.nf-link');
+      await link.waitFor();
+      assert.equal(await link.getAttribute('href'), 'https://example.com/a_b_');
+      assert.equal(await link.getAttribute('target'), '_blank');
+      assert.equal(await view.locator('em').count(), 0, 'no italics inside the address');
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-link.png` });
+      const [tab] = await Promise.all([dad.page.context().waitForEvent('page'), link.click()]);
+      await tab.close();
+      assert.equal(await bodyBox.evaluate((el) => document.activeElement === el), false, 'tapping the link does not start editing');
       await bodyBox.fill(before);
       await bodyBox.blur();
       await dad.page.waitForTimeout(1200);
-      ok('note formatting: buttons add marks, the note shows formatted, checkboxes tick');
+      ok('note formatting: buttons add marks, the note shows formatted, checkboxes tick, addresses open');
     }
     await lists.getByRole('button', { name: 'מחיקת icon-pink-512.png' }).click();
     await lists.locator('.note-file').nth(1).waitFor({ state: 'detached' });

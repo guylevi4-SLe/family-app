@@ -13,10 +13,14 @@ function runsAt(text: string, base: number): ReactNode[] {
     pos = text.indexOf(r.text, pos);
     const at = base + pos;
     pos += r.text.length;
+    const run = <span key={k} data-at={at}>{r.text}</span>;
     return r.marks.reduceRight<ReactNode>((child, m) => {
       const T = TAG[m] as 'strong';
       return <T>{child}</T>;
-    }, <span key={k} data-at={at}>{r.text}</span>);
+    }, r.href ? (
+      // Opens the address; a tap anywhere else still starts editing.
+      <a className="nf-link" dir="ltr" href={r.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{run}</a>
+    ) : run);
   }).map((n, k) => <span key={k}>{n}</span>);
 }
 

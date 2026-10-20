@@ -2,7 +2,7 @@
 // ++underline++ ==highlight==, "# " / "## " headings, "> " quotes,
 // "- " bullets, "1. " numbers and "[ ] " / "[x] " checkboxes.
 
-export type Inline = { text: string; marks: Mark[] };
+export type Inline = { text: string; marks: Mark[]; href?: string };
 export type Mark = 'b' | 'i' | 's' | 'u' | 'hl';
 
 export type Line =
@@ -21,12 +21,31 @@ const MARKS: [string, Mark][] = [
 
 const word = /[\p{L}\p{N}]/u;
 
+// A web address, without punctuation that usually ends the sentence around it.
+const URL_AT = /^(?:https?:\/\/|www\.)[^\s]+/i;
+function urlAt(text: string, i: number) {
+  if (i > 0 && word.test(text[i - 1])) return null;
+  const m = text.slice(i).match(URL_AT);
+  if (!m) return null;
+  const url = m[0].replace(/[.,;:!?'")\]]+$/, '');
+  return url.length > 4 && !/^www\.$/i.test(url) ? url : null;
+}
+
 /** Splits text into runs with their marks; a mark needs a non-space inside and no letter just outside. */
 export function parseInline(text: string, outer: Mark[] = []): Inline[] {
   const out: Inline[] = [];
   let plain = '';
   let i = 0;
   while (i < text.length) {
+    // Addresses first, so a _ or ~ inside one isn't read as a mark.
+    const url = urlAt(text, i);
+    if (url) {
+      if (plain) out.push({ text: plain, marks: outer });
+      plain = '';
+      out.push({ text: url, marks: outer, href: /^www\./i.test(url) ? `https://${url}` : url });
+      i += url.length;
+      continue;
+    }
     let hit: { end: number; mark: Mark; open: number } | null = null;
     if (i === 0 || !word.test(text[i - 1])) {
       for (const [m, mark] of MARKS) {
@@ -70,7 +89,7 @@ export function parseLine(raw: string): Line {
 export function hasFormatting(text: string) {
   return text.split('\n').some((l) => {
     const line = parseLine(l);
-    return line.kind !== 'p' && line.kind !== 'empty' ? true : line.kind === 'p' && parseInline(line.text).some((r) => r.marks.length);
+    return line.kind !== 'p' && line.kind !== 'empty' ? true : line.kind === 'p' && parseInline(line.text).some((r) => r.marks.length || r.href);
   });
 }
 
