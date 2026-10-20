@@ -883,6 +883,22 @@ async function main() {
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'holding does not open the list');
     await answer('אאא למחיקה', () => rowMenu.getByRole('button', { name: 'שינוי שם' }).click());
     await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor();
+    // The hold menu also moves a row up or down (the first row has no "up").
+    const hold = async (title) => {
+      const box = await lists.locator('.list-card', { hasText: title }).boundingBox();
+      await dad.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await dad.page.mouse.down();
+      await dad.page.waitForTimeout(600);
+      await dad.page.mouse.up();
+      return dad.page.getByRole('dialog', { name: `פעולות: ${title}` });
+    };
+    {
+      const first = await lists.locator('.list-card strong').first().textContent();
+      const m = await hold(first);
+      assert.equal(await m.getByRole('button', { name: 'הזזה למעלה' }).count(), 0, 'the first row cannot move up');
+      await m.getByRole('button', { name: 'הזזה למטה' }).click();
+      await dad.page.waitForFunction((t) => document.querySelectorAll('.lists-page .list-card strong')[1]?.textContent === t, first);
+    }
     // Swiping a row left shows share and delete.
     {
       const box = await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).boundingBox();
@@ -900,7 +916,7 @@ async function main() {
     await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
     await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor({ state: 'detached' });
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'swiping does not open the list');
-    ok('the library: holding a row opens its menu (rename), a left swipe shows share and delete');
+    ok('the library: holding a row opens its menu (rename, move down), a left swipe shows share and delete');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-lists.png`, fullPage: true });
     ok('Dad made a trip packing list with categories; the daughter opens it from home and from the bottom bar, and resets the ticks');

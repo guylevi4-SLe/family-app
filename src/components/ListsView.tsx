@@ -54,7 +54,7 @@ import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { ActionSheet, MoreMenu, type MenuItem } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { InlineIcon } from './ChatIcons';
-import { ChevronDown, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
 import { FormatBar, NoteView, viewSelection } from './NoteFormat';
@@ -108,6 +108,21 @@ export function ListsView({
       )}
     </main>
   );
+}
+
+/** "Move up" / "move down" for a row's hold menu; the first row has no up, the last no down. */
+function moveItems(familyId: string, order: FamilyList[], id: string): MenuItem[] {
+  const i = order.findIndex((x) => x.id === id);
+  if (i < 0) return [];
+  const swap = (j: number) => {
+    const next = [...order];
+    [next[i], next[j]] = [next[j], next[i]];
+    saveOrder(familyId, next);
+  };
+  return [
+    ...(i > 0 ? [{ label: 'הזזה למעלה', icon: <ArrowUp size={20} />, onClick: () => swap(i - 1) }] : []),
+    ...(i < order.length - 1 ? [{ label: 'הזזה למטה', icon: <ArrowDown size={20} />, onClick: () => swap(i + 1) }] : []),
+  ];
 }
 
 function Progress({ done, total }: { done: number; total: number }) {
@@ -259,14 +274,16 @@ function Library({
       title: f.title,
       items: [
         { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(f) },
+        ...moveItems(familyId, folders, f.id),
         { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) },
       ],
     });
-  const itemMenu = (l: FamilyList) => () =>
+  const itemMenu = (l: FamilyList, order: FamilyList[] = []) => () =>
     setMenu({
       title: l.title,
       items: [
         { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(l) },
+        ...moveItems(familyId, order, l.id),
         ...itemActions(l).filter((a) => !a.danger),
         ...(l.kind === 'note'
           ? [l.pinned
@@ -355,7 +372,10 @@ function Library({
                       title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
                       count={count(f.id)}
                       onOpen={() => setFolder(f.id)}
-                      actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) }]}
+                      actions={[
+                        { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(f) },
+                        { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) },
+                      ]}
                       onHold={folderMenu(f)}
                     />
                   </li>
@@ -369,7 +389,7 @@ function Library({
                       sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
                       onOpen={() => onOpen(l.id)}
                       actions={itemActions(l)}
-                      onHold={itemMenu(l)}
+                      onHold={itemMenu(l, rootNotes)}
                     />
                   </li>
                 ))}
@@ -396,7 +416,7 @@ function Library({
                         sub={progress(l)}
                         onOpen={() => onOpen(l.id)}
                         actions={itemActions(l)}
-                        onHold={itemMenu(l)}
+                        onHold={itemMenu(l, checklists)}
                       />
                     </li>
                   ))}
@@ -856,12 +876,16 @@ function Notebook({
                 title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
                 sub={count(f.id)}
                 onOpen={() => setFolder(f.id)}
-                actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) }]}
+                actions={[
+                  { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => renameItem(f) },
+                  { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) },
+                ]}
                 onHold={() =>
                   setMenu({
                     title: f.title,
                     items: [
                       { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => renameItem(f) },
+                      ...moveItems(familyId, folders, f.id),
                       { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) },
                     ],
                   })
@@ -891,6 +915,7 @@ function Notebook({
                     title: l.title,
                     items: [
                       { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => renameItem(l) },
+                      ...moveItems(familyId, notes, l.id),
                       ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
                       { label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) },
                       l.pinned
