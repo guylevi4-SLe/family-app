@@ -114,11 +114,11 @@ export function createNote(
   return ref.id;
 }
 
-export function createFolder(fid: string, title: string, parentId = '') {
+export function createFolder(fid: string, title: string, parentId = '', emoji = 'i:folder') {
   const ref = doc(listsCol(fid));
   setDoc(ref, {
     title: title.trim().slice(0, 60),
-    emoji: 'i:folder',
+    emoji,
     kind: 'folder',
     parentId,
     createdBy: auth.currentUser!.uid,
@@ -127,6 +127,20 @@ export function createFolder(fid: string, title: string, parentId = '') {
   }).catch(reportWriteError);
   return ref.id;
 }
+
+/** The family's receipts live in one top-level folder marked with the receipt icon, shown as its own section. */
+export const RECEIPTS_ICON = 'i:receipt';
+export const receiptsFolder = (all: FamilyList[]) => all.find((l) => l.kind === 'folder' && l.emoji === RECEIPTS_ICON && !l.parentId);
+
+/** A quick note has no name yet; it takes the first word written in it. */
+export const QUICK_TITLE = 'פתק מהיר';
+export const firstWord = (text: string) =>
+  text
+    .replace(/^\s*(#{1,2} |\[[ xX]\] ?)/, '')
+    .replace(/[*_=+~]/g, '')
+    .trim()
+    .split(/\s+/)[0]
+    ?.slice(0, 60) ?? '';
 
 /** The locked folder a folder sits under (itself included), if any: its password locks everything inside. */
 export function lockOf(all: FamilyList[], folderId: string | undefined) {

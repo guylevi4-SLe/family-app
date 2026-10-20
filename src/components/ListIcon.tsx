@@ -1,4 +1,5 @@
 import {
+  Receipt,
   Backpack,
   Baby,
   Bike,
@@ -84,6 +85,7 @@ export const LIST_ICONS: { key: string; Icon: LucideIcon; label: string; emoji: 
   { key: 'wallet', Icon: Wallet, label: 'כסף', emoji: '👛' },
   { key: 'bank', Icon: Landmark, label: 'בנק', emoji: '🏦' },
   { key: 'doc', Icon: FileText, label: 'מסמך', emoji: '📄' },
+  { key: 'receipt', Icon: Receipt, label: 'קבלה', emoji: '🧾' },
   { key: 'lock', Icon: Lock, label: 'סודי', emoji: '🔒' },
   { key: 'shield', Icon: Shield, label: 'ביטוח', emoji: '🛡️' },
   { key: 'idea', Icon: Lightbulb, label: 'רעיון', emoji: '💡' },

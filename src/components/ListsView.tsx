@@ -8,6 +8,10 @@ import {
   saveOrder,
   createFolder,
   createNote,
+  firstWord,
+  QUICK_TITLE,
+  RECEIPTS_ICON,
+  receiptsFolder,
   deleteNoteFile,
   folderPath,
   lockOf,
@@ -54,7 +58,7 @@ import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { ActionSheet, MoreMenu, type MenuItem } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { InlineIcon } from './ChatIcons';
-import { ArrowDown, ArrowUp, ChevronDown, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, Receipt, Zap, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
 import { FormatBar, NoteView, viewSelection } from './NoteFormat';
@@ -91,17 +95,19 @@ export function ListsView({
 }) {
   const open = lists?.find((l) => l.id === openId);
   const all = lists ?? [];
+  // All three sections start shut each time the screen opens, and stay as left while moving around in it.
+  const [openSec, setOpenSec] = useState<OpenSections>({ notes: false, lists: false, receipts: false });
   // A folder that was deleted (by anyone) sends us back to the notebook's top.
   const inFolder = folder && !all.some((l) => l.id === folder && l.kind === 'folder') && lists ? '' : folder;
   return (
     <main className="list-page lists-page" aria-label="פתקים">
       {open?.kind === 'note' ? (
-        <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId && all.some((l) => l.id === open.parentId) ? open.parentId : null); setOpenId(null); }} />
+        <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId && open.parentId !== receiptsFolder(all)?.id && all.some((l) => l.id === open.parentId) ? open.parentId : null); setOpenId(null); }} />
       ) : open && open.kind !== 'folder' ? (
         <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
       ) : (
         inFolder === null ? (
-          <Library all={all} entries={entries ?? []} setFolder={setFolder} onOpen={setOpenId} />
+          <Library all={all} entries={entries ?? []} setFolder={setFolder} onOpen={setOpenId} openSec={openSec} setOpenSec={setOpenSec} />
         ) : (
           <Notebook all={all} entries={entries ?? []} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
         )
@@ -134,14 +140,7 @@ function Progress({ done, total }: { done: number; total: number }) {
   );
 }
 
-const OPEN_KEY = 'libraryOpen';
-function readOpen(): { notes: boolean; lists: boolean } {
-  try {
-    return { notes: true, lists: true, ...JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}') };
-  } catch {
-    return { notes: true, lists: true };
-  }
-}
+type OpenSections = { notes: boolean; lists: boolean; receipts: boolean };
 
 /** Sends a list or an unlocked note to WhatsApp as text. */
 function shareItem(item: FamilyList, entries: ListEntry[]) {
@@ -204,43 +203,49 @@ function SectionHead({ title, open, onToggle, count }: { title: string; open: bo
 }
 
 /**
- * The library: "פתקים" (general notes and the folders) and "רשימות" (the
- * checklists), each folding open or shut. Rows swipe left for share and
- * delete; "עריכה" shows delete buttons and grips to reorder.
+ * The library: "פתקים" (general notes and the folders), "רשימות" (the
+ * checklists) and "קבלות", each folding open or shut. Rows swipe left for
+ * share and delete, hold for their menu, and hold-and-drag to reorder.
  */
 function Library({
   all,
   entries,
   setFolder,
   onOpen,
+  openSec,
+  setOpenSec,
 }: {
   all: FamilyList[];
   entries: ListEntry[];
   setFolder: (id: string) => void;
   onOpen: (id: string) => void;
+  openSec: OpenSections;
+  setOpenSec: (s: OpenSections) => void;
 }) {
   const { familyId } = useFamily();
-  const [openSec, setOpenSec] = useState(readOpen);
   const [menu, setMenu] = useState<{ title: string; items: MenuItem[] } | null>(null);
   const [creating, setCreating] = useState<'list' | 'note' | null>(null);
   const [search, setSearch] = useState('');
-  const toggle = (k: 'notes' | 'lists') => {
-    const next = { ...openSec, [k]: !openSec[k] };
-    setOpenSec(next);
-    try {
-      localStorage.setItem(OPEN_KEY, JSON.stringify(next));
-    } catch {
-      /* not remembered */
-    }
-  };
+  const toggle = (k: keyof OpenSections) => setOpenSec({ ...openSec, [k]: !openSec[k] });
   const isFolder = (id: string) => all.some((l) => l.id === id && l.kind === 'folder');
   const at = (l: FamilyList) => (l.parentId && isFolder(l.parentId) ? l.parentId : '');
   const checklists = all.filter((l) => !l.kind).sort(byPinThenTitle);
-  const folders = all.filter((l) => l.kind === 'folder' && at(l) === '').sort(byPinThenTitle);
+  const receipts = receiptsFolder(all);
+  const folders = all.filter((l) => l.kind === 'folder' && at(l) === '' && l !== receipts).sort(byPinThenTitle);
+  const receiptNotes = receipts ? all.filter((l) => l.kind === 'note' && l.parentId === receipts.id).sort(byPinThenTitle) : [];
   const rootNotes = all.filter((l) => l.kind === 'note' && at(l) === '').sort(byPinThenTitle);
   const listDrag = useDragOrder(checklists, (l) => l.id, (items) => saveOrder(familyId, items));
   const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
   const rootDrag = useDragOrder(rootNotes, (l) => l.id, (items) => saveOrder(familyId, items));
+  const receiptDrag = useDragOrder(receiptNotes, (l) => l.id, (items) => saveOrder(familyId, items));
+  // No name to type: a quick note takes its first word, a receipt today's date (a photo or PDF goes in it).
+  const quickNote = () => onOpen(createNote(familyId, QUICK_TITLE, iconValue('note')));
+  const newReceipt = () => {
+    const folderId = receipts?.id ?? createFolder(familyId, 'קבלות', '', RECEIPTS_ICON);
+    const day = new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+    setOpenSec({ ...openSec, receipts: true });
+    onOpen(createNote(familyId, `קבלה ${day}`, RECEIPTS_ICON, folderId));
+  };
   const shut = (l: FamilyList) => {
     const fl = lockOf(all, l.parentId);
     return !!fl && !keyAlive(fl.salt ?? '');
@@ -332,8 +337,10 @@ function Library({
             icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
             title="הוספה"
             items={[
+              { label: 'פתק מהיר', icon: <Zap size={20} />, onClick: quickNote },
               { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => setCreating('note') },
               { label: 'רשימה חדשה', icon: <ListChecks size={20} />, onClick: () => setCreating('list') },
+              { label: 'קבלה חדשה', icon: <Receipt size={20} />, onClick: newReceipt },
               { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
             ]}
           />
@@ -417,6 +424,30 @@ function Library({
                         onOpen={() => onOpen(l.id)}
                         actions={itemActions(l)}
                         onHold={itemMenu(l, checklists)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ))}
+          </section>
+
+          <section>
+            <SectionHead title="קבלות" open={openSec.receipts} onToggle={() => toggle('receipts')} count={receiptNotes.length} />
+            {openSec.receipts &&
+              (receiptNotes.length === 0 ? (
+                <p className="empty">עוד אין קבלות. "קבלה חדשה" בכפתור + פותחת קבלה עם התאריך של היום, ומצרפים אליה צילום או PDF.</p>
+              ) : (
+                <ul className="lib-group">
+                  {receiptDrag.ordered.map((l) => (
+                    <li key={l.id} {...receiptDrag.row(l.id)}>
+                      <LibRow
+                        className="note-card"
+                        icon={<ListIcon value={l.emoji} size={22} />}
+                        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.title}</>}
+                        sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'קבלה'}</span>}
+                        onOpen={() => onOpen(l.id)}
+                        actions={itemActions(l)}
+                        onHold={itemMenu(l, receiptNotes)}
                       />
                     </li>
                   ))}
@@ -1093,8 +1124,9 @@ function NoteDetail({ note, all, onBack }: { note: FamilyList; all: FamilyList[]
   );
 }
 
+// A receipt goes back to the main screen, where "קבלות" is a section rather than a folder.
 const backLabel = (note: FamilyList, all: FamilyList[]) =>
-  (note.parentId && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'כל הפתקים';
+  (note.parentId && note.parentId !== receiptsFolder(all)?.id && all.find((l) => l.id === note.parentId && l.kind === 'folder')?.title) || 'כל הפתקים';
 
 function NoteGate({ note, all, onBack, onOpen }: { note: FamilyList; all: FamilyList[]; onBack: () => void; onOpen: (k: CryptoKey) => void }) {
   const [password, setPassword] = useState('');
@@ -1249,6 +1281,8 @@ function NoteEditor({
     window.clearTimeout(timer.current);
     if (!gone.current && latest.current !== remote.current) {
       const text = latest.current.slice(0, MAX_NOTE);
+      // A quick note is named by its first word once something is written.
+      if (note.title === QUICK_TITLE && firstWord(text)) updateNote(familyId, note, { title: firstWord(text) });
       if (cryptoKey) encryptText(cryptoKey, text).then((c) => { if (!gone.current) saveNoteBody(familyId, note, c); });
       else saveNoteBody(familyId, note, text);
     }
@@ -1430,6 +1464,7 @@ function NoteEditor({
         value={body}
         disabled={!ready}
         maxLength={MAX_NOTE}
+        autoFocus={note.title === QUICK_TITLE && !note.body}
         onFocus={() => { editing.current = true; setFocused(true); }}
         onBlur={() => { editing.current = false; setFocused(false); flush(); }}
         onChange={(e) => change(e.target.value)}
