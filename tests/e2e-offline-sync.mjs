@@ -121,6 +121,8 @@ async function main() {
     await row(dad, "קוטג' 3%").locator('.check-area').click();
     assert.equal(await dad.page.getByLabel('מחיר ששולם').count(), 0, 'ticking does not ask for a price');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/bought-toast.png` });
+    assert.equal(await dad.page.getByRole('button', { name: 'רישום מחירים' }).count(), 0, 'prices hide while "bought" is closed');
+    await dad.page.getByRole('button', { name: /נקנו בשבוע האחרון/ }).click();
     await dad.page.getByRole('button', { name: 'רישום מחירים' }).click();
     const paidSheet = dad.page.getByRole('dialog', { name: 'מחירים מהקנייה' });
     await paidSheet.getByLabel('חנות').fill('רמי לוי');
@@ -244,9 +246,9 @@ async function main() {
     ok("Dad's edit made while she was offline arrived");
     assert.equal(await row(dad, 'ביצים').count(), 1);
     ok('"ביצים" added on both phones became one item');
-    // Bought and recently deleted both start closed.
-    assert.equal(await row(dad, 'חלב').count(), 0, 'bought starts closed');
-    await dad.page.getByRole('button', { name: /נקנו בשבוע האחרון/ }).click();
+    // Bought opens on a tap (it starts closed; it was opened above for prices); recently deleted stays closed.
+    const boughtToggle = dad.page.getByRole('button', { name: /נקנו בשבוע האחרון/ });
+    if ((await boughtToggle.getAttribute('aria-expanded')) !== 'true') await boughtToggle.click();
     await row(dad, 'חלב').waitFor();
     assert.equal(await dad.page.locator('.deleted .name').count(), 0);
     ok('"חלב" checked offline arrived as bought');

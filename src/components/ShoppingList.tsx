@@ -116,18 +116,20 @@ export function ShoppingList({
             </button>
           </div>
           {showBought && (
-            <ul>
-              {bought.map((it) => (
-                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
-              ))}
-            </ul>
+            <>
+              <div className="list-actions price-actions">
+                <button className="small price-button" onClick={() => setPaying(true)}>
+                  <span aria-hidden="true">₪</span>
+                  רישום מחירים
+                </button>
+              </div>
+              <ul>
+                {bought.map((it) => (
+                  <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
+                ))}
+              </ul>
+            </>
           )}
-          <div className="list-actions price-actions">
-            <button className="small price-button" onClick={() => setPaying(true)}>
-              <span aria-hidden="true">₪</span>
-              רישום מחירים
-            </button>
-          </div>
         </section>
       )}
 
