@@ -114,6 +114,22 @@ export function createNote(
   return ref.id;
 }
 
+/** A quick note: just text, saved as an ordinary family note named by its first word. */
+export function createQuickNote(fid: string, text: string, emoji: string) {
+  const ref = doc(listsCol(fid));
+  setDoc(ref, {
+    title: firstWord(text) || 'פתק',
+    emoji,
+    kind: 'note',
+    body: text.slice(0, MAX_NOTE),
+    parentId: '',
+    createdBy: auth.currentUser!.uid,
+    createdAt: serverTimestamp(),
+    ...stamp(),
+  }).catch(reportWriteError);
+  return ref.id;
+}
+
 export function createFolder(fid: string, title: string, parentId = '', emoji = 'i:folder') {
   const ref = doc(listsCol(fid));
   setDoc(ref, {
@@ -132,8 +148,7 @@ export function createFolder(fid: string, title: string, parentId = '', emoji = 
 export const RECEIPTS_ICON = 'i:receipt';
 export const receiptsFolder = (all: FamilyList[]) => all.find((l) => l.kind === 'folder' && l.emoji === RECEIPTS_ICON && !l.parentId);
 
-/** A quick note has no name yet; it takes the first word written in it. */
-export const QUICK_TITLE = 'פתק מהיר';
+/** A quick note is named by the first word written in it. */
 export const firstWord = (text: string) =>
   text
     .replace(/^\s*(#{1,2} |\[[ xX]\] ?)/, '')

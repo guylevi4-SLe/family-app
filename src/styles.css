@@ -1070,3 +1070,14 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .search-box { position: relative; display: flex; flex: 1; min-width: 0; }
 .search-box > svg { position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .search-box .notebook-search { padding-inline-start: 38px; flex: 1; margin: 0; }
+
+/* Quick note: a small button at the bottom right of the notes screen, and its blank page. */
+.quick-note-button {
+  position: fixed; z-index: 15; right: max(16px, calc(50% - 304px)); bottom: calc(var(--nav-h) + 16px);
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+  font-size: 0.9rem; font-weight: 600; color: var(--accent); background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); box-shadow: var(--shadow);
+}
+.quick-note { display: grid; gap: 8px; }
+.quick-note-body { min-height: calc(100dvh - var(--nav-h) - 200px); font-size: 1.05rem; }
+body.kb-open .quick-note-body { min-height: 40dvh; }

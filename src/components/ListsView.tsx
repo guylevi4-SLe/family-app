@@ -8,8 +8,7 @@ import {
   saveOrder,
   createFolder,
   createNote,
-  firstWord,
-  QUICK_TITLE,
+  createQuickNote,
   RECEIPTS_ICON,
   receiptsFolder,
   deleteNoteFile,
@@ -58,7 +57,7 @@ import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { ActionSheet, MoreMenu, type MenuItem } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { InlineIcon } from './ChatIcons';
-import { ArrowDown, ArrowUp, ChevronDown, Receipt, Zap, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown, Receipt, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
 import { FormatBar, NoteView, viewSelection } from './NoteFormat';
@@ -97,17 +96,20 @@ export function ListsView({
   const all = lists ?? [];
   // All three sections start shut each time the screen opens, and stay as left while moving around in it.
   const [openSec, setOpenSec] = useState<OpenSections>({ notes: false, lists: false, receipts: false });
+  const [quick, setQuick] = useState(false);
   // A folder that was deleted (by anyone) sends us back to the notebook's top.
   const inFolder = folder && !all.some((l) => l.id === folder && l.kind === 'folder') && lists ? '' : folder;
   return (
     <main className="list-page lists-page" aria-label="פתקים">
-      {open?.kind === 'note' ? (
+      {quick ? (
+        <QuickNote onDone={() => setQuick(false)} />
+      ) : open?.kind === 'note' ? (
         <NoteDetail note={open} all={all} onBack={() => { setFolder(open.parentId && open.parentId !== receiptsFolder(all)?.id && all.some((l) => l.id === open.parentId) ? open.parentId : null); setOpenId(null); }} />
       ) : open && open.kind !== 'folder' ? (
         <ListDetail list={open} entries={(entries ?? []).filter((e) => e.listId === open.id).sort(byOrder)} onBack={() => setOpenId(null)} />
       ) : (
         inFolder === null ? (
-          <Library all={all} entries={entries ?? []} setFolder={setFolder} onOpen={setOpenId} openSec={openSec} setOpenSec={setOpenSec} />
+          <Library all={all} entries={entries ?? []} setFolder={setFolder} onOpen={setOpenId} openSec={openSec} setOpenSec={setOpenSec} onQuick={() => setQuick(true)} />
         ) : (
           <Notebook all={all} entries={entries ?? []} folder={inFolder} setFolder={setFolder} onOpen={setOpenId} />
         )
@@ -214,6 +216,7 @@ function Library({
   onOpen,
   openSec,
   setOpenSec,
+  onQuick,
 }: {
   all: FamilyList[];
   entries: ListEntry[];
@@ -221,6 +224,7 @@ function Library({
   onOpen: (id: string) => void;
   openSec: OpenSections;
   setOpenSec: (s: OpenSections) => void;
+  onQuick: () => void;
 }) {
   const { familyId } = useFamily();
   const [menu, setMenu] = useState<{ title: string; items: MenuItem[] } | null>(null);
@@ -239,7 +243,6 @@ function Library({
   const rootDrag = useDragOrder(rootNotes, (l) => l.id, (items) => saveOrder(familyId, items));
   const receiptDrag = useDragOrder(receiptNotes, (l) => l.id, (items) => saveOrder(familyId, items));
   // No name to type: a quick note takes its first word, a receipt today's date (a photo or PDF goes in it).
-  const quickNote = () => onOpen(createNote(familyId, QUICK_TITLE, iconValue('note')));
   const newReceipt = () => {
     const folderId = receipts?.id ?? createFolder(familyId, 'קבלות', '', RECEIPTS_ICON);
     const day = new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
@@ -337,7 +340,6 @@ function Library({
             icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
             title="הוספה"
             items={[
-              { label: 'פתק מהיר', icon: <Zap size={20} />, onClick: quickNote },
               { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => setCreating('note') },
               { label: 'רשימה חדשה', icon: <ListChecks size={20} />, onClick: () => setCreating('list') },
               { label: 'קבלה חדשה', icon: <Receipt size={20} />, onClick: newReceipt },
@@ -459,7 +461,37 @@ function Library({
 
       {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
       {menu && <ActionSheet title={menu.title} items={menu.items} onClose={() => setMenu(null)} />}
+      {/* While all three sections are shut, a quick note is one tap away. */}
+      {!q && !creating && !openSec.notes && !openSec.lists && !openSec.receipts && (
+        <button type="button" className="quick-note-button" onClick={onQuick}>
+          <StickyNote size={22} aria-hidden="true" />
+          <span>פתק מהיר</span>
+        </button>
+      )}
     </>
+  );
+}
+
+/** A blank page to jot something down: no name, no settings. Leaving saves it as a family note (nothing written, nothing saved). */
+function QuickNote({ onDone }: { onDone: () => void }) {
+  const { familyId } = useFamily();
+  const [text, setText] = useState('');
+  const latest = useRef('');
+  latest.current = text;
+  const saved = useRef(false);
+  const save = () => {
+    if (saved.current) return;
+    saved.current = true;
+    if (latest.current.trim()) createQuickNote(familyId, latest.current.trim(), iconValue('note'));
+  };
+  useEffect(() => save, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="quick-note">
+      <div className="detail-top">
+        <button className="link back" onClick={() => { save(); onDone(); }}>→ כל הפתקים</button>
+      </div>
+      <textarea className="note-body quick-note-body" aria-label="פתק מהיר" placeholder="כותבים…" autoFocus value={text} maxLength={MAX_NOTE} onChange={(e) => setText(e.target.value)} />
+    </div>
   );
 }
 
@@ -1281,8 +1313,6 @@ function NoteEditor({
     window.clearTimeout(timer.current);
     if (!gone.current && latest.current !== remote.current) {
       const text = latest.current.slice(0, MAX_NOTE);
-      // A quick note is named by its first word once something is written.
-      if (note.title === QUICK_TITLE && firstWord(text)) updateNote(familyId, note, { title: firstWord(text) });
       if (cryptoKey) encryptText(cryptoKey, text).then((c) => { if (!gone.current) saveNoteBody(familyId, note, c); });
       else saveNoteBody(familyId, note, text);
     }
@@ -1464,7 +1494,6 @@ function NoteEditor({
         value={body}
         disabled={!ready}
         maxLength={MAX_NOTE}
-        autoFocus={note.title === QUICK_TITLE && !note.body}
         onFocus={() => { editing.current = true; setFocused(true); }}
         onBlur={() => { editing.current = false; setFocused(false); flush(); }}
         onChange={(e) => change(e.target.value)}

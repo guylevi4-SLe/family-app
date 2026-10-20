@@ -940,14 +940,22 @@ async function main() {
     assert.deepEqual(await lists.locator('.lib-section > span:first-child').allTextContents(), ['פתקים', 'רשימות', 'קבלות']);
     assert.equal(await lists.locator('.lib-section[aria-expanded="true"]').count(), 0, 'all sections start shut');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-shut.png` });
-    await addNew(lists, 'פתק מהיר');
-    const quick = lists.getByLabel('תוכן הפתק');
+    // The quick note button shows while all sections are shut: one tap, a blank page and nothing else.
+    await lists.getByRole('button', { name: 'פתק מהיר' }).click();
+    const quick = lists.getByLabel('פתק מהיר');
     await quick.waitFor();
     assert.ok(await quick.evaluate((e) => document.activeElement === e), 'a quick note opens ready to type');
+    assert.equal(await lists.getByText('רואים ועורכים').count() + await lists.getByText('קבצים').count(), 0, 'a quick note is just a page');
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/quick-note.png` });
     await quick.fill('חשמלאי 050-1234567');
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
+    // Leaving an empty quick note saves nothing.
+    await lists.getByRole('button', { name: 'פתק מהיר' }).click();
+    await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
     await openSections(dad.page);
+    assert.equal(await lists.getByRole('button', { name: 'פתק מהיר' }).count(), 0, 'the quick note button hides once a section is open');
     await lists.locator('.note-card', { hasText: 'חשמלאי' }).waitFor();
+    assert.equal(await lists.locator('.note-card').count(), 1, 'the empty quick note was not saved');
     await addNew(lists, 'קבלה חדשה');
     await lists.locator('h2', { hasText: /קבלה \d/ }).waitFor();
     await lists.getByRole('button', { name: /^→/ }).click();
