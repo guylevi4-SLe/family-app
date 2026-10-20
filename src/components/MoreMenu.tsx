@@ -3,6 +3,40 @@ import { EllipsisVertical } from 'lucide-react';
 
 export type MenuItem = { label: string; icon: ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean };
 
+/** The bottom sheet of actions on its own, opened by its owner (e.g. a long press on a row). */
+export function ActionSheet({ title, items, onClose }: { title: string; items: MenuItem[]; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet more-sheet" role="dialog" aria-label={`פעולות: ${title}`} onClick={(e) => e.stopPropagation()}>
+        <strong className="more-title">{title}</strong>
+        <ul className="more-items">
+          {items.map((item) => (
+            <li key={item.label}>
+              <button
+                className={`more-item ${item.danger ? 'danger' : ''}`}
+                disabled={item.disabled}
+                onClick={() => {
+                  onClose();
+                  item.onClick();
+                }}
+              >
+                <span className="more-icon" aria-hidden="true">{item.icon}</span>
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button className="more-cancel" onClick={onClose}>ביטול</button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * A "⋮" button that opens a small menu of actions (rename, lock, delete…) at the
  * top right, under the button, instead of a row of buttons. A floating "+"

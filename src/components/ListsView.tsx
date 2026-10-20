@@ -51,7 +51,7 @@ import { memberName, useFamily } from './FamilyContext';
 import { Icon } from './Icon';
 import { ZoomViewer } from './ZoomViewer';
 import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
-import { MoreMenu } from './MoreMenu';
+import { ActionSheet, MoreMenu, type MenuItem } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { InlineIcon } from './ChatIcons';
 import { ChevronDown, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
@@ -206,7 +206,7 @@ function Library({
 }) {
   const { familyId } = useFamily();
   const [openSec, setOpenSec] = useState(readOpen);
-  const [editing, setEditing] = useState(false);
+  const [menu, setMenu] = useState<{ title: string; items: MenuItem[] } | null>(null);
   const [creating, setCreating] = useState<'list' | 'note' | null>(null);
   const [search, setSearch] = useState('');
   const toggle = (k: 'notes' | 'lists') => {
@@ -253,6 +253,29 @@ function Library({
     confirmDelete(`למחוק את התיקייה "${f.title}"?`).then((ok) => ok && deleteList(familyId, f.id, []));
   };
   const [moving, setMoving] = useState<FamilyList | null>(null);
+  // Hold a row and let go: its whole menu.
+  const folderMenu = (f: FamilyList) => () =>
+    setMenu({
+      title: f.title,
+      items: [
+        { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(f) },
+        { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) },
+      ],
+    });
+  const itemMenu = (l: FamilyList) => () =>
+    setMenu({
+      title: l.title,
+      items: [
+        { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(l) },
+        ...itemActions(l).filter((a) => !a.danger),
+        ...(l.kind === 'note'
+          ? [l.pinned
+              ? { label: 'הסרת הנעיצה', icon: <PinOff size={20} />, onClick: () => updateNote(familyId, l, { pinned: false }) }
+              : { label: 'נעיצה למעלה', icon: <Pin size={20} />, onClick: () => updateNote(familyId, l, { pinned: true }) }]
+          : []),
+        ...itemActions(l).filter((a) => a.danger),
+      ],
+    });
   const itemActions = (l: FamilyList) => [
     ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
     ...(l.kind === 'note' ? [{ label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) }] : []),
@@ -272,9 +295,10 @@ function Library({
         sub={at(l) ? <><InlineIcon icon={Folder} size={14} />{folderPath(all, at(l)).join(' › ')}</> : l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
         onOpen={() => onOpen(l.id)}
         actions={itemActions(l)}
+        onHold={itemMenu(l)}
       />
     ) : (
-      <LibRow className="list-card" icon={<ListIcon value={l.emoji} size={22} />} title={l.title} sub={progress(l)} onOpen={() => onOpen(l.id)} actions={itemActions(l)} />
+      <LibRow className="list-card" icon={<ListIcon value={l.emoji} size={22} />} title={l.title} sub={progress(l)} onOpen={() => onOpen(l.id)} actions={itemActions(l)} onHold={itemMenu(l)} />
     );
 
   return (
@@ -284,12 +308,7 @@ function Library({
           <Search size={18} aria-hidden="true" />
           <input className="full notebook-search" type="search" value={search} placeholder="חיפוש" aria-label="חיפוש בפתקים" onChange={(e) => setSearch(e.target.value)} />
         </span>
-        {!q && (
-          <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-            {editing ? 'סיום' : 'עריכה'}
-          </button>
-        )}
-        {!q && !editing && !creating && (
+        {!q && !creating && (
           <MoreMenu
             label="הוספה"
             className="lib-add"
@@ -337,10 +356,7 @@ function Library({
                       count={count(f.id)}
                       onOpen={() => setFolder(f.id)}
                       actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) }]}
-                      editing={editing}
-                      onRename={() => rename(f)}
-                      onDelete={() => removeFolder(f)}
-                      grip={folderDrag.grip(f.id, f.title)}
+                      onHold={folderMenu(f)}
                     />
                   </li>
                 ))}
@@ -353,10 +369,7 @@ function Library({
                       sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
                       onOpen={() => onOpen(l.id)}
                       actions={itemActions(l)}
-                      editing={editing}
-                      onRename={() => rename(l)}
-                      onDelete={() => removeItem(familyId, l, entries)}
-                      grip={rootDrag.grip(l.id, l.title)}
+                      onHold={itemMenu(l)}
                     />
                   </li>
                 ))}
@@ -383,10 +396,7 @@ function Library({
                         sub={progress(l)}
                         onOpen={() => onOpen(l.id)}
                         actions={itemActions(l)}
-                        editing={editing}
-                        onRename={() => rename(l)}
-                        onDelete={() => removeItem(familyId, l, entries)}
-                        grip={listDrag.grip(l.id, l.title)}
+                        onHold={itemMenu(l)}
                       />
                     </li>
                   ))}
@@ -397,6 +407,7 @@ function Library({
       )}
 
       {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
+      {menu && <ActionSheet title={menu.title} items={menu.items} onClose={() => setMenu(null)} />}
     </>
   );
 }
@@ -636,7 +647,7 @@ function Notebook({
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
   const [emoji, setEmoji] = useState(iconValue('note'));
-  const [editing, setEditing] = useState(false);
+  const [menu, setMenu] = useState<{ title: string; items: MenuItem[] } | null>(null);
   const [locking, setLocking] = useState<{ a: string; b: string } | null>(null);
   const [moving, setMoving] = useState<FamilyList | null>(null);
   const [work, setWork] = useState('');
@@ -806,23 +817,16 @@ function Notebook({
       <>
       {!creating && (
         <div className="lib-head end">
-          {folders.length + notes.length > 0 && (
-            <button type="button" className="link lib-edit" aria-pressed={editing} onClick={() => setEditing(!editing)}>
-              {editing ? 'סיום' : 'עריכה'}
-            </button>
-          )}
-          {!editing && (
-            <MoreMenu
-              label="הוספה"
-              className="lib-add"
-              icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
-              title={here ? `הוספה ל"${here.title}"` : 'הוספה'}
-              items={[
-                { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
-                { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
-              ]}
-            />
-          )}
+          <MoreMenu
+            label="הוספה"
+            className="lib-add"
+            icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
+            title={here ? `הוספה ל"${here.title}"` : 'הוספה'}
+            items={[
+              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
+              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
+            ]}
+          />
         </div>
       )}
       {creating && (
@@ -853,10 +857,15 @@ function Notebook({
                 sub={count(f.id)}
                 onOpen={() => setFolder(f.id)}
                 actions={[{ label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) }]}
-                editing={editing}
-                onRename={() => renameItem(f)}
-                onDelete={() => deleteSub(f)}
-                grip={folderDrag.grip(f.id, f.title)}
+                onHold={() =>
+                  setMenu({
+                    title: f.title,
+                    items: [
+                      { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => renameItem(f) },
+                      { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => deleteSub(f) },
+                    ],
+                  })
+                }
               />
             </li>
           ))}
@@ -877,10 +886,20 @@ function Notebook({
                   { label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) },
                   { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
                 ]}
-                editing={editing}
-                onRename={() => renameItem(l)}
-                onDelete={() => removeItem(familyId, l, entries)}
-                grip={noteDrag.grip(l.id, l.title)}
+                onHold={() =>
+                  setMenu({
+                    title: l.title,
+                    items: [
+                      { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => renameItem(l) },
+                      ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
+                      { label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) },
+                      l.pinned
+                        ? { label: 'הסרת הנעיצה', icon: <PinOff size={20} />, onClick: () => updateNote(familyId, l, { pinned: false }) }
+                        : { label: 'נעיצה למעלה', icon: <Pin size={20} />, onClick: () => updateNote(familyId, l, { pinned: true }) },
+                      { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
+                    ],
+                  })
+                }
               />
             </li>
           ))}
@@ -888,6 +907,7 @@ function Notebook({
       )}
 
       {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
+      {menu && <ActionSheet title={menu.title} items={menu.items} onClose={() => setMenu(null)} />}
 
       {locking && (
         <form className="card note-lock" onSubmit={(e) => { e.preventDefault(); lockFolder(); }}>

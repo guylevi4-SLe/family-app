@@ -935,6 +935,7 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .lib-group > li + li .lib-row-wrap::before { content: ''; position: absolute; z-index: 2; top: 0; inset-inline: 56px 0; border-top: 1px solid var(--line); }
 .lib-row-wrap { position: relative; overflow: hidden; }
 .lib-row { position: relative; z-index: 1; display: flex; align-items: center; gap: 4px; background: var(--surface); transition: transform 0.22s ease; touch-action: pan-y; }
+.lib-row, .lib-row * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .lib-row .row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 8px 16px; border: 0; border-radius: 0; background: transparent; text-align: start; }
 .lib-row .row-icon { flex: none; width: 28px; display: grid; place-items: center; color: var(--accent); font-size: 1.3rem; }
 .lib-row .row-text { flex: 1; min-width: 0; display: grid; gap: 2px; }

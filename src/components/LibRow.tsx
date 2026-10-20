@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
-import { ChevronLeft, CircleMinus } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 export interface SwipeAction {
   label: string;
@@ -9,13 +9,15 @@ export interface SwipeAction {
 }
 
 const ACTION_W = 76;
+// The same hold as lifting a row to reorder it: let go without moving and the row's menu opens.
+const HOLD_MS = 400;
 // Only one row stays swiped open at a time, as in the phone's Notes.
 let closeOpenRow: (() => void) | null = null;
 
 /**
  * One row of the library, in the style of the phone's Notes: tap opens it,
- * swiping it left shows its actions (share, delete). In edit mode it shows a
- * delete button and a grip instead, and a tap renames.
+ * swiping it left shows its actions (share, delete), and holding it then
+ * letting go without moving opens its menu (rename, delete…).
  */
 export function LibRow({
   className,
@@ -25,10 +27,7 @@ export function LibRow({
   count,
   onOpen,
   actions = [],
-  editing,
-  onRename,
-  onDelete,
-  grip,
+  onHold,
   chevron = true,
 }: {
   className: string;
@@ -38,10 +37,8 @@ export function LibRow({
   count?: ReactNode;
   onOpen: () => void;
   actions?: SwipeAction[];
-  editing?: boolean;
-  onRename?: () => void;
-  onDelete?: () => void;
-  grip?: ReactNode;
+  /** Holding the row and letting go without moving (e.g. opens its menu). */
+  onHold?: () => void;
   chevron?: boolean;
 }) {
   const width = actions.length * ACTION_W;
@@ -54,12 +51,40 @@ export function LibRow({
   useEffect(() => () => {
     if (closeOpenRow === close) closeOpenRow = null;
   });
-  useEffect(() => {
-    if (editing) setDx(0);
-  }, [editing]);
+  const held = useRef(false);
+
+  // Watched on the window: a row lifted to reorder captures the pointer, so its own events stop here.
+  const watchHold = (e: PointerEvent<HTMLDivElement>) => {
+    held.current = false;
+    if (!onHold || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const { clientX: x, clientY: y } = e;
+    const timer = window.setTimeout(() => (held.current = true), HOLD_MS);
+    const done = (open: boolean) => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      if (open) onHold();
+    };
+    const move = (ev: globalThis.PointerEvent) => {
+      if (Math.hypot(ev.clientX - x, ev.clientY - y) > 8) {
+        held.current = false;
+        done(false);
+      }
+    };
+    const up = () => done(held.current);
+    const cancel = () => {
+      held.current = false;
+      done(false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+  };
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    if (editing || !width || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    watchHold(e);
+    if (!width || (e.pointerType === 'mouse' && e.button !== 0)) return;
     start.current = { x: e.clientX, y: e.clientY, base: dx, swiping: false };
     swiped.current = false;
   };
@@ -119,23 +144,22 @@ export function LibRow({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onContextMenu={(e) => onHold && e.preventDefault()}
       >
-        {editing && onDelete && (
-          <button type="button" className="row-delete" aria-label={`מחיקה: ${typeof title === 'string' ? title : ''}`} onClick={onDelete}>
-            <CircleMinus size={22} aria-hidden="true" />
-          </button>
-        )}
         <button
           type="button"
           className="row-main"
           onClick={() => {
+            if (held.current) {
+              held.current = false;
+              return;
+            }
             if (swiped.current || dx) {
               swiped.current = false;
               close();
               return;
             }
-            if (editing) onRename?.();
-            else onOpen();
+            onOpen();
           }}
         >
           <span className="row-icon" aria-hidden="true">{icon}</span>
@@ -144,9 +168,8 @@ export function LibRow({
             {sub && <span className="muted">{sub}</span>}
           </span>
           {count !== undefined && <span className="row-count">{count}</span>}
-          {!editing && chevron && <ChevronLeft className="row-chevron" size={20} aria-hidden="true" />}
+          {chevron && <ChevronLeft className="row-chevron" size={20} aria-hidden="true" />}
         </button>
-        {editing && grip}
       </div>
     </div>
   );

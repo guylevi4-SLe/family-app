@@ -868,13 +868,21 @@ async function main() {
     await kid.page.waitForFunction(() => document.querySelector('.lists-page .list-card strong')?.textContent?.includes('ציוד לטיול'), null, { timeout: 10000 });
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'letting go after a drag does not open the list');
     ok('holding a list and dragging it moves it up, for the whole family; letting go does not open it');
-    // Edit mode: a grip on each row and a delete button; a tap renames.
-    await lists.getByRole('button', { name: 'עריכה' }).click();
-    await lists.getByRole('button', { name: 'גרירה לשינוי הסדר: אאא לבדיקה' }).waitFor();
-    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-edit.png` });
-    await answer('אאא למחיקה', () => lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).click());
+    // Holding a row and letting go without moving opens its menu (there is no edit mode).
+    assert.equal(await lists.getByRole('button', { name: 'עריכה' }).count(), 0, 'no edit button');
+    {
+      const box = await lists.locator('.list-card', { hasText: 'אאא לבדיקה' }).boundingBox();
+      await dad.page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await dad.page.mouse.down();
+      await dad.page.waitForTimeout(600);
+      await dad.page.mouse.up();
+    }
+    const rowMenu = dad.page.getByRole('dialog', { name: 'פעולות: אאא לבדיקה' });
+    await rowMenu.waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-hold-menu.png` });
+    assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'holding does not open the list');
+    await answer('אאא למחיקה', () => rowMenu.getByRole('button', { name: 'שינוי שם' }).click());
     await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor();
-    await lists.getByRole('button', { name: 'סיום' }).click();
     // Swiping a row left shows share and delete.
     {
       const box = await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).boundingBox();
@@ -892,7 +900,7 @@ async function main() {
     await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
     await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor({ state: 'detached' });
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'swiping does not open the list');
-    ok('the library: edit mode renames, a left swipe shows share and delete');
+    ok('the library: holding a row opens its menu (rename), a left swipe shows share and delete');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/home-lists.png`, fullPage: true });
     ok('Dad made a trip packing list with categories; the daughter opens it from home and from the bottom bar, and resets the ticks');
