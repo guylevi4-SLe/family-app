@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   LIST_IDEAS,
   MAX_NOTE,
@@ -194,10 +194,13 @@ function NewItemForm({ kind, onCreate, onCancel }: { kind: 'list' | 'note'; onCr
 }
 
 /** A section heading that folds its rows away, as in the phone's Notes. */
-function SectionHead({ title, open, onToggle, count }: { title: string; open: boolean; onToggle: () => void; count: number }) {
+function SectionHead({ title, icon, open, onToggle, count }: { title: string; icon: ReactNode; open: boolean; onToggle: () => void; count: number }) {
   return (
     <button type="button" className="lib-section" aria-expanded={open} onClick={onToggle}>
-      <span>{title}</span>
+      <span>
+        <span className="lib-section-icon" aria-hidden="true">{icon}</span>
+        {title}
+      </span>
       {!open && count > 0 && <span className="muted lib-section-count">{count}</span>}
       <ChevronDown className={open ? 'lib-chevron' : 'lib-chevron shut'} size={22} aria-hidden="true" />
     </button>
@@ -236,6 +239,8 @@ function Library({
   const checklists = all.filter((l) => !l.kind).sort(byPinThenTitle);
   const receipts = receiptsFolder(all);
   const folders = all.filter((l) => l.kind === 'folder' && at(l) === '' && l !== receipts).sort(byPinThenTitle);
+  // Every note, also those inside folders (folders themselves aren't counted; receipts have their own section).
+  const noteCount = all.filter((l) => l.kind === 'note' && (!receipts || l.parentId !== receipts.id)).length;
   const receiptNotes = receipts ? all.filter((l) => l.kind === 'note' && l.parentId === receipts.id).sort(byPinThenTitle) : [];
   const rootNotes = all.filter((l) => l.kind === 'note' && at(l) === '').sort(byPinThenTitle);
   const listDrag = useDragOrder(checklists, (l) => l.id, (items) => saveOrder(familyId, items));
@@ -370,7 +375,7 @@ function Library({
       ) : (
         <>
           <section>
-            <SectionHead title="פתקים" open={openSec.notes} onToggle={() => toggle('notes')} count={folders.length + rootNotes.length} />
+            <SectionHead title="פתקים" icon={<StickyNote size={24} />} open={openSec.notes} onToggle={() => toggle('notes')} count={noteCount} />
             {openSec.notes && folders.length + rootNotes.length > 0 && (
               <ul className="lib-group">
                 {folderDrag.ordered.map((f) => (
@@ -410,7 +415,7 @@ function Library({
           </section>
 
           <section>
-            <SectionHead title="רשימות" open={openSec.lists} onToggle={() => toggle('lists')} count={checklists.length} />
+            <SectionHead title="רשימות" icon={<ListChecks size={24} />} open={openSec.lists} onToggle={() => toggle('lists')} count={checklists.length} />
             {openSec.lists &&
               (checklists.length === 0 ? (
                 <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
@@ -434,7 +439,7 @@ function Library({
           </section>
 
           <section>
-            <SectionHead title="קבלות" open={openSec.receipts} onToggle={() => toggle('receipts')} count={receiptNotes.length} />
+            <SectionHead title="קבלות" icon={<Receipt size={24} />} open={openSec.receipts} onToggle={() => toggle('receipts')} count={receiptNotes.length} />
             {openSec.receipts &&
               (receiptNotes.length === 0 ? (
                 <p className="empty">עוד אין קבלות. "קבלה חדשה" בכפתור + פותחת קבלה עם התאריך של היום, ומצרפים אליה צילום או PDF.</p>
