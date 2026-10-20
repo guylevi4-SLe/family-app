@@ -11,6 +11,8 @@ import {
   createQuickNote,
   RECEIPTS_ICON,
   receiptsFolder,
+  inReceipts,
+  createReceipt,
   deleteNoteFile,
   folderPath,
   lockOf,
@@ -193,6 +195,35 @@ function NewItemForm({ kind, onCreate, onCancel }: { kind: 'list' | 'note'; onCr
   );
 }
 
+/** A new folder: its name, and whether it goes with the notes or the receipts. */
+function NewFolderForm({ onCreate, onCancel }: { onCreate: (title: string, where: 'notes' | 'receipts') => void; onCancel: () => void }) {
+  const [title, setTitle] = useState('');
+  const [where, setWhere] = useState<'notes' | 'receipts'>('notes');
+  const places = [
+    { key: 'notes', label: 'פתקים', Icon: StickyNote },
+    { key: 'receipts', label: 'קבלות', Icon: Receipt },
+  ] as const;
+  return (
+    <form className="card list-new" onSubmit={(e) => { e.preventDefault(); if (title.trim()) onCreate(title, where); }}>
+      <label>
+        <span className="field-label">שם התיקייה</span>
+        <input className="full" value={title} maxLength={60} autoFocus placeholder={where === 'receipts' ? 'למשל: רכב, 2025' : 'למשל: בית, רכב, ביטוחים'} onChange={(e) => setTitle(e.target.value)} />
+      </label>
+      <div className="chips" role="radiogroup" aria-label="איפה התיקייה">
+        {places.map(({ key, label, Icon: PlaceIcon }) => (
+          <button key={key} type="button" role="radio" aria-checked={where === key} className={where === key ? 'chip on' : 'chip'} onClick={() => setWhere(key)}>
+            <PlaceIcon size={16} aria-hidden="true" /> {label}
+          </button>
+        ))}
+      </div>
+      <div className="sheet-actions">
+        <button className="primary" disabled={!title.trim()}>יצירת התיקייה</button>
+        <button type="button" onClick={onCancel}>ביטול</button>
+      </div>
+    </form>
+  );
+}
+
 /** A section heading that folds its rows away, as in the phone's Notes. */
 function SectionHead({ title, icon, open, onToggle, count }: { title: string; icon: ReactNode; open: boolean; onToggle: () => void; count: number }) {
   return (
@@ -231,7 +262,7 @@ function Library({
 }) {
   const { familyId } = useFamily();
   const [menu, setMenu] = useState<{ title: string; items: MenuItem[] } | null>(null);
-  const [creating, setCreating] = useState<'list' | 'note' | null>(null);
+  const [creating, setCreating] = useState<'list' | 'note' | 'folder' | null>(null);
   const [search, setSearch] = useState('');
   const toggle = (k: keyof OpenSections) => setOpenSec({ ...openSec, [k]: !openSec[k] });
   const isFolder = (id: string) => all.some((l) => l.id === id && l.kind === 'folder');
@@ -240,19 +271,20 @@ function Library({
   const receipts = receiptsFolder(all);
   const folders = all.filter((l) => l.kind === 'folder' && at(l) === '' && l !== receipts).sort(byPinThenTitle);
   // Every note, also those inside folders (folders themselves aren't counted; receipts have their own section).
-  const noteCount = all.filter((l) => l.kind === 'note' && (!receipts || l.parentId !== receipts.id)).length;
+  const noteCount = all.filter((l) => l.kind === 'note' && !inReceipts(all, l.parentId)).length;
+  const receiptCount = all.filter((l) => l.kind === 'note' && inReceipts(all, l.parentId)).length;
+  const receiptFolders = receipts ? all.filter((l) => l.kind === 'folder' && l.parentId === receipts.id).sort(byPinThenTitle) : [];
   const receiptNotes = receipts ? all.filter((l) => l.kind === 'note' && l.parentId === receipts.id).sort(byPinThenTitle) : [];
   const rootNotes = all.filter((l) => l.kind === 'note' && at(l) === '').sort(byPinThenTitle);
   const listDrag = useDragOrder(checklists, (l) => l.id, (items) => saveOrder(familyId, items));
   const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
   const rootDrag = useDragOrder(rootNotes, (l) => l.id, (items) => saveOrder(familyId, items));
   const receiptDrag = useDragOrder(receiptNotes, (l) => l.id, (items) => saveOrder(familyId, items));
-  // No name to type: a quick note takes its first word, a receipt today's date (a photo or PDF goes in it).
+  const receiptFolderDrag = useDragOrder(receiptFolders, (l) => l.id, (items) => saveOrder(familyId, items));
+  const receiptsId = () => receipts?.id ?? createFolder(familyId, 'קבלות', '', RECEIPTS_ICON);
   const newReceipt = () => {
-    const folderId = receipts?.id ?? createFolder(familyId, 'קבלות', '', RECEIPTS_ICON);
-    const day = new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
     setOpenSec({ ...openSec, receipts: true });
-    onOpen(createNote(familyId, `קבלה ${day}`, RECEIPTS_ICON, folderId));
+    onOpen(createReceipt(familyId, receiptsId()));
   };
   const shut = (l: FamilyList) => {
     const fl = lockOf(all, l.parentId);
@@ -282,12 +314,12 @@ function Library({
   };
   const [moving, setMoving] = useState<FamilyList | null>(null);
   // Hold a row and let go: its whole menu.
-  const folderMenu = (f: FamilyList) => () =>
+  const folderMenu = (f: FamilyList, order: FamilyList[] = folders) => () =>
     setMenu({
       title: f.title,
       items: [
         { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(f) },
-        ...moveItems(familyId, folders, f.id),
+        ...moveItems(familyId, order, f.id),
         { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) },
       ],
     });
@@ -311,10 +343,25 @@ function Library({
     ...(l.kind === 'note' ? [{ label: 'העברה', icon: <FolderInput size={20} />, onClick: () => setMoving(l) }] : []),
     { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeItem(familyId, l, entries) },
   ];
-  const newFolder = () => {
-    const name = prompt('שם התיקייה (למשל: בית, רכב, ביטוחים)')?.trim();
-    if (name) createFolder(familyId, name, '');
+  const newFolder = (name: string, where: 'notes' | 'receipts') => {
+    createFolder(familyId, name, where === 'receipts' ? receiptsId() : '');
+    setOpenSec({ ...openSec, [where]: true });
+    setCreating(null);
   };
+  const folderRow = (f: FamilyList, order: FamilyList[]) => (
+    <LibRow
+      className="folder-card"
+      icon={<Folder size={22} />}
+      title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
+      count={count(f.id)}
+      onOpen={() => setFolder(f.id)}
+      actions={[
+        { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(f) },
+        { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) },
+      ]}
+      onHold={folderMenu(f, order)}
+    />
+  );
 
   const row = (l: FamilyList) =>
     l.kind === 'note' ? (
@@ -348,13 +395,15 @@ function Library({
               { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => setCreating('note') },
               { label: 'רשימה חדשה', icon: <ListChecks size={20} />, onClick: () => setCreating('list') },
               { label: 'קבלה חדשה', icon: <Receipt size={20} />, onClick: newReceipt },
-              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
+              { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: () => setCreating('folder') },
             ]}
           />
         )}
       </div>
 
-      {creating && (
+      {creating === 'folder' && <NewFolderForm onCreate={newFolder} onCancel={() => setCreating(null)} />}
+
+      {creating && creating !== 'folder' && (
         <NewItemForm
           kind={creating}
           onCancel={() => setCreating(null)}
@@ -379,20 +428,7 @@ function Library({
             {openSec.notes && folders.length + rootNotes.length > 0 && (
               <ul className="lib-group">
                 {folderDrag.ordered.map((f) => (
-                  <li key={f.id} {...folderDrag.row(f.id)}>
-                    <LibRow
-                      className="folder-card"
-                      icon={<Folder size={22} />}
-                      title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
-                      count={count(f.id)}
-                      onOpen={() => setFolder(f.id)}
-                      actions={[
-                        { label: 'שינוי שם', icon: <Pencil size={20} />, onClick: () => rename(f) },
-                        { label: 'מחיקה', icon: <Trash2 size={20} />, danger: true, onClick: () => removeFolder(f) },
-                      ]}
-                      onHold={folderMenu(f)}
-                    />
-                  </li>
+                  <li key={f.id} {...folderDrag.row(f.id)}>{folderRow(f, folders)}</li>
                 ))}
                 {rootDrag.ordered.map((l) => (
                   <li key={l.id} {...rootDrag.row(l.id)}>
@@ -439,11 +475,20 @@ function Library({
           </section>
 
           <section>
-            <SectionHead title="קבלות" icon={<Receipt size={24} />} open={openSec.receipts} onToggle={() => toggle('receipts')} count={receiptNotes.length} />
+            <SectionHead title="קבלות" icon={<Receipt size={24} />} open={openSec.receipts} onToggle={() => toggle('receipts')} count={receiptCount} />
             {openSec.receipts &&
-              (receiptNotes.length === 0 ? (
+              (receiptNotes.length + receiptFolders.length === 0 ? (
                 <p className="empty">עוד אין קבלות. "קבלה חדשה" בכפתור + פותחת קבלה עם התאריך של היום, ומצרפים אליה צילום או PDF.</p>
               ) : (
+                <>
+                {receiptFolders.length > 0 && (
+                  <ul className="lib-group">
+                    {receiptFolderDrag.ordered.map((f) => (
+                      <li key={f.id} {...receiptFolderDrag.row(f.id)}>{folderRow(f, receiptFolders)}</li>
+                    ))}
+                  </ul>
+                )}
+                {receiptNotes.length > 0 && (
                 <ul className="lib-group">
                   {receiptDrag.ordered.map((l) => (
                     <li key={l.id} {...receiptDrag.row(l.id)}>
@@ -459,6 +504,8 @@ function Library({
                     </li>
                   ))}
                 </ul>
+                )}
+                </>
               ))}
           </section>
         </>
@@ -757,10 +804,13 @@ function Notebook({
   const notes = all.filter((l) => l.kind === 'note' && at(l) === folder).sort(byPinThenTitle);
   const folderDrag = useDragOrder(folders, (l) => l.id, (items) => saveOrder(familyId, items));
   const noteDrag = useDragOrder(notes, (l) => l.id, (items) => saveOrder(familyId, items));
-  const up = () => setFolder(here && exists(parentOf(here)) && parentOf(here) ? parentOf(here) : null);
+  // Inside the receipts: the receipts folder itself is the library's "קבלות", and new items are receipts.
+  const receiptsRoot = receiptsFolder(all)?.id;
+  const inRec = inReceipts(all, folder);
+  const up = () => setFolder(here && exists(parentOf(here)) && parentOf(here) && parentOf(here) !== receiptsRoot ? parentOf(here) : null);
   const path = folder ? folderPath(all, folder) : [];
   const ancestors: string[] = [];
-  for (let cur = here; cur?.parentId && exists(cur.parentId); cur = all.find((l) => l.id === cur!.parentId)) ancestors.unshift(cur.parentId);
+  for (let cur = here; cur?.parentId && exists(cur.parentId) && cur.parentId !== receiptsRoot; cur = all.find((l) => l.id === cur!.parentId)) ancestors.unshift(cur.parentId);
 
   const count = (id: string) => {
     const n = all.filter((l) => l.kind === 'note' && at(l) === id).length;
@@ -863,14 +913,14 @@ function Notebook({
   return (
     <>
       <button className="link back" onClick={up}>
-        → {(here?.parentId && exists(here.parentId) && all.find((l) => l.id === here.parentId)?.title) || 'כל הפתקים'}
+        → {(here?.parentId && exists(here.parentId) && here.parentId !== receiptsRoot && all.find((l) => l.id === here.parentId)?.title) || (inRec ? 'קבלות' : 'כל הפתקים')}
       </button>
       {!folder && <h2 className="lib-title">פתקים כלליים</h2>}
 
       {folder && (
         <div className="crumbs-row">
         <nav className="crumbs" aria-label="מיקום במחברת">
-          <button className="link-plain" onClick={() => setFolder(null)}>פתקים</button>
+          <button className="link-plain" onClick={() => setFolder(null)}>{inRec ? 'קבלות' : 'פתקים'}</button>
           {ancestors.map((id) => (
             <span key={id}>
               <span className="muted" aria-hidden="true"> › </span>
@@ -911,7 +961,9 @@ function Notebook({
             icon={<Plus size={24} strokeWidth={2.4} aria-hidden="true" />}
             title={here ? `הוספה ל"${here.title}"` : 'הוספה'}
             items={[
-              { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
+              inRec
+                ? { label: 'קבלה חדשה', icon: <Receipt size={20} />, onClick: () => onOpen(createReceipt(familyId, folder)) }
+                : { label: 'פתק חדש', icon: <StickyNote size={20} />, onClick: () => { setCreating(true); setTitle(''); setEmoji(iconValue('note')); } },
               { label: 'תיקייה חדשה', icon: <FolderPlus size={20} />, onClick: newFolder },
             ]}
           />
@@ -931,7 +983,7 @@ function Notebook({
       )}
 
       {folders.length + notes.length === 0 && !creating && (
-        <p className="empty">{folder ? 'התיקייה ריקה. אפשר להוסיף כאן פתק או תת־תיקייה.' : 'עוד אין פתקים. פתק הוא טקסט חופשי עם קבצים, ותיקיות עוזרות לסדר אותם (בית, רכב, ביטוחים).'}</p>
+        <p className="empty">{folder ? `התיקייה ריקה. אפשר להוסיף כאן ${inRec ? 'קבלה' : 'פתק'} או תת־תיקייה.` : 'עוד אין פתקים. פתק הוא טקסט חופשי עם קבצים, ותיקיות עוזרות לסדר אותם (בית, רכב, ביטוחים).'}</p>
       )}
 
       {folders.length > 0 && (
@@ -971,7 +1023,7 @@ function Notebook({
                 className="note-card"
                 icon={<ListIcon value={l.emoji} size={22} />}
                 title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
-                sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
+                sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || (inRec ? 'קבלה' : 'פתק ריק')}</span>}
                 onOpen={() => onOpen(l.id)}
                 actions={[
                   ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
@@ -1538,7 +1590,7 @@ function NoteEditor({
           </ul>
         )}
         <button className="note-attach" disabled={busy} onClick={() => fileRef.current?.click()}>
-          {busy ? 'רגע…' : note.parentId && note.parentId === receiptsFolder(all)?.id ? '+ צילום הקבלה' : '+ צירוף PDF או תמונה'}
+          {busy ? 'רגע…' : inReceipts(all, note.parentId) ? '+ צילום הקבלה' : '+ צירוף PDF או תמונה'}
         </button>
         {error && <p className="error" role="alert">{error}</p>}
         <p className="muted note-hint">מקובץ PDF נשמרים 3 העמודים הראשונים, כתמונה.</p>

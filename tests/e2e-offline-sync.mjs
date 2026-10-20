@@ -33,6 +33,14 @@ async function addNew(scope, item) {
   await scope.page().getByRole('dialog', { name: /^הוספה/ }).getByRole('button', { name: item }).click();
 }
 
+// A new folder from the library: its name, and whether it goes with the notes or the receipts.
+async function libFolder(scope, name, where = 'פתקים') {
+  await addNew(scope, 'תיקייה חדשה');
+  await scope.getByLabel('שם התיקייה').fill(name);
+  await scope.getByRole('radiogroup', { name: 'איפה התיקייה' }).getByRole('radio', { name: where }).click();
+  await scope.getByRole('button', { name: 'יצירת התיקייה' }).click();
+}
+
 async function planner(page, side) {
   await page.getByRole('navigation').getByRole('button', { name: 'יומן' }).click();
   if (side === 'tasks') await calMenu(page, 'אפשרויות', 'משימות');
@@ -963,6 +971,31 @@ async function main() {
     await lists.locator('.lib-section[aria-expanded="true"]', { hasText: 'קבלות' }).waitFor();
     await lists.locator('.note-card', { hasText: /קבלה \d/ }).waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-receipts.png` });
+    // A folder can go in the receipts; a receipt made in it stays there, and back leads to "קבלות".
+    await libFolder(lists, 'רכב', 'קבלות');
+    const carFolder = lists.locator('section', { hasText: 'קבלות' }).locator('.folder-card', { hasText: 'רכב' });
+    await carFolder.click();
+    assert.ok((await lists.getByRole('navigation', { name: 'מיקום במחברת' }).innerText()).includes('קבלות'), 'path starts at the receipts');
+    await addNew(lists, 'קבלה חדשה');
+    await lists.getByRole('button', { name: '+ צילום הקבלה' }).waitFor();
+    await lists.getByRole('button', { name: '→ רכב' }).click();
+    await lists.locator('.note-card', { hasText: /קבלה \d/ }).waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/receipts-folder.png` });
+    await lists.getByRole('button', { name: '→ קבלות' }).click();
+    await carFolder.waitFor();
+    await lists.locator('.lib-section', { hasText: 'קבלות' }).click();
+    assert.equal(await lists.locator('.lib-section', { hasText: 'קבלות' }).locator('.lib-section-count').innerText(), '2', 'the count takes in receipts in folders');
+    await lists.locator('.lib-section', { hasText: 'קבלות' }).click();
+    await carFolder.click();
+    await lists.locator('.note-card', { hasText: /קבלה \d/ }).click();
+    await lists.getByRole('button', { name: 'אפשרויות' }).click();
+    await lists.getByRole('dialog', { name: /^אפשרויות/ }).getByRole('button', { name: 'מחיקת הפתק' }).click();
+    await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
+    await lists.getByText('התיקייה ריקה. אפשר להוסיף כאן קבלה או תת־תיקייה.').waitFor();
+    await lists.getByRole('button', { name: 'אפשרויות' }).click();
+    await lists.getByRole('dialog', { name: /^אפשרויות/ }).getByRole('button', { name: 'מחיקת התיקייה' }).click();
+    await dad.page.getByRole('alertdialog').getByRole('button', { name: 'כן, למחוק' }).click();
+    await carFolder.waitFor({ state: 'detached' });
     for (const t of ['חשמלאי', /קבלה \d/]) {
       await lists.locator('.note-card', { hasText: t }).evaluate((e) => e.scrollIntoView({ block: 'center' }));
       const box = await lists.locator('.note-card', { hasText: t }).boundingBox();
@@ -982,7 +1015,7 @@ async function main() {
     step('Notes');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
     await openSections(dad.page);
-    await answer('בית', () => addNew(lists, 'תיקייה חדשה'));
+    await libFolder(lists, 'בית');
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await answer('ביטוחים', () => addNew(lists, 'תיקייה חדשה'));
     await lists.locator('.folder-card', { hasText: 'ביטוחים' }).click();
@@ -1276,7 +1309,7 @@ async function main() {
     };
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
     await openSections(dad.page);
-    await answer('מסמכים', () => addNew(lists, 'תיקייה חדשה'));
+    await libFolder(lists, 'מסמכים');
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).click();
     await addNew(lists, 'פתק חדש');
     await lists.getByLabel('שם הפתק').fill('דרכון');

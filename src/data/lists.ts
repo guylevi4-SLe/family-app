@@ -148,6 +148,22 @@ export function createFolder(fid: string, title: string, parentId = '', emoji = 
 export const RECEIPTS_ICON = 'i:receipt';
 export const receiptsFolder = (all: FamilyList[]) => all.find((l) => l.kind === 'folder' && l.emoji === RECEIPTS_ICON && !l.parentId);
 
+/** True for the receipts folder and anything (folders, receipts) inside it, however deep. */
+export function inReceipts(all: FamilyList[], id: string | undefined) {
+  const r = receiptsFolder(all);
+  for (let cur = id, guard = 0; r && cur && guard < 20; guard++) {
+    if (cur === r.id) return true;
+    cur = all.find((l) => l.id === cur)?.parentId;
+  }
+  return false;
+}
+
+/** A receipt: no name to type, today's date (a photo or PDF goes in it). */
+export function createReceipt(fid: string, folderId: string) {
+  const day = new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+  return createNote(fid, `קבלה ${day}`, RECEIPTS_ICON, folderId);
+}
+
 /** A quick note is named by the first word written in it. */
 export const firstWord = (text: string) =>
   text
