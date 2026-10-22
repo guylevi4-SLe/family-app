@@ -104,7 +104,7 @@ export function ZoomViewer({ src, alt, onClose }: { src: string; alt: string; on
     <div className="zoom-viewer" role="dialog" aria-label={alt} onClick={(e) => e.stopPropagation()}>
       <div className="zoom-bar">
         <button className="icon-button" aria-label="סגירה" onClick={onClose}>✕</button>
-        <span className="zoom-hint">צביטה להגדלה</span>
+        <span className="zoom-hint">הרחקת אצבעות להגדלה</span>
         <button className="icon-button" aria-label="שיתוף התמונה" onClick={() => shareImage(src, alt)}>
           <Share size={22} aria-hidden="true" />
         </button>
