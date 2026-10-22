@@ -107,6 +107,16 @@ beforeEach(async () => {
   await setDoc(doc(db('dad'), 'families', 'levi', 'items', 'חלב'), item('dad', 'חלב'));
 });
 
+describe('shopping items', () => {
+  it('only a recently deleted item can be removed for good, and only by the family', async () => {
+    const ref = (u: Who) => doc(db(u), 'families', 'levi', 'items', 'חלב');
+    await assertFails(deleteDoc(ref('dad')));
+    await updateDoc(ref('dad'), { deleted: true, updatedBy: users.dad.uid });
+    await assertFails(deleteDoc(ref('neighbor')));
+    await assertSucceeds(deleteDoc(ref('dad')));
+  });
+});
+
 describe('family separation', () => {
   it('a member reads their own family', async () => {
     await assertSucceeds(getDoc(doc(db('dad'), 'families', 'levi', 'items', 'חלב')));

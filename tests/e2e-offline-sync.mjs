@@ -266,6 +266,15 @@ async function main() {
     await row(dad, 'חלב').waitFor();
     assert.equal(await dad.page.locator('.deleted .name').count(), 0);
     ok('"חלב" checked offline arrived as bought');
+    // Clearing what was bought asks first; "ביטול" leaves it all in place.
+    const boughtBefore = await dad.page.locator('.bought .name').count();
+    await dad.page.locator('.bought .section-head').getByRole('button', { name: 'ניקוי' }).click();
+    await dad.page.getByRole('alertdialog', { name: /^לנקות/ }).waitFor();
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/clear-bought.png` });
+    await dad.page.getByRole('alertdialog').getByRole('button', { name: 'ביטול' }).click();
+    await dad.page.waitForTimeout(500);
+    assert.equal(await dad.page.locator('.bought .name').count(), boughtBefore, 'nothing was cleared');
+    ok('"ניקוי" of bought items asks first');
     await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
     await dad.page.locator('.deleted .name', { hasText: 'עגבניות' }).waitFor();
     ok('delete beat a concurrent edit; item is in "recently deleted" for restore');
@@ -304,8 +313,11 @@ async function main() {
     await waitSynced(kid);
     await dad.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
     ok('the move reached the other phone after reconnecting');
-    await dad.page.locator('.deleted .row', { hasText: 'שמפו' }).getByRole('button', { name: 'החזרה לרשימה' }).click();
-    await row(kid, 'שמפו').waitFor({ timeout: 10000 });
+    // "✕" removes it for good, on both phones.
+    await dad.page.getByRole('button', { name: 'מחיקה סופית של שמפו' }).click();
+    await dad.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ state: 'detached', timeout: 10000 });
+    await kid.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ state: 'detached', timeout: 10000 });
+    ok('"✕" in recently deleted removes an item for good');
 
     step('Home screen, tasks, calendar and comments');
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));

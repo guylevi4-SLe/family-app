@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   serverTimestamp,
   setDoc,
@@ -115,6 +116,11 @@ export function clearChecked(fid: string, items: Item[]) {
     batch.update(doc(itemsCol(fid), it.id), { deleted: true, updatedAt: serverTimestamp(), updatedBy: uid });
   }
   batch.commit().catch(reportWriteError);
+}
+
+/** Removes an item from "recently deleted" for good. */
+export function purgeItem(fid: string, id: string) {
+  deleteDoc(doc(itemsCol(fid), id)).catch(reportWriteError);
 }
 
 export function reportWriteError(e: unknown) {

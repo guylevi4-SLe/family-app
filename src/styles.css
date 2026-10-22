@@ -197,6 +197,9 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .pending-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
 .row .edit { color: var(--muted); }
 .deleted .row { padding: 0 14px; justify-content: space-between; }
+.deleted .row { gap: 8px; }
+.deleted .row .name { flex: 1; }
+.purge-button { color: var(--muted); font-size: 1.1rem; }
 .section-head { display: flex; justify-content: space-between; align-items: center; }
 
 .toast {

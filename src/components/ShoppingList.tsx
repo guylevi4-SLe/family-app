@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
-import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
+import { addItems, clearChecked, purgeItem, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
 import { CommentButton } from './CommentButton';
 import { Icon } from './Icon';
+import { confirmAsk } from './ConfirmSheet';
+import { Eraser } from 'lucide-react';
 
 const RECENT_DAYS = 30;
 
@@ -111,7 +113,13 @@ export function ShoppingList({
             <button className="link" onClick={() => setShowBought(!showBought)} aria-expanded={showBought}>
               נקנו בשבוע האחרון ({bought.length}) {showBought ? '▴' : '▾'}
             </button>
-            <button className="link" onClick={() => clearChecked(familyId, bought)}>
+            <button
+              className="link"
+              onClick={async () => {
+                const n = bought.length;
+                if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יעבור ל"נמחקו לאחרונה", ואפשר להחזיר אותו משם.' : 'הם יעברו ל"נמחקו לאחרונה", ואפשר להחזיר אותם משם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
+              }}
+            >
               ניקוי
             </button>
           </div>
@@ -148,6 +156,9 @@ export function ShoppingList({
                     onClick={() => updateItem(familyId, it.id, { deleted: false, checked: false })}
                   >
                     החזרה לרשימה
+                  </button>
+                  <button className="icon-button purge-button" aria-label={`מחיקה סופית של ${it.name}`} onClick={() => purgeItem(familyId, it.id)}>
+                    ✕
                   </button>
                 </li>
               ))}
