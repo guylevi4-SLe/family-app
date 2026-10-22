@@ -9,7 +9,7 @@ import { PaidSheet } from './PaidSheet';
 import { CommentButton } from './CommentButton';
 import { Icon } from './Icon';
 import { confirmAsk } from './ConfirmSheet';
-import { Eraser } from 'lucide-react';
+import { Eraser, Undo2 } from 'lucide-react';
 
 const RECENT_DAYS = 30;
 
@@ -48,7 +48,8 @@ export function ShoppingList({
   const cutoff = Date.now() - RECENT_DAYS * 86400000;
   const deleted = (items ?? [])
     .filter((i) => i.deleted && (i.updatedAt?.toMillis() ?? Date.now()) > cutoff)
-    .sort((a, b) => (b.updatedAt?.toMillis() ?? 0) - (a.updatedAt?.toMillis() ?? 0));
+    // A to Z, to find an item and put it back.
+    .sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
   const groups = useMemo(() => {
     const order = orderedDepartments(deptOrder);
@@ -152,10 +153,12 @@ export function ShoppingList({
                 <li key={it.id} className="row">
                   <span className="name">{it.name}</span>
                   <button
-                    className="small"
+                    className="small restore-button"
+                    aria-label={`החזרה לרשימה: ${it.name}`}
                     onClick={() => updateItem(familyId, it.id, { deleted: false, checked: false })}
                   >
-                    החזרה לרשימה
+                    <Undo2 size={16} aria-hidden="true" />
+                    החזרה
                   </button>
                   <button className="icon-button purge-button" aria-label={`מחיקה סופית של ${it.name}`} onClick={() => purgeItem(familyId, it.id)}>
                     ✕

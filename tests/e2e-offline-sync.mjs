@@ -277,6 +277,12 @@ async function main() {
     ok('"ניקוי" of bought items asks first');
     await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
     await dad.page.locator('.deleted .name', { hasText: 'עגבניות' }).waitFor();
+    const gone = await dad.page.locator('.deleted .name').allInnerTexts();
+    assert.deepEqual(gone, [...gone].sort((x, y) => x.localeCompare(y, 'he')), 'recently deleted is A to Z');
+    if (process.env.SCREENSHOT_DIR) {
+      await dad.page.locator('.deleted').evaluate((e) => e.scrollIntoView({ block: 'end' }));
+      await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/deleted.png` });
+    }
     ok('delete beat a concurrent edit; item is in "recently deleted" for restore');
 
     if (process.env.SCREENSHOT_DIR) {
@@ -291,7 +297,7 @@ async function main() {
     }
 
     step('Restore and undo');
-    await dad.page.locator('.deleted .row', { hasText: 'עגבניות' }).getByRole('button', { name: 'החזרה לרשימה' }).click();
+    await dad.page.locator('.deleted .row', { hasText: 'עגבניות' }).getByRole('button', { name: /^החזרה לרשימה/ }).click();
     await row(kid, 'עגבניות').waitFor({ timeout: 10000 });
     ok('restored item reappears on the other phone');
 
