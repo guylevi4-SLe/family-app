@@ -104,19 +104,7 @@ export function ZoomViewer({ src, alt, onClose }: { src: string; alt: string; on
     <div className="zoom-viewer" role="dialog" aria-label={alt} onClick={(e) => e.stopPropagation()}>
       <div className="zoom-bar">
         <button className="icon-button" aria-label="סגירה" onClick={onClose}>✕</button>
-        {/* Two fingertips spreading apart: shown a few times, then it fades away. */}
-        <span className="zoom-hint" role="img" aria-label="הרחקת אצבעות להגדלה">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <g className="zoom-finger a">
-              <circle cx="17" cy="27" r="5" fill="currentColor" fillOpacity="0.35" />
-              <path d="M10 34l-4 4M6 33v5h5" />
-            </g>
-            <g className="zoom-finger b">
-              <circle cx="27" cy="17" r="5" fill="currentColor" fillOpacity="0.35" />
-              <path d="M34 10l4-4M33 6h5v5" />
-            </g>
-          </svg>
-        </span>
+        <span className="zoom-bar-gap" />
         <button className="icon-button" aria-label="שיתוף התמונה" onClick={() => shareImage(src, alt)}>
           <Share size={22} aria-hidden="true" />
         </button>
@@ -134,6 +122,19 @@ export function ZoomViewer({ src, alt, onClose }: { src: string; alt: string; on
           />
         </div>
       </div>
+      {/* Two fingertips spreading apart: shown a few times, then it fades away. */}
+      <span className="zoom-hint" role="img" aria-label="הרחקת אצבעות להגדלה">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <g className="zoom-finger a">
+            <circle cx="17" cy="27" r="5" fill="currentColor" fillOpacity="0.35" />
+            <path d="M10 34l-4 4M6 33v5h5" />
+          </g>
+          <g className="zoom-finger b">
+            <circle cx="27" cy="17" r="5" fill="currentColor" fillOpacity="0.35" />
+            <path d="M34 10l4-4M33 6h5v5" />
+          </g>
+        </svg>
+      </span>
     </div>,
     document.body,
   );

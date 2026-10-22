@@ -693,7 +693,8 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .zoom-viewer { position: fixed; inset: 0; z-index: 40; background: #0d0c0a; display: grid; grid-template-rows: auto 1fr; }
 .zoom-bar { display: flex; align-items: center; gap: 8px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; color: #fff; }
 .zoom-bar .icon-button { color: #fff; font-size: 1.4rem; }
-.zoom-hint { flex: 1; display: flex; justify-content: center; opacity: 0.75; animation: zoom-hint-out 0.6s ease 4.2s forwards; }
+.zoom-bar-gap { flex: 1; }
+.zoom-hint { position: absolute; inset-inline: 0; bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px)); margin: 0 auto; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; pointer-events: none; animation: zoom-hint-out 0.6s ease 4.2s forwards; }
 .zoom-finger { animation: zoom-spread 1.4s ease-in-out 3; }
 .zoom-finger.a { --dx: -4px; --dy: 4px; }
 .zoom-finger.b { --dx: 4px; --dy: -4px; }
