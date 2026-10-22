@@ -539,9 +539,12 @@ async function main() {
       await send('@י חוג');
       await notice.filter({ hasText: 'חסר יום או תאריך' }).waitFor();
       assert.equal(await box.inputValue(), '@י חוג', 'a command missing its date stays in the box to fix');
-      await send('@י חוג ציור כל חמישי 17:00');
+      // A weekday that's neither today nor tomorrow, so the birthday tomorrow stays first on the home screen.
+      const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+      const wd = (new Date().getDay() + 3) % 7;
+      await send(`@י חוג ציור כל ${days[wd === 6 ? 0 : wd]} 17:00`);
       await notice.filter({ hasText: /נקבע ביומן: חוג ציור.*17:00 · כל שבוע/ }).waitFor();
-      ok('"@י … כל חמישי 17:00" adds a weekly event; a missing date is explained, not sent');
+      ok('"@י … כל <יום> 17:00" adds a weekly event; a missing date is explained, not sent');
 
       await send('@ר ציוד לסקי: כפפות, כובע');
       await notice.filter({ hasText: 'נוצרה רשימה חדשה "ציוד לסקי" עם 2 פריטים' }).waitFor();
@@ -1047,6 +1050,9 @@ async function main() {
     await lists.getByRole('button', { name: 'הגדלת timetable-e2e.pdf' }).click();
     const closeZoom = dad.page.getByRole('button', { name: 'סגירה', exact: true });
     await closeZoom.waitFor();
+    await dad.page.getByRole('img', { name: 'הרחקת אצבעות להגדלה' }).waitFor();
+    await dad.page.waitForTimeout(700);
+    if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/zoom-hint.png` });
     await dad.page.keyboard.press('Escape');
     await closeZoom.waitFor({ state: 'detached' });
     await lists.getByRole('button', { name: '→ בית' }).click();

@@ -693,7 +693,13 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .zoom-viewer { position: fixed; inset: 0; z-index: 40; background: #0d0c0a; display: grid; grid-template-rows: auto 1fr; }
 .zoom-bar { display: flex; align-items: center; gap: 8px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; color: #fff; }
 .zoom-bar .icon-button { color: #fff; font-size: 1.4rem; }
-.zoom-hint { flex: 1; font-size: 0.85rem; opacity: 0.7; }
+.zoom-hint { flex: 1; display: flex; justify-content: center; opacity: 0.75; animation: zoom-hint-out 0.6s ease 4.2s forwards; }
+.zoom-finger { animation: zoom-spread 1.4s ease-in-out 3; }
+.zoom-finger.a { --dx: -4px; --dy: 4px; }
+.zoom-finger.b { --dx: 4px; --dy: -4px; }
+@keyframes zoom-spread { 0%, 15% { transform: translate(calc(var(--dx) * -0.6), calc(var(--dy) * -0.6)); } 70%, 100% { transform: translate(var(--dx), var(--dy)); } }
+@keyframes zoom-hint-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .zoom-finger { animation: none; } }
 .zoom-box { overflow: auto; direction: ltr; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
 .zoom-stage { display: grid; place-items: center; }
 .zoom-stage img { display: block; max-width: none; background: #fff; user-select: none; -webkit-user-select: none; }
