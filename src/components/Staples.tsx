@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { addStaples, addStaplesToList, parseItems, qtyLabel, type Item } from '../data/items';
-import { formatPrice, type PriceEntry } from '../data/prices';
+import { priceLabel, type PriceEntry } from '../data/prices';
 import { Icon } from './Icon';
 
 /** "המוצרים שלנו": what the family usually buys, by department; a tap puts it on the list. */
@@ -82,7 +82,7 @@ export function StaplesSection({
                         <span className="name">{it.name}</span>
                         {it.usualQty && <span className="qty">{qtyLabel(it.usualQty)}</span>}
                         {onList && <span className="on-list-tag">ברשימה</span>}
-                        {last && <span className="price-tag">{formatPrice(last.price)}</span>}
+                        {last && <span className="price-tag">{priceLabel(last)}</span>}
                       </button>
                       <button className="icon-button edit" aria-label={`עריכת ${it.name}`} onClick={() => onEdit(it)}>
                         <Icon name="edit" size={18} />

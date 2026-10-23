@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Item } from '../data/items';
-import { addPrice, formatPrice, parsePrice, priceKey, type PriceEntry } from '../data/prices';
+import { addPrice, defaultUnit, formatPrice, parsePrice, priceKey, type PriceEntry, type PriceUnit } from '../data/prices';
+import { UnitPick } from './UnitPick';
 
 /** After shopping: one store for the trip, and an optional price for each item that was bought. */
 export function PaidSheet({
@@ -18,10 +19,14 @@ export function PaidSheet({
 }) {
   const [store, setStore] = useState(stores[0] ?? '');
   const [prices, setPrices] = useState<Record<string, string>>({});
+  // Each product starts with the unit it was priced in last time, or per kilo for produce and meat.
+  const [units, setUnits] = useState<Record<string, PriceUnit>>(() =>
+    Object.fromEntries(bought.map((it) => [it.id, defaultUnit(byKey.get(priceKey(it.name))?.[0], it.category)])),
+  );
   const filled = bought.filter((it) => parsePrice(prices[it.id] ?? ''));
 
   const save = () => {
-    for (const it of filled) addPrice(familyId, it.name, parsePrice(prices[it.id])!, store);
+    for (const it of filled) addPrice(familyId, it.name, parsePrice(prices[it.id])!, store, units[it.id] ?? '');
     onClose();
   };
 
@@ -50,6 +55,7 @@ export function PaidSheet({
                   value={prices[it.id] ?? ''}
                   onChange={(e) => setPrices({ ...prices, [it.id]: e.target.value })}
                 />
+                <UnitPick value={units[it.id] ?? ''} onChange={(u) => setUnits({ ...units, [it.id]: u })} name={it.name} />
               </li>
             );
           })}
