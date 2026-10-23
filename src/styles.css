@@ -1129,3 +1129,23 @@ body.kb-open .quick-note-body { min-height: 40dvh; }
 .picker-list input { width: 22px; height: 22px; min-height: 0; padding: 0; accent-color: var(--accent); }
 .picker-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-list .muted { font-size: 0.8rem; }
+
+/* "המוצרים שלנו": a small soft button beside the WhatsApp one; its products open in a sheet over the list. */
+.shopping .list-actions { flex-wrap: wrap; align-items: center; gap: 8px; }
+.shopping .staples-button,
+:root[data-palette] .shopping .staples-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 999px;
+  box-shadow: none;
+}
+.staples-sheet { gap: 6px; }
+.staples-sheet .staple-dept ul { list-style: none; margin: 0; padding: 0; }

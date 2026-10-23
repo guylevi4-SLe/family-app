@@ -6,7 +6,7 @@ import { useOverrides, usePrices } from '../data/hooks';
 import { knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
-import { StaplesSection } from './Staples';
+import { StaplesButton } from './Staples';
 import { CommentButton } from './CommentButton';
 import { useFamily } from './FamilyContext';
 import { ZoomViewer } from './ZoomViewer';
@@ -81,12 +81,23 @@ export function ShoppingList({
 
   return (
     <main className="list-page with-bottom-add shopping">
-      {active.length > 0 && (
+      {items !== undefined && (
         <div className="list-actions">
-          <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
-            <Icon name="whatsapp" size={20} />
-            שליחת הרשימה לוואטסאפ
-          </button>
+          {active.length > 0 && (
+            <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
+              <Icon name="whatsapp" size={20} />
+              שליחת הרשימה לוואטסאפ
+            </button>
+          )}
+          <StaplesButton
+            familyId={familyId}
+            items={items}
+            byId={byId}
+            overrides={overrides}
+            deptOrder={deptOrder}
+            lastPrice={lastPrice}
+            onEdit={(it) => setEditing({ item: it, staple: true })}
+          />
         </div>
       )}
 
@@ -137,18 +148,6 @@ export function ShoppingList({
             </>
           )}
         </section>
-      )}
-
-      {items !== undefined && (
-        <StaplesSection
-          familyId={familyId}
-          items={items}
-          byId={byId}
-          overrides={overrides}
-          deptOrder={deptOrder}
-          lastPrice={lastPrice}
-          onEdit={(it) => setEditing({ item: it, staple: true })}
-        />
       )}
 
       {undo && (
