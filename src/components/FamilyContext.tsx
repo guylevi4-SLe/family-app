@@ -7,6 +7,8 @@ export interface FamilyCtx {
   me: Member;
   members: Member[];
   commentCounts: Map<string, number>;
+  /** The newest photo in each shopping item's notes, by item id. */
+  itemPhotos: Map<string, string>;
   openComments: (type: TargetType, id: string, title: string) => void;
 }
 
