@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { normalize, orderedDepartments } from '../data/departments';
 import { addItems, setCategory, updateItem, type Item, type Urgency } from '../data/items';
-import { addPrice, ago, deletePrice, formatPrice, parsePrice, priceKey, similarKinds, type PriceEntry } from '../data/prices';
+import { addPrice, ago, cheapestByUnit, defaultUnit, deletePrice, estimateTotal, formatPrice, parsePrice, priceKey, priceLabel, similarKinds, type PriceEntry } from '../data/prices';
 import { auth } from '../firebase';
 import { CommentButton } from './CommentButton';
+import { UnitPick } from './UnitPick';
 
 export function ItemSheet({
   familyId,
@@ -33,9 +34,10 @@ export function ItemSheet({
   const [qty, setQty] = useState(staple ? (item.usualQty ?? '') : item.qty);
   const [isStaple, setIsStaple] = useState(!!item.staple);
   const [urgency, setUrgency] = useState<Urgency>(item.urgency ?? '');
-  const [paid, setPaid] = useState({ price: '', store: stores[0] ?? '' });
   const history = byKey.get(priceKey(name.trim() || item.name)) ?? [];
-  const cheapest = history.length > 1 ? Math.min(...history.map((h) => h.price)) : null;
+  const [paid, setPaid] = useState({ price: '', store: stores[0] ?? '', unit: defaultUnit(history[0], item.category) });
+  const isCheapest = cheapestByUnit(history);
+  const estimate = staple ? null : estimateTotal(qty, history[0]);
   const kinds = similarKinds(name.trim() || item.name, byKey);
 
   // "קוטג'" becomes the kind bought before ("קוטג' 3%"), with its prices; the quantity stays.
@@ -95,7 +97,7 @@ export function ItemSheet({
             <div className="chips" role="group" aria-label="סוגים שקניתם בעבר">
               {kinds.map((k) => (
                 <button type="button" key={k.key} className="chip" onClick={() => switchTo(k.name)}>
-                  {k.name} <span className="chip-price">{formatPrice(k.price)}</span>
+                  {k.name} <span className="chip-price">{priceLabel(k)}</span>
                 </button>
               ))}
             </div>
@@ -106,13 +108,13 @@ export function ItemSheet({
           {history.length > 0 ? (
             <ul className="price-history" aria-label="היסטוריית מחירים">
               {history.slice(0, 6).map((h) => (
-                <li key={h.id} className={h.price === cheapest ? 'cheapest' : ''}>
-                  <strong>{formatPrice(h.price)}</strong>
+                <li key={h.id} className={isCheapest(h) ? 'cheapest' : ''}>
+                  <strong>{priceLabel(h)}</strong>
                   <span>{h.store || 'בלי חנות'}</span>
                   <span className="muted">{ago(h)}</span>
-                  {h.price === cheapest && <span className="cheap-mark">הכי זול</span>}
+                  {isCheapest(h) && <span className="cheap-mark">הכי זול</span>}
                   {h.by === auth.currentUser?.uid && (
-                    <button type="button" className="link muted" aria-label={`מחיקת המחיר ${formatPrice(h.price)}`} onClick={() => deletePrice(familyId, h.id)}>
+                    <button type="button" className="link muted" aria-label={`מחיקת המחיר ${priceLabel(h)}`} onClick={() => deletePrice(familyId, h.id)}>
                       ✕
                     </button>
                   )}
@@ -122,15 +124,21 @@ export function ItemSheet({
           ) : (
             <p className="muted small-text">עוד לא נרשם מחיר. אפשר להוסיף כאן, או אחרי הקנייה דרך "רישום מחירים" ב"נקנו בשבוע האחרון".</p>
           )}
+          {estimate !== null && (
+            <p className="small-text estimate">
+              בערך {formatPrice(estimate)} ל־{qty.trim()}
+            </p>
+          )}
+          <UnitPick value={paid.unit} onChange={(unit) => setPaid({ ...paid, unit })} name={name.trim() || item.name} />
           <div className="paid-form">
-            <input inputMode="decimal" placeholder="מחיר ₪" aria-label="מחיר חדש" value={paid.price} onChange={(e) => setPaid({ ...paid, price: e.target.value })} />
+            <input inputMode="decimal" placeholder={paid.unit === 'kg' ? 'מחיר לק״ג ₪' : 'מחיר ₪'} aria-label="מחיר חדש" value={paid.price} onChange={(e) => setPaid({ ...paid, price: e.target.value })} />
             <input list="known-stores-sheet" placeholder="איפה?" aria-label="חנות" maxLength={40} value={paid.store} onChange={(e) => setPaid({ ...paid, store: e.target.value })} />
             <button
               type="button"
               className="small"
               disabled={!parsePrice(paid.price)}
               onClick={() => {
-                addPrice(familyId, name.trim() || item.name, parsePrice(paid.price)!, paid.store);
+                addPrice(familyId, name.trim() || item.name, parsePrice(paid.price)!, paid.store, paid.unit);
                 setPaid({ ...paid, price: '' });
               }}
             >

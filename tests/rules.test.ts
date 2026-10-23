@@ -427,6 +427,8 @@ describe('prices', () => {
     await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, price: '5' }));
     await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, store: 'א'.repeat(41) }));
     await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, note: 'x' }));
+    await assertSucceeds(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'p3'), { ...P, unit: 'kg' }));
+    await assertFails(setDoc(doc(db('son'), 'families', 'levi', 'prices', 'x'), { ...P, unit: 'lb' }));
     await assertFails(updateDoc(doc(db('son'), 'families', 'levi', 'prices', 'p1'), { price: 1 }));
     await assertFails(getDocs(collection(db('neighbor'), 'families', 'levi', 'prices')));
     await assertFails(setDoc(doc(db('neighbor'), 'families', 'levi', 'prices', 'x'), { ...P, by: 'neighbor' }));
