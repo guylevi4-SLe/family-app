@@ -5,7 +5,7 @@ import { priceLabel, type PriceEntry } from '../data/prices';
 import { Icon } from './Icon';
 import { ShoppingBasket } from 'lucide-react';
 
-/** "המוצרים שלנו": a small button above the list that opens the family's usual products. */
+/** "מזווה": a small button above the list that opens the family's usual products. */
 export function StaplesButton(props: {
   familyId: string;
   items: Item[];
@@ -16,12 +16,11 @@ export function StaplesButton(props: {
   onEdit: (it: Item) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const count = props.items.filter((i) => i.staple).length;
   return (
     <>
       <button className="small staples-button" onClick={() => setOpen(true)}>
         <ShoppingBasket size={16} aria-hidden="true" />
-        המוצרים שלנו ({count})
+        מזווה
       </button>
       {open && <StaplesSheet {...props} onClose={() => setOpen(false)} />}
     </>
@@ -73,9 +72,9 @@ function StaplesSheet({
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet tall staples-sheet" role="dialog" aria-label="המוצרים שלנו" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet tall staples-sheet" role="dialog" aria-label="מזווה" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
-          <h2>המוצרים שלנו</h2>
+          <h2>מזווה</h2>
           <button className="icon-button" aria-label="סגירה" onClick={onClose}>
             ✕
           </button>
@@ -119,7 +118,7 @@ function StaplesSheet({
             add();
           }}
         >
-          <input value={text} maxLength={120} placeholder="מוצר חדש, למשל: חלב 2" aria-label="מוצר חדש למוצרים שלנו" onChange={(e) => setText(e.target.value)} />
+          <input value={text} maxLength={120} placeholder="מוצר חדש, למשל: חלב 2" aria-label="מוצר חדש למזווה" onChange={(e) => setText(e.target.value)} />
           <button className="small" disabled={!text.trim()}>
             הוספה
           </button>

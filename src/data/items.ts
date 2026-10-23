@@ -26,7 +26,7 @@ export interface Item {
   updatedAt?: Timestamp | null;
   updatedBy: string;
   pending: boolean;
-  /** On "המוצרים שלנו": products the family usually buys, added in one tap. */
+  /** On "מזווה": products the family usually buys, added in one tap. */
   staple?: boolean;
   /** The quantity a staple is added with. */
   usualQty?: string;
@@ -121,7 +121,7 @@ export function clearChecked(fid: string, items: Item[]) {
   batch.commit().catch(reportWriteError);
 }
 
-/** Puts products on "המוצרים שלנו" without adding them to the list ("חלב 2" keeps 2 as its usual quantity). */
+/** Puts products on "מזווה" without adding them to the list ("חלב 2" keeps 2 as its usual quantity). */
 export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<string, Item>, overrides: Map<string, string>) {
   const uid = auth.currentUser!.uid;
   const batch = writeBatch(db);

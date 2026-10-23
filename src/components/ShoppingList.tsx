@@ -126,7 +126,7 @@ export function ShoppingList({
               className="link"
               onClick={async () => {
                 const n = bought.length;
-                if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יוסר מהרשימה. אם הוא ב"המוצרים שלנו", הוא יישאר שם.' : 'הם יוסרו מהרשימה. מה שב"המוצרים שלנו" יישאר שם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
+                if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יוסר מהרשימה. אם הוא במזווה, הוא יישאר שם.' : 'הם יוסרו מהרשימה. מה שבמזווה יישאר שם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
               }}
             >
               ניקוי
