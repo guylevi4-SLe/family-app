@@ -1,4 +1,4 @@
-/** How long a bought item stays under "נקנו בשבוע האחרון" before it moves to "נמחקו לאחרונה". */
+/** How long a bought item stays under "נקנו בשבוע האחרון" before it leaves the list. */
 export const BOUGHT_DAYS = 7;
 
 interface Stamp {
@@ -24,7 +24,7 @@ export function boughtAt(it: BoughtLike, now: number): number {
   return Math.max(checked, updated) || now;
 }
 
-/** Splits bought items into those from the last week and those to move to recently deleted. */
+/** Splits bought items into those from the last week and those to take off the list. */
 export function splitBought<T extends BoughtLike>(items: T[], now: number): { recent: T[]; expired: T[] } {
   const cutoff = now - BOUGHT_DAYS * 86400000;
   const recent: T[] = [];

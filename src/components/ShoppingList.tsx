@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
-import { addItems, clearChecked, purgeItem, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
+import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { formatPrice, knownStores, priceKey, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
+import { StaplesSection } from './Staples';
 import { CommentButton } from './CommentButton';
 import { Icon } from './Icon';
 import { confirmAsk } from './ConfirmSheet';
-import { Eraser, Undo2 } from 'lucide-react';
-
-const RECENT_DAYS = 30;
+import { Eraser } from 'lucide-react';
 
 export function ShoppingList({
   familyId,
@@ -28,16 +27,15 @@ export function ShoppingList({
   const stores = useMemo(() => knownStores(priceRows), [priceRows]);
   const lastPrice = (it: Item) => byKey.get(priceKey(it.name))?.[0];
   const [text, setText] = useState('');
-  const [editing, setEditing] = useState<Item | null>(null);
+  const [editing, setEditing] = useState<{ item: Item; staple: boolean } | null>(null);
   const [showBought, setShowBought] = useState(false);
-  const [showDeleted, setShowDeleted] = useState(false);
-  const [undo, setUndo] = useState<{ item: Item; timer: number } | null>(null);
+  const [undo, setUndo] = useState<{ item: Item; deleted: boolean; timer: number } | null>(null);
   const [paying, setPaying] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const byId = useMemo(() => new Map((items ?? []).map((i) => [i.id, i])), [items]);
   const active = (items ?? []).filter((i) => !i.deleted && !i.checked);
-  // Bought items older than a week move to recently deleted. Every device does
+  // Bought items older than a week leave the list. Every device does
   // this when the list opens; the writes are identical, so it's safe offline too.
   const { recent: bought, expired } = splitBought(items ?? [], Date.now());
   const expiredKey = expired.map((i) => i.id).join('\n');
@@ -45,11 +43,6 @@ export function ShoppingList({
     if (expired.length) clearChecked(familyId, expired);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [familyId, expiredKey]);
-  const cutoff = Date.now() - RECENT_DAYS * 86400000;
-  const deleted = (items ?? [])
-    .filter((i) => i.deleted && (i.updatedAt?.toMillis() ?? Date.now()) > cutoff)
-    // A to Z, to find an item and put it back.
-    .sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
   const groups = useMemo(() => {
     const order = orderedDepartments(deptOrder);
@@ -73,13 +66,15 @@ export function ShoppingList({
     inputRef.current?.focus();
   };
 
+  const offerUndo = (item: Item, deleted: boolean) => {
+    if (undo) clearTimeout(undo.timer);
+    const timer = window.setTimeout(() => setUndo(null), 7000);
+    setUndo({ item, deleted, timer });
+  };
+
   const toggle = (it: Item) => {
     updateItem(familyId, it.id, { checked: !it.checked });
-    if (!it.checked) {
-      if (undo) clearTimeout(undo.timer);
-      const timer = window.setTimeout(() => setUndo(null), 7000);
-      setUndo({ item: it, timer });
-    }
+    if (!it.checked) offerUndo(it, false);
   };
 
   return (
@@ -101,7 +96,7 @@ export function ShoppingList({
             <h2>{dept}</h2>
             <ul>
               {list.map((it) => (
-                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
+                <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing({ item: it, staple: false })} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
               ))}
             </ul>
           </section>
@@ -118,7 +113,7 @@ export function ShoppingList({
               className="link"
               onClick={async () => {
                 const n = bought.length;
-                if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יעבור ל"נמחקו לאחרונה", ואפשר להחזיר אותו משם.' : 'הם יעברו ל"נמחקו לאחרונה", ואפשר להחזיר אותם משם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
+                if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יוסר מהרשימה. אם הוא ב"המוצרים שלנו", הוא יישאר שם.' : 'הם יוסרו מהרשימה. מה שב"המוצרים שלנו" יישאר שם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
               }}
             >
               ניקוי
@@ -134,7 +129,7 @@ export function ShoppingList({
               </div>
               <ul>
                 {bought.map((it) => (
-                  <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing(it)} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
+                  <ItemRow key={it.id} item={it} last={lastPrice(it)} onToggle={() => toggle(it)} onEdit={() => setEditing({ item: it, staple: false })} onUrgency={(urgency) => updateItem(familyId, it.id, { urgency })} />
                 ))}
               </ul>
             </>
@@ -142,41 +137,25 @@ export function ShoppingList({
         </section>
       )}
 
-      {deleted.length > 0 && (
-        <section className="dept deleted">
-          <button className="link muted" onClick={() => setShowDeleted(!showDeleted)} aria-expanded={showDeleted}>
-            נמחקו לאחרונה ({deleted.length}) {showDeleted ? '▴' : '▾'}
-          </button>
-          {showDeleted && (
-            <ul>
-              {deleted.map((it) => (
-                <li key={it.id} className="row">
-                  <span className="name">{it.name}</span>
-                  <button
-                    className="small restore-button"
-                    aria-label={`החזרה לרשימה: ${it.name}`}
-                    onClick={() => updateItem(familyId, it.id, { deleted: false, checked: false })}
-                  >
-                    <Undo2 size={16} aria-hidden="true" />
-                    החזרה
-                  </button>
-                  <button className="icon-button purge-button" aria-label={`מחיקה סופית של ${it.name}`} onClick={() => purgeItem(familyId, it.id)}>
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {items !== undefined && (
+        <StaplesSection
+          familyId={familyId}
+          items={items}
+          byId={byId}
+          overrides={overrides}
+          deptOrder={deptOrder}
+          lastPrice={lastPrice}
+          onEdit={(it) => setEditing({ item: it, staple: true })}
+        />
       )}
 
       {undo && (
         <div className="toast bought-toast" role="status">
           <div className="toast-line">
-            <span>{undo.item.name} סומן כנקנה</span>
+            <span>{undo.item.name} {undo.deleted ? 'נמחק מהרשימה' : 'סומן כנקנה'}</span>
             <button
               onClick={() => {
-                updateItem(familyId, undo.item.id, { checked: false });
+                updateItem(familyId, undo.item.id, undo.deleted ? { deleted: false } : { checked: false });
                 clearTimeout(undo.timer);
                 setUndo(null);
               }}
@@ -195,7 +174,9 @@ export function ShoppingList({
       {editing && (
         <ItemSheet
           familyId={familyId}
-          item={byId.get(editing.id) ?? editing}
+          item={byId.get(editing.item.id) ?? editing.item}
+          staple={editing.staple}
+          onDeleted={(it) => offerUndo(it, true)}
           deptOrder={deptOrder}
           byKey={byKey}
           stores={stores}

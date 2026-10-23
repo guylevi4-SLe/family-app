@@ -1,6 +1,5 @@
 import {
   collection,
-  deleteDoc,
   doc,
   serverTimestamp,
   setDoc,
@@ -27,6 +26,10 @@ export interface Item {
   updatedAt?: Timestamp | null;
   updatedBy: string;
   pending: boolean;
+  /** On "המוצרים שלנו": products the family usually buys, added in one tap. */
+  staple?: boolean;
+  /** The quantity a staple is added with. */
+  usualQty?: string;
 }
 
 /** How a quantity shows: a bare number is a count of units ("2" → "2 יח׳"); anything else as typed. */
@@ -94,7 +97,7 @@ export function addItems(
   batch.commit().catch(reportWriteError);
 }
 
-export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted' | 'urgency'>>) {
+export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted' | 'urgency' | 'staple' | 'usualQty'>>) {
   updateDoc(doc(itemsCol(fid), id), {
     ...fields,
     ...(fields.checked ? { checkedAt: serverTimestamp() } : {}),
@@ -118,9 +121,41 @@ export function clearChecked(fid: string, items: Item[]) {
   batch.commit().catch(reportWriteError);
 }
 
-/** Removes an item from "recently deleted" for good. */
-export function purgeItem(fid: string, id: string) {
-  deleteDoc(doc(itemsCol(fid), id)).catch(reportWriteError);
+/** Puts products on "המוצרים שלנו" without adding them to the list ("חלב 2" keeps 2 as its usual quantity). */
+export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<string, Item>, overrides: Map<string, string>) {
+  const uid = auth.currentUser!.uid;
+  const batch = writeBatch(db);
+  for (const p of parsed) {
+    const norm = normalize(p.name);
+    const id = itemId(norm);
+    const prev = existing.get(id);
+    const usualQty = p.qty || prev?.usualQty || '';
+    batch.set(
+      doc(itemsCol(fid), id),
+      prev
+        ? { staple: true, usualQty, updatedAt: serverTimestamp(), updatedBy: uid }
+        : {
+            name: p.name,
+            norm,
+            qty: '',
+            category: guessDepartment(norm, overrides),
+            checked: false,
+            // Known to the family but not on the list yet.
+            deleted: true,
+            staple: true,
+            usualQty,
+            updatedAt: serverTimestamp(),
+            updatedBy: uid,
+          },
+      { merge: true },
+    );
+  }
+  batch.commit().catch(reportWriteError);
+}
+
+/** Puts staples on the shopping list with their usual quantity. */
+export function addStaplesToList(fid: string, staples: Item[], existing: Map<string, Item>, overrides: Map<string, string>) {
+  addItems(fid, staples.map((s) => ({ name: s.name, qty: s.usualQty ?? '' })), existing, overrides);
 }
 
 export function reportWriteError(e: unknown) {

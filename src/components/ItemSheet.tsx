@@ -13,6 +13,8 @@ export function ItemSheet({
   stores,
   existing,
   overrides,
+  staple = false,
+  onDeleted,
   onClose,
 }: {
   familyId: string;
@@ -22,10 +24,14 @@ export function ItemSheet({
   stores: string[];
   existing: Map<string, Item>;
   overrides: Map<string, string>;
+  /** Opened from "המוצרים שלנו": edits the usual quantity, and removing takes it off that list only. */
+  staple?: boolean;
+  onDeleted?: (item: Item) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState(item.name);
-  const [qty, setQty] = useState(item.qty);
+  const [qty, setQty] = useState(staple ? (item.usualQty ?? '') : item.qty);
+  const [isStaple, setIsStaple] = useState(!!item.staple);
   const [urgency, setUrgency] = useState<Urgency>(item.urgency ?? '');
   const [paid, setPaid] = useState({ price: '', store: stores[0] ?? '' });
   const history = byKey.get(priceKey(name.trim() || item.name)) ?? [];
@@ -42,8 +48,16 @@ export function ItemSheet({
   const save = () => {
     const fields: Parameters<typeof updateItem>[2] = {};
     if (name.trim() && name.trim() !== item.name) fields.name = name.trim().slice(0, 80);
-    if (qty.trim() !== item.qty) fields.qty = qty.trim().slice(0, 30);
-    if (urgency !== (item.urgency ?? '')) fields.urgency = urgency;
+    if (staple) {
+      if (qty.trim() !== (item.usualQty ?? '')) fields.usualQty = qty.trim().slice(0, 30);
+    } else {
+      if (qty.trim() !== item.qty) fields.qty = qty.trim().slice(0, 30);
+      if (urgency !== (item.urgency ?? '')) fields.urgency = urgency;
+      if (isStaple !== !!item.staple) {
+        fields.staple = isStaple;
+        if (isStaple && !item.usualQty) fields.usualQty = qty.trim().slice(0, 30);
+      }
+    }
     if (Object.keys(fields).length) updateItem(familyId, item.id, fields);
     onClose();
   };
@@ -56,18 +70,26 @@ export function ItemSheet({
           <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
         </label>
         <label>
-          כמות
+          {staple ? 'כמות רגילה' : 'כמות'}
           <input value={qty} maxLength={30} placeholder="למשל: 2, 1 ק״ג" onChange={(e) => setQty(e.target.value)} />
         </label>
-        {/* No tag means a normal item; tapping the chosen tag again takes it off. */}
-        <div className="urgency-pick" role="group" aria-label="דחיפות">
-          {([['high', 'דחוף'], ['low', 'לא דחוף']] as const).map(([v, label]) => (
-            <button key={v} type="button" aria-pressed={urgency === v} className={`${v} ${urgency === v ? 'on' : ''}`} onClick={() => setUrgency(urgency === v ? '' : v)}>
-              {label}
-            </button>
-          ))}
-        </div>
-        {kinds.length > 0 && (
+        {!staple && (
+          <>
+            {/* No tag means a normal item; tapping the chosen tag again takes it off. */}
+            <div className="urgency-pick" role="group" aria-label="דחיפות">
+              {([['high', 'דחוף'], ['low', 'לא דחוף']] as const).map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={urgency === v} className={`${v} ${urgency === v ? 'on' : ''}`} onClick={() => setUrgency(urgency === v ? '' : v)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="check-line">
+              <input type="checkbox" checked={isStaple} onChange={(e) => setIsStaple(e.target.checked)} />
+              שמירה ב"המוצרים שלנו"
+            </label>
+          </>
+        )}
+        {!staple && kinds.length > 0 && (
           <div className="kinds">
             <span className="field-label">סוגים שקניתם בעבר</span>
             <div className="chips" role="group" aria-label="סוגים שקניתם בעבר">
@@ -136,15 +158,28 @@ export function ItemSheet({
           <button className="primary" onClick={save}>
             שמירה
           </button>
-          <button
-            className="danger"
-            onClick={() => {
-              updateItem(familyId, item.id, { deleted: true });
-              onClose();
-            }}
-          >
-            מחיקה
-          </button>
+          {staple ? (
+            <button
+              className="danger"
+              onClick={() => {
+                updateItem(familyId, item.id, { staple: false });
+                onClose();
+              }}
+            >
+              הסרה מהמוצרים שלנו
+            </button>
+          ) : (
+            <button
+              className="danger"
+              onClick={() => {
+                updateItem(familyId, item.id, { deleted: true });
+                onDeleted?.(item);
+                onClose();
+              }}
+            >
+              מחיקה
+            </button>
+          )}
         </div>
       </div>
     </div>
