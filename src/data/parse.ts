@@ -53,6 +53,9 @@ function splitQuantity(part: string): ParsedItem {
   // Number glued to the end: "חלב2", "ביצים x12".
   const glued = part.match(/^(.*?\D)\s*[x×X]?(\d+(?:[.,]\d+)?)$/);
   if (glued && glued[1].trim()) return { name: glued[1].trim(), qty: glued[2] };
+  // Number glued to the start: "2זירו". Known names like "7אפ" stay whole.
+  const front = part.match(/^(\d+)([א-ת].*)$/);
+  if (front && !isKnownProduct(tokens[0])) return { name: front[2], qty: front[1] };
   return { name: part, qty: '' };
 }
 
