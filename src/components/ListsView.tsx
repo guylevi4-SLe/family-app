@@ -59,7 +59,7 @@ import { IconPicker, ListIcon, iconEmoji, iconValue } from './ListIcon';
 import { ActionSheet, MoreMenu, type MenuItem } from './MoreMenu';
 import { useDragOrder } from './useDragOrder';
 import { InlineIcon } from './ChatIcons';
-import { ArrowDown, ArrowUp, ChevronDown, Receipt, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Receipt, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
 import { FormatBar, NoteView, viewSelection } from './NoteFormat';
@@ -96,7 +96,7 @@ export function ListsView({
 }) {
   const open = lists?.find((l) => l.id === openId);
   const all = lists ?? [];
-  // All three sections start shut each time the screen opens, and stay as left while moving around in it.
+  // No section is open each time the screen opens; the one picked stays open while moving around in it.
   const [openSec, setOpenSec] = useState<OpenSections>({ notes: false, lists: false, receipts: false });
   const [quick, setQuick] = useState(false);
   // A folder that was deleted (by anyone) sends us back to the notebook's top.
@@ -224,23 +224,19 @@ function NewFolderForm({ onCreate, onCancel }: { onCreate: (title: string, where
   );
 }
 
-/** A section heading that folds its rows away, as in the phone's Notes. */
-function SectionHead({ title, icon, open, onToggle, count }: { title: string; icon: ReactNode; open: boolean; onToggle: () => void; count: number }) {
+/** One of the three tiles at the top of the library; it opens its section below, and a second tap shuts it. */
+function SectionTile({ title, icon, open, onToggle }: { title: string; icon: ReactNode; open: boolean; onToggle: () => void }) {
   return (
-    <button type="button" className="lib-section" aria-expanded={open} onClick={onToggle}>
-      <span>
-        <span className="lib-section-icon" aria-hidden="true">{icon}</span>
-        {title}
-      </span>
-      {!open && count > 0 && <span className="muted lib-section-count">{count}</span>}
-      <ChevronDown className={open ? 'lib-chevron' : 'lib-chevron shut'} size={22} aria-hidden="true" />
+    <button type="button" className={open ? 'lib-tile on' : 'lib-tile'} aria-expanded={open} onClick={onToggle}>
+      <span className="lib-tile-icon" aria-hidden="true">{icon}</span>
+      <span>{title}</span>
     </button>
   );
 }
 
 /**
- * The library: "פתקים" (general notes and the folders), "רשימות" (the
- * checklists) and "קבלות", each folding open or shut. Rows swipe left for
+ * The library: three tiles, "פתקים" (general notes and the folders), "רשימות"
+ * (the checklists) and "קבלות", one section open at a time. Rows swipe left for
  * share and delete, hold for their menu, and hold-and-drag to reorder.
  */
 function Library({
@@ -264,15 +260,13 @@ function Library({
   const [menu, setMenu] = useState<{ title: string; items: MenuItem[] } | null>(null);
   const [creating, setCreating] = useState<'list' | 'note' | 'folder' | null>(null);
   const [search, setSearch] = useState('');
-  const toggle = (k: keyof OpenSections) => setOpenSec({ ...openSec, [k]: !openSec[k] });
+  const only = (k: keyof OpenSections) => setOpenSec({ notes: false, lists: false, receipts: false, [k]: true });
+  const toggle = (k: keyof OpenSections) => (openSec[k] ? setOpenSec({ notes: false, lists: false, receipts: false }) : only(k));
   const isFolder = (id: string) => all.some((l) => l.id === id && l.kind === 'folder');
   const at = (l: FamilyList) => (l.parentId && isFolder(l.parentId) ? l.parentId : '');
   const checklists = all.filter((l) => !l.kind).sort(byPinThenTitle);
   const receipts = receiptsFolder(all);
   const folders = all.filter((l) => l.kind === 'folder' && at(l) === '' && l !== receipts).sort(byPinThenTitle);
-  // Every note, also those inside folders (folders themselves aren't counted; receipts have their own section).
-  const noteCount = all.filter((l) => l.kind === 'note' && !inReceipts(all, l.parentId)).length;
-  const receiptCount = all.filter((l) => l.kind === 'note' && inReceipts(all, l.parentId)).length;
   const receiptFolders = receipts ? all.filter((l) => l.kind === 'folder' && l.parentId === receipts.id).sort(byPinThenTitle) : [];
   const receiptNotes = receipts ? all.filter((l) => l.kind === 'note' && l.parentId === receipts.id).sort(byPinThenTitle) : [];
   const rootNotes = all.filter((l) => l.kind === 'note' && at(l) === '').sort(byPinThenTitle);
@@ -283,7 +277,7 @@ function Library({
   const receiptFolderDrag = useDragOrder(receiptFolders, (l) => l.id, (items) => saveOrder(familyId, items));
   const receiptsId = () => receipts?.id ?? createFolder(familyId, 'קבלות', '', RECEIPTS_ICON);
   const newReceipt = () => {
-    setOpenSec({ ...openSec, receipts: true });
+    only('receipts');
     onOpen(createReceipt(familyId, receiptsId()));
   };
   const shut = (l: FamilyList) => {
@@ -345,7 +339,7 @@ function Library({
   ];
   const newFolder = (name: string, where: 'notes' | 'receipts') => {
     createFolder(familyId, name, where === 'receipts' ? receiptsId() : '');
-    setOpenSec({ ...openSec, [where]: true });
+    only(where);
     setCreating(null);
   };
   const folderRow = (f: FamilyList, order: FamilyList[]) => (
@@ -423,8 +417,13 @@ function Library({
         )
       ) : (
         <>
+          <div className="lib-tiles">
+            <SectionTile title="פתקים" icon={<StickyNote size={28} />} open={openSec.notes} onToggle={() => toggle('notes')} />
+            <SectionTile title="רשימות" icon={<ListChecks size={28} />} open={openSec.lists} onToggle={() => toggle('lists')} />
+            <SectionTile title="קבלות" icon={<Receipt size={28} />} open={openSec.receipts} onToggle={() => toggle('receipts')} />
+          </div>
+
           <section>
-            <SectionHead title="פתקים" icon={<StickyNote size={24} />} open={openSec.notes} onToggle={() => toggle('notes')} count={noteCount} />
             {openSec.notes && folders.length + rootNotes.length > 0 && (
               <ul className="lib-group">
                 {folderDrag.ordered.map((f) => (
@@ -451,7 +450,6 @@ function Library({
           </section>
 
           <section>
-            <SectionHead title="רשימות" icon={<ListChecks size={24} />} open={openSec.lists} onToggle={() => toggle('lists')} count={checklists.length} />
             {openSec.lists &&
               (checklists.length === 0 ? (
                 <p className="empty">עוד אין רשימות. רשימה יכולה להיות כל דבר: תיק למכון, ציוד לטיול, דברים לטיסה.</p>
@@ -475,7 +473,6 @@ function Library({
           </section>
 
           <section>
-            <SectionHead title="קבלות" icon={<Receipt size={24} />} open={openSec.receipts} onToggle={() => toggle('receipts')} count={receiptCount} />
             {openSec.receipts &&
               (receiptNotes.length + receiptFolders.length === 0 ? (
                 <p className="empty">עוד אין קבלות. "קבלה חדשה" בכפתור + פותחת קבלה עם התאריך של היום, ומצרפים אליה צילום או PDF.</p>
@@ -513,7 +510,7 @@ function Library({
 
       {moving && <MoveSheet all={all} note={moving} quick onPick={(t) => updateNote(familyId, moving, { parentId: t })} onClose={() => setMoving(null)} />}
       {menu && <ActionSheet title={menu.title} items={menu.items} onClose={() => setMenu(null)} />}
-      {/* While all three sections are shut, a quick note is one tap away. */}
+      {/* While no section is open, a quick note is one tap away. */}
       {!q && !creating && !openSec.notes && !openSec.lists && !openSec.receipts && (
         <button type="button" className="quick-note-button" onClick={onQuick}>
           <StickyNote size={22} aria-hidden="true" />

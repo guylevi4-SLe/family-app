@@ -62,11 +62,10 @@ async function newPhone(browser, name) {
 }
 
 const list = (p) => p.page.locator('.list-page');
-// The notes screen opens with its sections (notes, lists, receipts) shut; this opens them all.
-async function openSections(page) {
-  await page.locator('.lists-page .lib-section').first().waitFor();
-  const shut = page.locator('.lists-page .lib-section[aria-expanded="false"]');
-  while (await shut.count()) await shut.first().click();
+// The notes screen opens with no section open; this taps one of its three tiles (notes, lists, receipts) open.
+async function openSection(page, name) {
+  const tile = page.locator('.lists-page .lib-tile', { hasText: name });
+  if ((await tile.getAttribute('aria-expanded')) !== 'true') await tile.click();
 }
 const row = (p, name) => p.page.locator('.row:not(.staple-row)', { has: p.page.locator('.name', { hasText: new RegExp(`^${name}$`) }) });
 
@@ -893,12 +892,12 @@ async function main() {
     await lists.getByRole('group', { name: 'סמל' }).getByRole('button', { name: 'מזוודה', pressed: true }).waitFor();
     await lists.getByRole('button', { name: 'סגירה' }).click();
     await lists.getByRole('button', { name: '→ כל הרשימות' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'רשימות');
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).getByText('1 מתוך 7').waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/lists.png` });
     await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     await kid.page.locator('.lists-tile').click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'רשימות');
     await kid.page.locator('.lists-page .list-card', { hasText: 'ציוד לטיול' }).click();
     const kidLists = kid.page.locator('.lists-page');
     await kidLists.locator('.entry.checked', { hasText: 'אוהל' }).waitFor({ timeout: 10000 });
@@ -907,7 +906,7 @@ async function main() {
     await kidLists.getByRole('button', { name: '→ כל הרשימות' }).click();
     await kid.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     await kid.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'רשימות');
     await kidLists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
     // Drag to reorder: a second list sorts first by name; Dad drags the trip list above it.
     await addNew(lists, 'רשימה חדשה');
@@ -985,14 +984,14 @@ async function main() {
     await lists.locator('.list-card', { hasText: 'אאא למחיקה' }).waitFor({ state: 'detached' });
     assert.equal(await lists.getByRole('button', { name: '→ כל הרשימות' }).count(), 0, 'swiping does not open the list');
     ok('the library: holding a row opens its menu (rename, move down), a left swipe shows share and delete');
-    // Each visit starts with the three sections shut; a quick note asks nothing and takes its first word; a receipt goes to "קבלות".
+    // Each visit starts with no section open; a quick note asks nothing and takes its first word; a receipt goes to "קבלות".
     await dad.page.getByRole('navigation').getByRole('button', { name: 'בית' }).click();
     await dad.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
-    await lists.locator('.lib-section').first().waitFor();
-    assert.deepEqual(await lists.locator('.lib-section > span:first-child').allTextContents(), ['פתקים', 'רשימות', 'קבלות']);
-    assert.equal(await lists.locator('.lib-section[aria-expanded="true"]').count(), 0, 'all sections start shut');
+    await lists.locator('.lib-tile').first().waitFor();
+    assert.deepEqual(await lists.locator('.lib-tile').allTextContents(), ['פתקים', 'רשימות', 'קבלות']);
+    assert.equal(await lists.locator('.lib-tile[aria-expanded="true"]').count(), 0, 'no section starts open');
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-shut.png` });
-    // The quick note button shows while all sections are shut: one tap, a blank page and nothing else.
+    // The quick note button shows while no section is open: one tap, a blank page and nothing else.
     await lists.getByRole('button', { name: 'פתק מהיר' }).click();
     const quick = lists.getByLabel('פתק מהיר');
     await quick.waitFor();
@@ -1004,7 +1003,7 @@ async function main() {
     // Leaving an empty quick note saves nothing.
     await lists.getByRole('button', { name: 'פתק מהיר' }).click();
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     assert.equal(await lists.getByRole('button', { name: 'פתק מהיר' }).count(), 0, 'the quick note button hides once a section is open');
     await lists.locator('.note-card', { hasText: 'חשמלאי' }).waitFor();
     assert.equal(await lists.locator('.note-card').count(), 1, 'the empty quick note was not saved');
@@ -1012,7 +1011,8 @@ async function main() {
     await lists.locator('h2', { hasText: /קבלה \d/ }).waitFor();
     await lists.getByRole('button', { name: '+ צילום הקבלה' }).waitFor();
     await lists.getByRole('button', { name: /^→/ }).click();
-    await lists.locator('.lib-section[aria-expanded="true"]', { hasText: 'קבלות' }).waitFor();
+    await lists.locator('.lib-tile[aria-expanded="true"]', { hasText: 'קבלות' }).waitFor();
+    assert.equal(await lists.locator('.lib-tile[aria-expanded="true"]').count(), 1, 'one section open at a time');
     await lists.locator('.note-card', { hasText: /קבלה \d/ }).waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/library-receipts.png` });
     // A folder can go in the receipts; a receipt made in it stays there, and back leads to "קבלות".
@@ -1027,9 +1027,6 @@ async function main() {
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/receipts-folder.png` });
     await lists.getByRole('button', { name: '→ קבלות' }).click();
     await carFolder.waitFor();
-    await lists.locator('.lib-section', { hasText: 'קבלות' }).click();
-    assert.equal(await lists.locator('.lib-section', { hasText: 'קבלות' }).locator('.lib-section-count').innerText(), '2', 'the count takes in receipts in folders');
-    await lists.locator('.lib-section', { hasText: 'קבלות' }).click();
     await carFolder.click();
     await lists.locator('.note-card', { hasText: /קבלה \d/ }).click();
     await lists.getByRole('button', { name: 'אפשרויות' }).click();
@@ -1058,7 +1055,7 @@ async function main() {
 
     step('Notes');
     await dad.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     await libFolder(lists, 'בית');
     await lists.locator('.folder-card', { hasText: 'בית' }).click();
     await answer('ביטוחים', () => addNew(lists, 'תיקייה חדשה'));
@@ -1100,7 +1097,7 @@ async function main() {
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('שער חניה: 1234').waitFor();
     if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/notebook-folder.png` });
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     await lists.getByLabel('חיפוש בפתקים').fill('אזעקה');
     await lists.locator('.note-card', { hasText: 'קודים לבית' }).getByText('בית', { exact: true }).waitFor();
     await lists.getByLabel('חיפוש בפתקים').fill('');
@@ -1108,7 +1105,7 @@ async function main() {
     await lists.locator('.list-card', { hasText: 'ציוד לטיול' }).waitFor();
     assert.equal(await lists.locator('.list-card', { hasText: 'קודים לבית' }).count(), 0, 'notes stay out of the lists tab');
     await kid.page.getByRole('navigation').getByRole('button', { name: 'פתקים' }).click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'פתקים');
     await kidLists.locator('.folder-card', { hasText: 'בית' }).click();
     await kidLists.locator('.note-card', { hasText: 'קודים לבית' }).click();
     await kidLists.locator('.note-file').nth(1).waitFor({ timeout: 10000 });
@@ -1203,7 +1200,7 @@ async function main() {
     await lists.locator('.note-file').nth(1).waitFor({ state: 'detached' });
     await lists.getByRole('button', { name: '→ ביטוחים' }).click();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     await lists.locator('.folder-card', { hasText: 'בית' }).waitFor();
     await dad.page.reload();
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
@@ -1310,11 +1307,11 @@ async function main() {
     await lists.getByLabel('סיסמת הפתק').waitFor();
     assert.equal(await lists.getByLabel('תוכן הפתק').count(), 0, 'locked: no text shown');
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).getByText('נעול בסיסמה').waitFor();
     // The daughter needs the password; a wrong one is refused.
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'פתקים');
     await kidLists.locator('.note-card', { hasText: 'קוד אזעקה' }).click({ timeout: 10000 });
     await kidLists.getByLabel('סיסמת הפתק').fill('nope');
     await kidLists.getByRole('button', { name: 'פתיחה', exact: true }).click();
@@ -1329,7 +1326,7 @@ async function main() {
     assert.equal(await kidLists.getByRole('dialog').getByRole('button', { name: 'הסרת הסיסמה' }).count(), 0, 'only the creator removes the password');
     await kid.page.keyboard.press('Escape'); // the ⋮ menu closes like any popup menu
     await kidLists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'פתקים');
     // Dad opens it again and removes the password.
     await lists.locator('.note-card', { hasText: 'קוד אזעקה' }).click();
     await lists.getByLabel('סיסמת הפתק').fill('levi1234');
@@ -1355,7 +1352,7 @@ async function main() {
       return null;
     };
     await dad.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     await libFolder(lists, 'מסמכים');
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).click();
     await addNew(lists, 'פתק חדש');
@@ -1367,7 +1364,7 @@ async function main() {
     await lists.getByLabel('תוכן הפתק').blur();
     await lists.getByRole('button', { name: '→ מסמכים' }).click();
     await kid.page.getByRole('navigation', { name: 'ניווט' }).getByRole('button', { name: 'פתקים' }).click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'פתקים');
     await kidLists.locator('.folder-card', { hasText: 'מסמכים' }).click({ timeout: 10000 });
     await addNew(kidLists, 'פתק חדש');
     await kidLists.getByLabel('שם הפתק').fill('של הבת');
@@ -1393,7 +1390,7 @@ async function main() {
     await lists.getByLabel('סיסמת התיקייה').waitFor();
     assert.equal(await lists.locator('.note-card').count(), 0, 'a shut folder shows no notes');
     await lists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await openSections(dad.page);
+    await openSection(dad.page, 'פתקים');
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).getByLabel('נעולה').waitFor();
     // The daughter opens the folder with its password; her note opens with no extra password.
     await kidLists.getByLabel('סיסמת התיקייה').waitFor({ timeout: 10000 });
@@ -1415,7 +1412,7 @@ async function main() {
     const out = await serverNote('של הבת');
     assert.ok(!out.locked.booleanValue && out.body.stringValue === 'הבת: 222', 'moved out: plain again');
     await kidLists.getByRole('button', { name: '→ כל הפתקים' }).click();
-    await openSections(kid.page);
+    await openSection(kid.page, 'פתקים');
     // Dad opens the folder and removes its password.
     await lists.locator('.folder-card', { hasText: 'מסמכים' }).click();
     await lists.getByLabel('סיסמת התיקייה').fill('docs5678');
