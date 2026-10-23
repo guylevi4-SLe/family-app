@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { orderedDepartments } from '../data/departments';
-import { addStaples, addStaplesToList, parseItems, qtyLabel, type Item } from '../data/items';
+import { addStaples, addStaplesToList, parseItems, qtyLabel, updateItem, type Item } from '../data/items';
 import { priceLabel, type PriceEntry } from '../data/prices';
 import { Icon } from './Icon';
 import { ShoppingBasket } from 'lucide-react';
@@ -81,7 +81,7 @@ function StaplesSheet({
           </button>
         </div>
         <p className="muted small-text">
-          {staples.length === 0 ? 'עוד אין כאן מוצרים. אפשר להוסיף למטה, או לסמן מוצר כ"מוצר שלנו" בעריכה שלו.' : 'נגיעה במוצר מוסיפה אותו לרשימה.'}
+          {staples.length === 0 ? 'עוד אין כאן מוצרים. אפשר להוסיף למטה, או לסמן מוצר כ"מוצר שלנו" בעריכה שלו.' : 'נגיעה מוסיפה לרשימה, ונגיעה נוספת מסירה.'}
         </p>
         {groups.map(([dept, list]) => (
           <div key={dept} className="staple-dept">
@@ -94,14 +94,13 @@ function StaplesSheet({
                   <li key={it.id} className={`row staple-row ${onList ? 'on-list' : ''}`}>
                     <button
                       className="staple-add"
-                      disabled={onList}
-                      aria-label={onList ? `${it.name} כבר ברשימה` : `הוספת ${it.name} לרשימה`}
-                      onClick={() => addStaplesToList(familyId, [it], byId, overrides)}
+                      aria-label={onList ? `הסרת ${it.name} מהרשימה` : `הוספת ${it.name} לרשימה`}
+                      aria-pressed={onList}
+                      onClick={() => (onList ? updateItem(familyId, it.id, { deleted: true }) : addStaplesToList(familyId, [it], byId, overrides))}
                     >
                       <span className="staple-mark" aria-hidden="true">{onList ? '✓' : '+'}</span>
                       <span className="name">{it.name}</span>
                       {it.usualQty && <span className="qty">{qtyLabel(it.usualQty)}</span>}
-                      {onList && <span className="on-list-tag">ברשימה</span>}
                       {last && <span className="price-tag">{priceLabel(last, true)}</span>}
                     </button>
                     <button className="icon-button edit" aria-label={`עריכת ${it.name}`} onClick={() => onEdit(it)}>
