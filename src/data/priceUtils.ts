@@ -29,8 +29,9 @@ export const formatPrice = (n: number) => `₪${Number.isInteger(n) ? n : n.toFi
 
 export type PriceUnit = '' | 'kg';
 
-/** "₪39.90 לק״ג" for a price per kilo, "₪6.90" otherwise. */
-export const priceLabel = (e: Pick<PriceEntry, 'price' | 'unit'>) => `${formatPrice(e.price)}${e.unit === 'kg' ? ' לק״ג' : ''}`;
+/** "₪39.90 לק״ג" for a price per kilo ("₪39.90/ק״ג" where space is short), "₪6.90" otherwise. */
+export const priceLabel = (e: Pick<PriceEntry, 'price' | 'unit'>, short = false) =>
+  `${formatPrice(e.price)}${e.unit === 'kg' ? (short ? '/ק״ג' : ' לק״ג') : ''}`;
 
 /** Departments whose products are usually sold by weight. */
 const BY_WEIGHT = new Set(['פירות וירקות', 'בשר עוף ודגים']);

@@ -45,6 +45,7 @@ describe('prices', () => {
   it('prices per kilo: label, estimate, start unit and cheapest only within one unit', () => {
     const kg = { ...e('עוף', 39.9, 2), unit: 'kg' as const };
     expect(priceLabel(kg)).toBe('₪39.90 לק״ג');
+    expect(priceLabel(kg, true)).toBe('₪39.90/ק״ג');
     expect(priceLabel(e('חלב', 6.9, 1))).toBe('₪6.90');
     expect(estimateTotal('1.5 ק"ג', kg)).toBe(60);
     expect(estimateTotal('2', kg)).toBeNull();

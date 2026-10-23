@@ -3,7 +3,7 @@ import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
 import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
-import { estimateTotal, formatPrice, knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
+import { knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
 import { StaplesSection } from './Staples';
@@ -217,8 +217,6 @@ export function ShoppingList({
 }
 
 function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last?: PriceEntry; onToggle: () => void; onEdit: () => void; onUrgency: (u: Urgency) => void }) {
-  // A price per kilo and a weight in the quantity ("1.5 ק״ג") give about what it will cost.
-  const estimate = estimateTotal(item.qty, last);
   return (
     <li className={`row ${item.checked ? 'checked' : ''}`}>
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
@@ -258,14 +256,13 @@ function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last
             <span
               className="price-tag"
               role="button"
-              aria-label={`מחיר אחרון ${priceLabel(last)}${last.store ? ` ב${last.store}` : ''}${estimate !== null ? `, בערך ${formatPrice(estimate)} לכמות` : ''}`}
+              aria-label={`מחיר אחרון ${priceLabel(last)}${last.store ? ` ב${last.store}` : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit();
               }}
             >
-              {estimate !== null ? `בערך ${formatPrice(estimate)} · ` : ''}
-              {priceLabel(last)}
+              {priceLabel(last, true)}
             </span>
           )}
           {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}

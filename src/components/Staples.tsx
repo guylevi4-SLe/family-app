@@ -82,7 +82,7 @@ export function StaplesSection({
                         <span className="name">{it.name}</span>
                         {it.usualQty && <span className="qty">{qtyLabel(it.usualQty)}</span>}
                         {onList && <span className="on-list-tag">ברשימה</span>}
-                        {last && <span className="price-tag">{priceLabel(last)}</span>}
+                        {last && <span className="price-tag">{priceLabel(last, true)}</span>}
                       </button>
                       <button className="icon-button edit" aria-label={`עריכת ${it.name}`} onClick={() => onEdit(it)}>
                         <Icon name="edit" size={18} />
