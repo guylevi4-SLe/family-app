@@ -207,6 +207,21 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     return m;
   }, [targetComments]);
 
+  // A photo still waiting to sync has no time yet; it is the newest.
+  const itemPhotos = useMemo(() => {
+    const m = new Map<string, string>();
+    const at = new Map<string, number>();
+    for (const c of targetComments ?? []) {
+      if (c.targetType !== 'item' || !c.image) continue;
+      const t = c.createdAt?.toMillis() ?? Infinity;
+      if (t >= (at.get(c.targetId) ?? -1)) {
+        m.set(c.targetId, c.image);
+        at.set(c.targetId, t);
+      }
+    }
+    return m;
+  }, [targetComments]);
+
   const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;
   const title = view === 'home' ? "Levi's" : VIEWS.find((v) => v.id === view)!.label;
@@ -233,6 +248,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
         me,
         members: members ?? [],
         commentCounts,
+        itemPhotos,
         openComments: (type, id, t) => setThread({ type, id, title: t }),
       }}
     >

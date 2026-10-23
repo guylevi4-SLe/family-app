@@ -4,7 +4,9 @@ import { addItems, setCategory, updateItem, type Item, type Urgency } from '../d
 import { addPrice, ago, cheapestByUnit, defaultUnit, deletePrice, estimateTotal, formatPrice, parsePrice, priceKey, priceLabel, similarKinds, type PriceEntry } from '../data/prices';
 import { auth } from '../firebase';
 import { CommentButton } from './CommentButton';
+import { useFamily } from './FamilyContext';
 import { UnitPick } from './UnitPick';
+import { ZoomViewer } from './ZoomViewer';
 
 export function ItemSheet({
   familyId,
@@ -39,6 +41,8 @@ export function ItemSheet({
   const isCheapest = cheapestByUnit(history);
   const estimate = staple ? null : estimateTotal(qty, history[0]);
   const kinds = similarKinds(name.trim() || item.name, byKey);
+  const photo = useFamily().itemPhotos.get(item.id);
+  const [zoom, setZoom] = useState(false);
 
   // "קוטג'" becomes the kind bought before ("קוטג' 3%"), with its prices; the quantity stays.
   const switchTo = (kind: string) => {
@@ -67,6 +71,12 @@ export function ItemSheet({
   return (
     <div className="sheet-backdrop" onClick={save}>
       <div className="sheet" role="dialog" aria-label={`עריכת ${item.name}`} onClick={(e) => e.stopPropagation()}>
+        {/* The newest photo from the item's notes, whole and uncropped. */}
+        {photo && (
+          <button type="button" className="item-photo" aria-label={`הגדלת התמונה של ${item.name}`} onClick={() => setZoom(true)}>
+            <img src={photo} alt="" />
+          </button>
+        )}
         <label>
           שם
           <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
@@ -189,6 +199,7 @@ export function ItemSheet({
             </button>
           )}
         </div>
+        {zoom && photo && <ZoomViewer src={photo} alt={item.name} onClose={() => setZoom(false)} />}
       </div>
     </div>
   );
