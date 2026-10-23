@@ -1162,4 +1162,15 @@ body.kb-open .quick-note-body { min-height: 40dvh; }
   box-shadow: none;
 }
 .staples-sheet { gap: 6px; }
+/* The list ⇄ departments switch: a small round button beside WhatsApp, filled while the departments show. */
+.shopping .list-actions .view-toggle,
+:root[data-palette] .shopping .list-actions .view-toggle {
+  display: grid; place-items: center; flex: none; width: 34px; min-height: 32px; height: 32px; padding: 0; border-radius: 999px;
+  color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); box-shadow: none;
+}
+.shopping .list-actions .view-toggle[aria-pressed='true'],
+:root[data-palette] .shopping .list-actions .view-toggle[aria-pressed='true'] { background: var(--grad); color: var(--accent-ink); }
+.store-depts-title { font-size: 1.35rem; font-weight: 800; margin: 12px 4px 0; }
+.store-depts { margin-top: 10px; }
+.dept-back { font-weight: 700; color: var(--accent); min-height: 40px; margin-bottom: 4px; }
 .staples-sheet .staple-dept ul { list-style: none; margin: 0; padding: 0; }

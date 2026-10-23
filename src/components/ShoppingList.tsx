@@ -6,13 +6,13 @@ import { useOverrides, usePrices } from '../data/hooks';
 import { knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
-import { StaplesButton } from './Staples';
+import { DEPT_ICONS, StaplesButton } from './Staples';
 import { CommentButton } from './CommentButton';
 import { useFamily } from './FamilyContext';
 import { ZoomViewer } from './ZoomViewer';
 import { Icon } from './Icon';
 import { confirmAsk } from './ConfirmSheet';
-import { Eraser } from 'lucide-react';
+import { Eraser, LayoutGrid, List, Shapes } from 'lucide-react';
 
 export function ShoppingList({
   familyId,
@@ -33,6 +33,9 @@ export function ShoppingList({
   const [showBought, setShowBought] = useState(false);
   const [undo, setUndo] = useState<{ item: Item; deleted: boolean; timer: number } | null>(null);
   const [paying, setPaying] = useState(false);
+  // At the store: the list as department squares, one department at a time. Each visit starts on the full list.
+  const [byDept, setByDept] = useState(false);
+  const [openDept, setOpenDept] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const byId = useMemo(() => new Map((items ?? []).map((i) => [i.id, i])), [items]);
@@ -59,6 +62,8 @@ export function ShoppingList({
     }
     return order.filter((d) => map.has(d)).map((d) => [d, map.get(d)!] as const);
   }, [active, deptOrder]);
+  // A department whose last product was bought leaves the squares, and back to them if it was the one open.
+  const shownDept = byDept ? groups.find(([d]) => d === openDept) : undefined;
 
   const submit = () => {
     const parsed = parseItems(text);
@@ -84,6 +89,19 @@ export function ShoppingList({
       {items !== undefined && (
         <div className="list-actions">
           {active.length > 0 && (
+            <button
+              className="small view-toggle"
+              aria-label={byDept ? 'תצוגת רשימה' : 'תצוגת מחלקות'}
+              aria-pressed={byDept}
+              onClick={() => {
+                setByDept(!byDept);
+                setOpenDept(null);
+              }}
+            >
+              {byDept ? <List size={18} aria-hidden="true" /> : <LayoutGrid size={18} aria-hidden="true" />}
+            </button>
+          )}
+          {active.length > 0 && (
             <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
               <Icon name="whatsapp" size={16} />
               שליחה בוואטסאפ
@@ -103,9 +121,29 @@ export function ShoppingList({
 
       {items === undefined ? null : active.length === 0 ? (
         <p className="empty">הרשימה ריקה. מה חסר בבית?</p>
+      ) : byDept && !shownDept ? (
+        <>
+        <h2 className="store-depts-title">רשימה לפי מחלקות</h2>
+        <div className="dept-grid store-depts">
+          {groups.map(([d]) => {
+            const DeptIcon = DEPT_ICONS[d] ?? Shapes;
+            return (
+              <button key={d} className="dept-tile" onClick={() => setOpenDept(d)}>
+                <DeptIcon size={34} strokeWidth={1.6} aria-hidden="true" />
+                <span>{d}</span>
+              </button>
+            );
+          })}
+        </div>
+        </>
       ) : (
-        groups.map(([dept, list]) => (
+        (shownDept ? [shownDept] : groups).map(([dept, list]) => (
           <section key={dept} className="dept">
+            {shownDept && (
+              <button className="link-plain dept-back" onClick={() => setOpenDept(null)}>
+                → כל המחלקות
+              </button>
+            )}
             <h2>{dept}</h2>
             <ul>
               {list.map((it) => (
@@ -116,7 +154,8 @@ export function ShoppingList({
         ))
       )}
 
-      {bought.length > 0 && (
+      {/* What was bought shows only on the full list. */}
+      {!byDept && bought.length > 0 && (
         <section className="dept bought">
           <div className="section-head">
             <button className="link" onClick={() => setShowBought(!showBought)} aria-expanded={showBought}>

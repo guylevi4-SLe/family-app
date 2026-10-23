@@ -6,7 +6,7 @@ import { Icon } from './Icon';
 import { Apple, Baby, Bath, Beef, Candy, Croissant, CupSoda, House, Milk, Package, Salad, Shapes, ShoppingBasket, Snowflake, SprayCan, Wheat, type LucideIcon } from 'lucide-react';
 
 /** A picture for each department's square in the pantry; a family's own department gets the generic one. */
-const DEPT_ICONS: Record<string, LucideIcon> = {
+export const DEPT_ICONS: Record<string, LucideIcon> = {
   'פירות וירקות': Apple,
   'מוצרי חלב וביצים': Milk,
   'לחם ומאפים': Croissant,
