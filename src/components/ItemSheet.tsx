@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { ArrowRight, Save } from 'lucide-react';
 import { normalize, orderedDepartments } from '../data/departments';
 import { addItems, setCategory, updateItem, type Item, type Urgency } from '../data/items';
 import { shrinkPhoto } from '../data/comments';
@@ -89,30 +90,45 @@ export function ItemSheet({
   return (
     <div className="sheet-backdrop" onClick={save}>
       <div className="sheet" role="dialog" aria-label={`עריכת ${item.name}`} onClick={(e) => e.stopPropagation()}>
-        {/* The product's own photo, whole and uncropped. */}
-        <div className="item-photo-row">
-          {photo && (
+        {/* Back leaves without saving; the small save icon keeps the changes. */}
+        <div className="sheet-top">
+          <button type="button" className="icon-button" aria-label="חזרה בלי שמירה" onClick={onClose}>
+            <ArrowRight size={22} />
+          </button>
+          <button type="button" className="icon-button sheet-save" aria-label="שמירה" onClick={save}>
+            <Save size={22} />
+          </button>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" hidden aria-label="בחירת תמונה למוצר" onChange={(e) => pickPhoto(e.target.files?.[0])} />
+        {/* The product's own photo, whole and uncropped, with its buttons along its bottom edge. */}
+        {photo ? (
+          <div className="item-photo-wrap">
             <button type="button" className="item-photo" aria-label={`הגדלת התמונה של ${item.name}`} onClick={() => setZoom(true)}>
               <img src={photo} alt="" />
             </button>
-          )}
-          <input ref={fileRef} type="file" accept="image/*" hidden aria-label="בחירת תמונה למוצר" onChange={(e) => pickPhoto(e.target.files?.[0])} />
-          <button type="button" className="item-photo-add" aria-label={photo ? `החלפת התמונה של ${item.name}` : `הוספת תמונה ל${item.name}`} onClick={() => fileRef.current?.click()}>
-            <Icon name="camera" size={16} />
-          </button>
-          {photo && (
-            <button
-              type="button"
-              className="item-photo-add"
-              aria-label={`הסרת התמונה של ${item.name}`}
-              onClick={async () => {
-                if (await confirmDelete('להסיר את התמונה?')) removeItemPhoto(familyId, item.id);
-              }}
-            >
-              ✕
+            <div className="item-photo-tools">
+              <button type="button" className="item-photo-add" aria-label={`החלפת התמונה של ${item.name}`} onClick={() => fileRef.current?.click()}>
+                <Icon name="camera" size={16} />
+              </button>
+              <button
+                type="button"
+                className="item-photo-add"
+                aria-label={`הסרת התמונה של ${item.name}`}
+                onClick={async () => {
+                  if (await confirmDelete('להסיר את התמונה?')) removeItemPhoto(familyId, item.id);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="item-photo-row">
+            <button type="button" className="item-photo-add" aria-label={`הוספת תמונה ל${item.name}`} onClick={() => fileRef.current?.click()}>
+              <Icon name="camera" size={16} />
             </button>
-          )}
-        </div>
+          </div>
+        )}
         {photoError && <p className="error small-text">{photoError}</p>}
         <label>
           שם
@@ -210,9 +226,6 @@ export function ItemSheet({
         <p className="muted small-text">שינוי מחלקה נשמר למשפחה, והמוצר ימוין כך גם בפעם הבאה.</p>
         <CommentButton type="item" id={item.id} title={item.name} always />
         <div className="sheet-actions">
-          <button className="primary" onClick={save}>
-            שמירה
-          </button>
           {staple ? (
             <button
               className="danger"
