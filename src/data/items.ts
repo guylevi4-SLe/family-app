@@ -121,8 +121,11 @@ export function clearChecked(fid: string, items: Item[]) {
   batch.commit().catch(reportWriteError);
 }
 
-/** Puts products on "מזווה" without adding them to the list ("חלב 2" keeps 2 as its usual quantity). */
-export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<string, Item>, overrides: Map<string, string>) {
+/**
+ * Puts products on "מזווה" without adding them to the list ("חלב 2" keeps 2 as its usual quantity).
+ * Added from inside a department, they go in that department instead of the guessed one.
+ */
+export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<string, Item>, overrides: Map<string, string>, dept?: string) {
   const uid = auth.currentUser!.uid;
   const batch = writeBatch(db);
   for (const p of parsed) {
@@ -133,12 +136,12 @@ export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<stri
     batch.set(
       doc(itemsCol(fid), id),
       prev
-        ? { staple: true, usualQty, updatedAt: serverTimestamp(), updatedBy: uid }
+        ? { staple: true, usualQty, ...(dept ? { category: dept } : {}), updatedAt: serverTimestamp(), updatedBy: uid }
         : {
             name: p.name,
             norm,
             qty: '',
-            category: guessDepartment(norm, overrides),
+            category: dept ?? guessDepartment(norm, overrides),
             checked: false,
             // Known to the family but not on the list yet.
             deleted: true,

@@ -88,7 +88,7 @@ function StaplesSheet({
   const add = () => {
     const parsed = parseItems(text);
     if (!parsed.length) return;
-    addStaples(familyId, parsed, byId, overrides);
+    addStaples(familyId, parsed, byId, overrides, shown?.[0]);
     setText('');
   };
 
