@@ -68,7 +68,7 @@ async function openSections(page) {
   const shut = page.locator('.lists-page .lib-section[aria-expanded="false"]');
   while (await shut.count()) await shut.first().click();
 }
-const row = (p, name) => p.page.locator('.row', { has: p.page.locator('.name', { hasText: new RegExp(`^${name}$`) }) });
+const row = (p, name) => p.page.locator('.row:not(.staple-row)', { has: p.page.locator('.name', { hasText: new RegExp(`^${name}$`) }) });
 
 async function add(p, text) {
   const box = p.page.getByLabel('הוספת מוצרים');
@@ -77,7 +77,7 @@ async function add(p, text) {
 }
 
 async function names(p) {
-  return (await list(p).locator('.dept:not(.bought):not(.deleted) .name').allTextContents()).sort();
+  return (await list(p).locator('.dept:not(.bought):not(.staples) .name').allTextContents()).sort();
 }
 
 async function waitSynced(p) {
@@ -151,7 +151,7 @@ async function main() {
     const kindSheet = dad.page.getByRole('dialog', { name: /עריכת/ });
     await kindSheet.getByRole('group', { name: 'סוגים שקניתם בעבר' }).getByRole('button', { name: /קוטג' 3%/ }).click();
     // Wait for the row on the open list: it is bought until the pick lands, and the bought section is open.
-    const tag = dad.page.locator('.dept:not(.bought):not(.deleted) .row', { has: dad.page.locator('.name', { hasText: /^קוטג' 3%$/ }) })
+    const tag = dad.page.locator('.dept:not(.bought):not(.staples) .row', { has: dad.page.locator('.name', { hasText: /^קוטג' 3%$/ }) })
       .getByRole('button', { name: 'מחיר אחרון ₪5.90 ברמי לוי', exact: true });
     await tag.waitFor({ timeout: 10000 });
     const rowH = await row(dad, "קוטג' 3%").evaluate((el) => el.getBoundingClientRect().height);
@@ -221,7 +221,7 @@ async function main() {
     await add(kid, 'במבה');
     await row(kid, 'במבה').waitFor();
     await row(kid, 'חלב').locator('.check-area').click();
-    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.deleted) .name')].some((n) => n.textContent === 'חלב'));
+    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.staples) .name')].some((n) => n.textContent === 'חלב'));
     await kid.page.locator('.sync.offline', { hasText: 'ממתינים' }).waitFor();
     ok(`offline badge: "${(await kid.page.locator('.sync').textContent()).trim()}"`);
 
@@ -260,11 +260,10 @@ async function main() {
     ok("Dad's edit made while she was offline arrived");
     assert.equal(await row(dad, 'ביצים').count(), 1);
     ok('"ביצים" added on both phones became one item');
-    // Bought opens on a tap (it starts closed; it was opened above for prices); recently deleted stays closed.
+    // Bought opens on a tap (it starts closed; it was opened above for prices).
     const boughtToggle = dad.page.getByRole('button', { name: /נקנו בשבוע האחרון/ });
     if ((await boughtToggle.getAttribute('aria-expanded')) !== 'true') await boughtToggle.click();
     await row(dad, 'חלב').waitFor();
-    assert.equal(await dad.page.locator('.deleted .name').count(), 0);
     ok('"חלב" checked offline arrived as bought');
     // Clearing what was bought asks first; "ביטול" leaves it all in place.
     const boughtBefore = await dad.page.locator('.bought .name').count();
@@ -275,20 +274,49 @@ async function main() {
     await dad.page.waitForTimeout(500);
     assert.equal(await dad.page.locator('.bought .name').count(), boughtBefore, 'nothing was cleared');
     ok('"ניקוי" of bought items asks first');
-    await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
-    await dad.page.locator('.deleted .name', { hasText: 'עגבניות' }).waitFor();
-    const gone = await dad.page.locator('.deleted .name').allInnerTexts();
-    assert.deepEqual(gone, [...gone].sort((x, y) => x.localeCompare(y, 'he')), 'recently deleted is A to Z');
+    assert.equal(await row(dad, 'עגבניות').count(), 0);
+    assert.equal(await row(kid, 'עגבניות').count(), 0);
+    ok('delete beat a concurrent edit; "עגבניות" is off the list on both phones');
+
+    step('"המוצרים שלנו": chosen by hand, added to the list in one tap, also offline');
+    const staples = (p) => p.page.locator('.staples');
+    const openStaples = async (p) => {
+      const t = p.page.getByRole('button', { name: /^המוצרים שלנו/ });
+      if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
+    };
+    await openStaples(dad);
+    await dad.page.getByRole('button', { name: 'בחירה ממה שקניתם' }).click();
+    const picker = dad.page.getByRole('dialog', { name: 'בחירה ממה שקניתם' });
+    await picker.getByRole('checkbox', { name: /^עגבניות / }).check();
+    await picker.getByRole('checkbox', { name: /^חלב / }).check();
+    await picker.getByRole('button', { name: /^הוספה/ }).click();
+    await staples(dad).getByLabel('מוצר חדש למוצרים שלנו').fill('2 זירו');
+    await staples(dad).getByRole('button', { name: 'הוספה' }).click();
+    await staples(dad).getByRole('button', { name: 'הוספת זירו לרשימה' }).waitFor();
+    assert.equal(await row(dad, 'זירו').count(), 0, 'a new staple is not put on the list');
+    assert.equal(await staples(dad).getByRole('button', { name: 'הוספת זירו לרשימה' }).locator('.qty').textContent(), '2 יח׳');
+    ok('picked "עגבניות" and "חלב" from what was bought, and typed "2 זירו"; none of them went on the list');
     if (process.env.SCREENSHOT_DIR) {
-      await dad.page.locator('.deleted').evaluate((e) => e.scrollIntoView({ block: 'end' }));
-      await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/deleted.png` });
+      await dad.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/staples.png` });
     }
-    ok('delete beat a concurrent edit; item is in "recently deleted" for restore');
+    await openStaples(kid);
+    await staples(kid).getByRole('button', { name: 'הוספת עגבניות לרשימה' }).waitFor({ timeout: 10000 });
+    await kid.context.setOffline(true);
+    await staples(kid).getByRole('button', { name: 'הוספת עגבניות לרשימה' }).click();
+    await staples(kid).getByRole('button', { name: 'הוספת זירו לרשימה' }).click();
+    await row(kid, 'עגבניות').waitFor();
+    assert.equal(await row(kid, 'זירו').locator('.qty').textContent(), '2 יח׳');
+    await staples(kid).getByRole('button', { name: 'עגבניות כבר ברשימה' }).waitFor();
+    await kid.context.setOffline(false);
+    await waitSynced(kid);
+    await row(dad, 'עגבניות').waitFor({ timeout: 10000 });
+    await row(dad, 'זירו').waitFor({ timeout: 10000 });
+    ok('offline, two taps put "עגבניות" and "זירו" (2) on the list; they reached the other phone after reconnecting');
 
     if (process.env.SCREENSHOT_DIR) {
-      await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
+      await dad.page.getByRole('button', { name: /^המוצרים שלנו/ }).click();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list.png` });
-      await dad.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
       await kid.context.setOffline(true);
       await add(kid, 'קפה, סוכר');
       await kid.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/offline.png` });
@@ -296,34 +324,29 @@ async function main() {
       await waitSynced(kid);
     }
 
-    step('Restore and undo');
-    await dad.page.locator('.deleted .row', { hasText: 'עגבניות' }).getByRole('button', { name: /^החזרה לרשימה/ }).click();
-    await row(kid, 'עגבניות').waitFor({ timeout: 10000 });
-    ok('restored item reappears on the other phone');
+    step('Deleting from the list can be undone');
+    await row(dad, 'זירו').getByRole('button', { name: /עריכת/ }).click();
+    await dad.page.getByRole('dialog').getByRole('button', { name: 'מחיקה', exact: true }).click();
+    await dad.page.locator('.bought-toast', { hasText: 'זירו נמחק מהרשימה' }).getByRole('button', { name: 'ביטול' }).click();
+    await row(dad, 'זירו').waitFor();
+    ok('"ביטול" on the toast put "זירו" back');
 
-    step('Bought more than a week ago moves to "recently deleted", even offline');
+    step('Bought more than a week ago leaves the list, even offline');
     await row(dad, 'שמפו').locator('.check-area').click();
-    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.deleted) .name')].some((n) => n.textContent === 'שמפו'));
+    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.dept:not(.bought):not(.staples) .name')].some((n) => n.textContent === 'שמפו'));
     await kid.context.setOffline(true);
     await kid.page.clock.setSystemTime(new Date(Date.now() + 8 * 86400000));
     // Any re-render re-checks the dates; toggling the bought section is one
     // (unless a re-render already emptied it).
     await kid.page.evaluate(() => document.querySelector('.bought .section-head button')?.click());
-    await kid.page.getByRole('button', { name: /נמחקו לאחרונה/ }).click();
-    await kid.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
-    assert.equal(await kid.page.locator('.bought .name', { hasText: 'שמפו' }).count(), 0);
-    ok('a week later, offline, "שמפו" left "bought in the last week" for "recently deleted"');
+    await kid.page.waitForFunction(() => ![...document.querySelectorAll('.bought .name')].some((n) => n.textContent === 'שמפו'), null, { timeout: 10000 });
+    ok('a week later, offline, "שמפו" left "bought in the last week"');
     await kid.page.clock.setSystemTime(new Date());
     await kid.context.setOffline(false);
     await kid.page.evaluate(() => window.dispatchEvent(new Event('online')));
     await waitSynced(kid);
-    await dad.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ timeout: 10000 });
+    await dad.page.waitForFunction(() => ![...document.querySelectorAll('.bought .name')].some((n) => n.textContent === 'שמפו'), null, { timeout: 10000 });
     ok('the move reached the other phone after reconnecting');
-    // "✕" removes it for good, on both phones.
-    await dad.page.getByRole('button', { name: 'מחיקה סופית של שמפו' }).click();
-    await dad.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ state: 'detached', timeout: 10000 });
-    await kid.page.locator('.deleted .name', { hasText: 'שמפו' }).waitFor({ state: 'detached', timeout: 10000 });
-    ok('"✕" in recently deleted removes an item for good');
 
     step('Home screen, tasks, calendar and comments');
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));

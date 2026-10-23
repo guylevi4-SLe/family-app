@@ -306,6 +306,13 @@ describe('shopping list and comments', () => {
     await assertSucceeds(updateDoc(ref, { checkedAt: null, updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
     await assertFails(updateDoc(ref, { checkedAt: 'yesterday', updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
   });
+  it('items can be kept on "our products" with a usual quantity', async () => {
+    const ref = doc(db('dad'), 'families', 'levi', 'items', 'חלב');
+    await assertSucceeds(updateDoc(ref, { staple: true, usualQty: '2', updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(ref, { staple: 'yes', updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(ref, { usualQty: 'x'.repeat(31), updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(doc(db('neighbor'), 'families', 'levi', 'items', 'חלב'), { staple: true, updatedBy: users.neighbor.uid }));
+  });
   it('comments: authors edit their own, others cannot', async () => {
     await createInvite('dad', 'levi', 'CODE17', 'child');
     await requestToJoin('daughter', 'levi', 'CODE17', 'child');
