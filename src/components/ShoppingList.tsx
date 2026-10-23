@@ -85,8 +85,8 @@ export function ShoppingList({
         <div className="list-actions">
           {active.length > 0 && (
             <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
-              <Icon name="whatsapp" size={20} />
-              שליחת הרשימה לוואטסאפ
+              <Icon name="whatsapp" size={16} />
+              שליחה בוואטסאפ
             </button>
           )}
           <StaplesButton

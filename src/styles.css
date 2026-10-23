@@ -1130,8 +1130,10 @@ body.kb-open .quick-note-body { min-height: 40dvh; }
 .picker-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-list .muted { font-size: 0.8rem; }
 
-/* "המוצרים שלנו": a small soft button beside the WhatsApp one; its products open in a sheet over the list. */
+/* "המוצרים שלנו" and WhatsApp share: two small soft buttons on one row; the products open in a sheet over the list. */
 .shopping .list-actions { flex-wrap: wrap; align-items: center; gap: 8px; }
+.shopping .list-actions .whatsapp,
+:root[data-palette] .shopping .list-actions .whatsapp,
 .shopping .staples-button,
 :root[data-palette] .shopping .staples-button {
   display: inline-flex;
