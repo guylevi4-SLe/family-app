@@ -976,6 +976,8 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .lock-mark { display: inline-block; vertical-align: -0.125em; margin-inline-end: 0.3em; color: var(--accent); flex: none; }
 button .lock-mark, .primary .lock-mark { color: inherit; }
 .move-current { margin-inline-start: auto; color: var(--accent); }
+/* Above any sheet it was asked from. */
+.confirm-backdrop { z-index: 30; }
 .confirm-sheet { text-align: center; display: grid; justify-items: center; gap: 10px; }
 .confirm-sheet .more-title { font-size: 1.15rem; }
 .confirm-sheet p { margin: 0 0 6px; }

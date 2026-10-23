@@ -336,6 +336,24 @@ describe('shopping list and comments', () => {
     await assertFails(setDoc(ref('p4'), { ...c, text: '', image: 'data:text/html;base64,PGgxPg==' }));
     await assertFails(setDoc(ref('p5'), { ...c, text: '', image: 'data:image/jpeg;base64,' + 'A'.repeat(700001) }));
   });
+  it('a product has its own photo: a small JPEG the family adds, replaces and removes; outsiders cannot', async () => {
+    await createInvite('dad', 'levi', 'CODE18', 'child');
+    await requestToJoin('daughter', 'levi', 'CODE18', 'child');
+    await approve('dad', 'levi', 'daughter', 'child');
+    const p = { image: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==', by: 'dad', at: serverTimestamp() };
+    const ref = (who: Who) => doc(db(who), 'families', 'levi', 'itemPhotos', 'i1');
+    await assertSucceeds(setDoc(ref('dad'), p));
+    await assertSucceeds(setDoc(ref('daughter'), { ...p, by: 'daughter' }));
+    await assertSucceeds(getDoc(ref('dad')));
+    await assertFails(setDoc(ref('dad'), { ...p, by: 'daughter' }));
+    await assertFails(setDoc(ref('dad'), { ...p, image: 'data:text/html;base64,PGgxPg==' }));
+    await assertFails(setDoc(ref('dad'), { ...p, image: 'data:image/jpeg;base64,' + 'A'.repeat(700001) }));
+    await assertFails(setDoc(ref('dad'), { ...p, note: 'x' }));
+    await assertFails(getDoc(ref('neighbor')));
+    await assertFails(setDoc(ref('neighbor'), { ...p, by: 'neighbor' }));
+    await assertFails(deleteDoc(ref('neighbor')));
+    await assertSucceeds(deleteDoc(ref('daughter')));
+  });
   it('comments may name up to 20 people to notify', async () => {
     const c = { targetType: 'item', targetId: 'קמח', text: 'סוגת', authorUid: 'dad', authorName: 'אבא', createdAt: serverTimestamp() };
     const ref = (id: string) => doc(db('dad'), 'families', 'levi', 'comments', id);

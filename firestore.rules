@@ -243,6 +243,17 @@ service cloud.firestore {
         allow delete: if isMember(fid) && (resource.data.by == me() || isAdmin(fid));
       }
 
+      // A product's own photo (one per item, named by its id): a small JPEG, apart from its notes.
+      match /itemPhotos/{itemId} {
+        allow read: if isMember(fid);
+        allow create, update: if isMember(fid)
+          && onlyKeys(['image', 'by', 'at'])
+          && shortString(data().image, 700000) && data().image.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')
+          && data().at == request.time
+          && data().by == me();
+        allow delete: if isMember(fid);
+      }
+
       match /categoryOverrides/{norm} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
