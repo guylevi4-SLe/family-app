@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { normalize, orderedDepartments } from '../data/departments';
 import { addItems, setCategory, updateItem, type Item, type Urgency } from '../data/items';
-import { addComment, shrinkPhoto } from '../data/comments';
+import { shrinkPhoto } from '../data/comments';
+import { removeItemPhoto, setItemPhoto } from '../data/itemPhotos';
 import { addPrice, ago, cheapestByUnit, defaultUnit, deletePrice, estimateTotal, formatPrice, parsePrice, priceKey, priceLabel, similarKinds, type PriceEntry } from '../data/prices';
 import { auth } from '../firebase';
 import { CommentButton } from './CommentButton';
+import { confirmDelete } from './ConfirmSheet';
 import { Icon } from './Icon';
 import { useFamily } from './FamilyContext';
 import { UnitPick } from './UnitPick';
@@ -48,12 +50,11 @@ export function ItemSheet({
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoError, setPhotoError] = useState('');
 
-  // The photo goes in as a note with no text, so it shows in the notes too.
   const pickPhoto = async (file: File | undefined) => {
     if (!file) return;
     setPhotoError('');
     try {
-      addComment(familyId, 'item', item.id, '', await shrinkPhoto(file));
+      setItemPhoto(familyId, item.id, await shrinkPhoto(file));
     } catch {
       setPhotoError('לא הצלחנו לטעון את התמונה. נסו תמונה אחרת');
     } finally {
@@ -88,7 +89,7 @@ export function ItemSheet({
   return (
     <div className="sheet-backdrop" onClick={save}>
       <div className="sheet" role="dialog" aria-label={`עריכת ${item.name}`} onClick={(e) => e.stopPropagation()}>
-        {/* The newest photo from the item's notes, whole and uncropped. */}
+        {/* The product's own photo, whole and uncropped. */}
         <div className="item-photo-row">
           {photo && (
             <button type="button" className="item-photo" aria-label={`הגדלת התמונה של ${item.name}`} onClick={() => setZoom(true)}>
@@ -99,6 +100,18 @@ export function ItemSheet({
           <button type="button" className="item-photo-add" aria-label={photo ? `החלפת התמונה של ${item.name}` : `הוספת תמונה ל${item.name}`} onClick={() => fileRef.current?.click()}>
             <Icon name="camera" size={16} />
           </button>
+          {photo && (
+            <button
+              type="button"
+              className="item-photo-add"
+              aria-label={`הסרת התמונה של ${item.name}`}
+              onClick={async () => {
+                if (await confirmDelete('להסיר את התמונה?')) removeItemPhoto(familyId, item.id);
+              }}
+            >
+              ✕
+            </button>
+          )}
         </div>
         {photoError && <p className="error small-text">{photoError}</p>}
         <label>

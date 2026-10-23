@@ -1,6 +1,6 @@
 import { BrandLogo } from './BrandLogo';
 import { useEffect, useMemo, useState } from 'react';
-import { useComments, useTargetComments, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays, usePrivateNotes } from '../data/hooks';
+import { useComments, useTargetComments, useItemPhotos, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays, usePrivateNotes } from '../data/hooks';
 import type { Member } from '../data/family';
 import { commentKey, type TargetType } from '../data/comments';
 import { ShoppingList } from './ShoppingList';
@@ -207,20 +207,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
     return m;
   }, [targetComments]);
 
-  // A photo still waiting to sync has no time yet; it is the newest.
-  const itemPhotos = useMemo(() => {
-    const m = new Map<string, string>();
-    const at = new Map<string, number>();
-    for (const c of targetComments ?? []) {
-      if (c.targetType !== 'item' || !c.image) continue;
-      const t = c.createdAt?.toMillis() ?? Infinity;
-      if (t >= (at.get(c.targetId) ?? -1)) {
-        m.set(c.targetId, c.image);
-        at.set(c.targetId, t);
-      }
-    }
-    return m;
-  }, [targetComments]);
+  const itemPhotos = useItemPhotos(familyId);
 
   const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;

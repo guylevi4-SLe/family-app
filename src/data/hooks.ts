@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { PriceEntry } from './prices';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import {
@@ -18,6 +18,7 @@ import { currentDept } from './departments';
 import type { Task } from './tasks';
 import type { FamilyEvent } from './events';
 import type { Comment } from './comments';
+import type { ItemPhoto } from './itemPhotos';
 import { noteFilesQuery, privateNotesQuery, type FamilyList, type ListEntry, type NoteFile } from './lists';
 import type { Birthday } from './birthdays';
 import type { Schedule } from './schedules';
@@ -186,6 +187,12 @@ export function useTargetComments(fid: string) {
     () => query(collection(db, 'families', fid, 'comments'), where('targetType', 'in', ['item', 'task', 'event'])),
     (id, d, pending) => ({ id, ...(d as Omit<Comment, 'id' | 'pending'>), pending }),
   );
+}
+
+/** Each product's own photo, by item id (not the photos in its notes). */
+export function useItemPhotos(fid: string) {
+  const rows = useQuery<ItemPhoto>(`itemPhotos/${fid}`, () => collection(db, 'families', fid, 'itemPhotos'), (id, d) => ({ id, image: String(d.image ?? '') }));
+  return useMemo(() => new Map((rows ?? []).map((r) => [r.id, r.image])), [rows]);
 }
 
 /** Checklists and their lines (a family has few enough to keep in memory). */

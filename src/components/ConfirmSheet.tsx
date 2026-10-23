@@ -32,7 +32,7 @@ export function ConfirmHost() {
     ask.resolve(ok);
   };
   return (
-    <div className="sheet-backdrop" onClick={() => done(false)}>
+    <div className="sheet-backdrop confirm-backdrop" onClick={() => done(false)}>
       <div className="sheet more-sheet confirm-sheet" role="alertdialog" aria-label={ask.title} onClick={(e) => e.stopPropagation()}>
         <span className="confirm-icon" aria-hidden="true">{ask.icon ?? <Trash2 size={26} />}</span>
         <strong className="more-title">{ask.title}</strong>
