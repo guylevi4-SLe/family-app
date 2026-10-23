@@ -70,7 +70,7 @@ export function ShoppingList({
 
   const offerUndo = (item: Item, deleted: boolean) => {
     if (undo) clearTimeout(undo.timer);
-    const timer = window.setTimeout(() => setUndo(null), 7000);
+    const timer = window.setTimeout(() => setUndo(null), deleted ? 4000 : 3000);
     setUndo({ item, deleted, timer });
   };
 
