@@ -8,6 +8,8 @@ import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
 import { StaplesSection } from './Staples';
 import { CommentButton } from './CommentButton';
+import { useFamily } from './FamilyContext';
+import { ZoomViewer } from './ZoomViewer';
 import { Icon } from './Icon';
 import { confirmAsk } from './ConfirmSheet';
 import { Eraser } from 'lucide-react';
@@ -217,6 +219,8 @@ export function ShoppingList({
 }
 
 function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last?: PriceEntry; onToggle: () => void; onEdit: () => void; onUrgency: (u: Urgency) => void }) {
+  const photo = useFamily().itemPhotos.get(item.id);
+  const [zoom, setZoom] = useState(false);
   return (
     <li className={`row ${item.checked ? 'checked' : ''}`}>
       <button className="check-area" onClick={onToggle} aria-pressed={item.checked}>
@@ -268,7 +272,14 @@ function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last
           {item.pending && <span className="pending-dot" title="ממתין לסנכרון" aria-label="ממתין לסנכרון" />}
         </span>
       </button>
+      {/* The product's photo opens straight from the row. */}
+      {photo && (
+        <button className="comment-chip has" aria-label={`התמונה של ${item.name}`} onClick={() => setZoom(true)}>
+          <Icon name="camera" size={18} />
+        </button>
+      )}
       <CommentButton type="item" id={item.id} title={item.name} />
+      {zoom && photo && <ZoomViewer src={photo} alt={item.name} onClose={() => setZoom(false)} />}
       <button className="icon-button edit" aria-label={`עריכת ${item.name}`} onClick={onEdit}>
         <Icon name="edit" size={18} />
       </button>
