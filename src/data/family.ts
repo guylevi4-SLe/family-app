@@ -113,6 +113,13 @@ export function cancelInvite(code: string) {
 
 export class JoinError extends Error {}
 
+async function knownTo(familyId: string) {
+  const found = (sub: string) =>
+    getDoc(doc(db, 'families', familyId, sub, me().uid)).then((snap) => snap.exists(), () => false);
+  const [member, request] = await Promise.all([found('members'), found('joinRequests')]);
+  return member || request;
+}
+
 /** Claims an invite and files a join request; the admin still has to approve. */
 export async function requestToJoin(rawCode: string) {
   const code = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -120,6 +127,9 @@ export async function requestToJoin(rawCode: string) {
   const snap = await getDoc(doc(db, 'invites', code)).catch(() => null);
   if (!snap?.exists()) throw new JoinError('הקוד לא נמצא. בדקו שהוא הוקלד נכון, או בקשו הזמנה חדשה');
   const inv = snap.data() as Omit<Invite, 'id'>;
+  // Someone the family already knows (a member, or with a request on file)
+  // goes straight back in with any of its codes, even a used or expired one.
+  if (await knownTo(inv.familyId)) return setMyFamily(inv.familyId);
   if (inv.usedBy && inv.usedBy !== me().uid) {
     throw new JoinError('ההזמנה הזו כבר נוצלה. אם כבר הצטרפתם בעבר, ייתכן שהתחברתם עכשיו עם חשבון גוגל אחר. אחרת, בקשו הזמנה חדשה');
   }
