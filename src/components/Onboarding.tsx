@@ -25,6 +25,7 @@ export function Onboarding({ inviteCode, onUsedInvite }: { inviteCode: string; o
   return (
     <main className="center-page">
       <h1>שלום {auth.currentUser?.displayName?.split(' ')[0] ?? ''}</h1>
+      <SignedInAs />
 
       <section className="card">
         <h2>הצטרפות למשפחה</h2>
@@ -89,5 +90,16 @@ export function Onboarding({ inviteCode, onUsedInvite }: { inviteCode: string; o
         התנתקות
       </button>
     </main>
+  );
+}
+
+/** Which Google account is signed in, so joining with the wrong one is easy to spot. */
+export function SignedInAs() {
+  const email = auth.currentUser?.email;
+  if (!email) return null;
+  return (
+    <p className="muted">
+      מחוברים עם <span dir="ltr">{email}</span>
+    </p>
   );
 }
