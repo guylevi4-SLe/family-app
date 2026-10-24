@@ -164,6 +164,11 @@ export async function decideRequest(familyId: string, req: JoinRequest, approve:
   await batch.commit();
 }
 
+/** The family's own name, shown in its screens (e.g. "רשימת הקבועים של ..."); admins change it. */
+export function renameFamily(familyId: string, name: string) {
+  return updateDoc(doc(db, 'families', familyId), { name: name.trim().slice(0, 60) });
+}
+
 /** The name the family sees (and tags with "@"), changed by the person or an admin. */
 export function renameMember(familyId: string, uid: string, displayName: string) {
   return updateDoc(doc(db, 'families', familyId, 'members', uid), { displayName: displayName.trim().slice(0, 40) });

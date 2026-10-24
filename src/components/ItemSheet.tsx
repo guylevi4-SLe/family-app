@@ -32,7 +32,7 @@ export function ItemSheet({
   stores: string[];
   existing: Map<string, Item>;
   overrides: Map<string, string>;
-  /** Opened from "מזווה": edits the usual quantity, and removing takes it off that list only. */
+  /** Opened from "רשימת הקבועים": edits the usual quantity, and removing takes it off that list only. */
   staple?: boolean;
   onDeleted?: (item: Item) => void;
   onClose: () => void;
@@ -150,7 +150,7 @@ export function ItemSheet({
             </div>
             <label className="check-line">
               <input type="checkbox" checked={isStaple} onChange={(e) => setIsStaple(e.target.checked)} />
-              שמירה במזווה
+              שמירה בקבועים
             </label>
           </>
         )}
@@ -234,7 +234,7 @@ export function ItemSheet({
                 onClose();
               }}
             >
-              הסרה מהמזווה
+              הסרה מהקבועים
             </button>
           ) : (
             <button

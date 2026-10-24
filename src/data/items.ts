@@ -26,7 +26,7 @@ export interface Item {
   updatedAt?: Timestamp | null;
   updatedBy: string;
   pending: boolean;
-  /** On "מזווה": products the family usually buys, added in one tap. */
+  /** On "רשימת הקבועים": products the family usually buys, added in one tap. */
   staple?: boolean;
   /** The quantity a staple is added with. */
   usualQty?: string;
@@ -122,7 +122,7 @@ export function clearChecked(fid: string, items: Item[]) {
 }
 
 /**
- * Puts products on "מזווה" without adding them to the list ("חלב 2" keeps 2 as its usual quantity).
+ * Puts products on "רשימת הקבועים" without adding them to the list ("חלב 2" keeps 2 as its usual quantity).
  * Added from inside a department, they go in that department instead of the guessed one.
  */
 export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<string, Item>, overrides: Map<string, string>, dept?: string) {

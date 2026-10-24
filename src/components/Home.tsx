@@ -275,7 +275,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
 
         <ErrorBoundary resetKey={view}>
         {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} birthdays={birthdays} unreadChat={unreadChat} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); if (!id) setNoteFolder(null); setView('lists'); }} />}
-        {view === 'list' && <ShoppingList familyId={familyId} items={items} deptOrder={family?.deptOrder} />}
+        {view === 'list' && <ShoppingList familyId={familyId} familyName={family?.name} items={items} deptOrder={family?.deptOrder} />}
         {view === 'calendar' && (
           <main className="list-page planner">
             <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={(id, newOn) => { setBirthdayNew(newOn); setBirthdayOpen(id); }} tasksOpen={tasksOpen} setTasksOpen={setTasksOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
@@ -311,6 +311,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
           <FamilySettings
             familyId={familyId}
             me={me}
+            familyName={family?.name}
             deptOrder={family?.deptOrder}
             pendingWrites={pendingCount}
             startScreen={readCachedStart() ?? (isScreen(startScreen) ? startScreen : 'home')}

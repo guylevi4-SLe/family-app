@@ -3,7 +3,7 @@ import { orderedDepartments } from '../data/departments';
 import { addStaples, addStaplesToList, parseItems, qtyLabel, updateItem, type Item } from '../data/items';
 import { priceLabel, type PriceEntry } from '../data/prices';
 import { Icon } from './Icon';
-import { Apple, Baby, Bath, Beef, Candy, Croissant, CupSoda, House, Milk, Package, Salad, Shapes, ShoppingBasket, Snowflake, SprayCan, Wheat, type LucideIcon } from 'lucide-react';
+import { Apple, Baby, Bath, Beef, Candy, Croissant, CupSoda, House, Milk, Package, Salad, Shapes, Plus, ShoppingBasket, Snowflake, SprayCan, Wheat, type LucideIcon } from 'lucide-react';
 
 /** A picture for each department's square in the pantry; a family's own department gets the generic one. */
 export const DEPT_ICONS: Record<string, LucideIcon> = {
@@ -23,9 +23,10 @@ export const DEPT_ICONS: Record<string, LucideIcon> = {
   'בית וחד״פ': House,
 };
 
-/** "מזווה": a small button above the list that opens the family's usual products. */
+/** The family's usual products ("רשימת הקבועים"): a small "+" and basket above the list opens them. */
 export function StaplesButton(props: {
   familyId: string;
+  familyName: string | undefined;
   items: Item[];
   byId: Map<string, Item>;
   overrides: Map<string, string>;
@@ -36,9 +37,9 @@ export function StaplesButton(props: {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button className="small staples-button" onClick={() => setOpen(true)}>
+      <button className="small staples-button" aria-label="רשימת הקבועים" onClick={() => setOpen(true)}>
+        <Plus size={16} strokeWidth={2.6} aria-hidden="true" />
         <ShoppingBasket size={16} aria-hidden="true" />
-        מזווה
       </button>
       {open && <StaplesSheet {...props} onClose={() => setOpen(false)} />}
     </>
@@ -48,6 +49,7 @@ export function StaplesButton(props: {
 /** What the family usually buys: a square per department, and a department's products a tap away; a tap on one puts it on the list. */
 function StaplesSheet({
   familyId,
+  familyName,
   items,
   byId,
   overrides,
@@ -57,6 +59,7 @@ function StaplesSheet({
   onClose,
 }: {
   familyId: string;
+  familyName: string | undefined;
   items: Item[];
   byId: Map<string, Item>;
   overrides: Map<string, string>;
@@ -68,6 +71,8 @@ function StaplesSheet({
   const [text, setText] = useState('');
   const [dept, setDept] = useState<string | null>(null);
   const staples = items.filter((i) => i.staple);
+  // Each family sees its own name, as set in the family settings.
+  const title = familyName?.trim() ? `רשימת הקבועים של ${familyName.trim()}` : 'רשימת הקבועים';
 
   const groups = useMemo(() => {
     const order = orderedDepartments(deptOrder);
@@ -94,20 +99,20 @@ function StaplesSheet({
 
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet tall staples-sheet" role="dialog" aria-label="מזווה" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet tall staples-sheet" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           {shown ? (
             <button className="link-plain staples-back" onClick={() => setDept(null)}>
-              → מזווה
+              → רשימת הקבועים
             </button>
           ) : (
-            <h2>מזווה</h2>
+            <h2>{title}</h2>
           )}
           <button className="icon-button" aria-label="סגירה" onClick={onClose}>
             ✕
           </button>
         </div>
-        {staples.length === 0 && <p className="muted small-text">עוד אין כאן מוצרים. אפשר להוסיף למטה, או לסמן מוצר כ"מוצר שלנו" בעריכה שלו.</p>}
+        {staples.length === 0 && <p className="muted small-text">עוד אין כאן מוצרים. אפשר להוסיף למטה, או לסמן מוצר כקבוע בעריכה שלו.</p>}
         {!shown && groups.length > 0 && (
           <div className="dept-grid">
             {groups.map(([d]) => {
@@ -158,7 +163,7 @@ function StaplesSheet({
             add();
           }}
         >
-          <input value={text} maxLength={120} placeholder="מוצר חדש, למשל: חלב 2" aria-label="מוצר חדש למזווה" onChange={(e) => setText(e.target.value)} />
+          <input value={text} maxLength={120} placeholder="מוצר חדש, למשל: חלב 2" aria-label="מוצר חדש לרשימת הקבועים" onChange={(e) => setText(e.target.value)} />
           <button className="small" disabled={!text.trim()}>
             הוספה
           </button>

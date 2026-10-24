@@ -277,10 +277,10 @@ async function main() {
     assert.equal(await row(kid, 'עגבניות').count(), 0);
     ok('delete beat a concurrent edit; "עגבניות" is off the list on both phones');
 
-    step('"מזווה": chosen by hand, added to the list in one tap, also offline');
+    step('"רשימת הקבועים": chosen by hand, added to the list in one tap, also offline');
     const staples = (p) => p.page.locator('.staples');
     const openStaples = async (p) => {
-      const t = p.page.getByRole('button', { name: /^מזווה/ });
+      const t = p.page.getByRole('button', { name: /^רשימת הקבועים/ });
       if ((await t.getAttribute('aria-expanded')) !== 'true') await t.click();
     };
     await openStaples(dad);
@@ -289,7 +289,7 @@ async function main() {
     await picker.getByRole('checkbox', { name: /^עגבניות / }).check();
     await picker.getByRole('checkbox', { name: /^חלב / }).check();
     await picker.getByRole('button', { name: /^הוספה/ }).click();
-    await staples(dad).getByLabel('מוצר חדש למזווה').fill('2 זירו');
+    await staples(dad).getByLabel('מוצר חדש לרשימת הקבועים').fill('2 זירו');
     await staples(dad).getByRole('button', { name: 'הוספה' }).click();
     await staples(dad).getByRole('button', { name: 'הוספת זירו לרשימה' }).waitFor();
     assert.equal(await row(dad, 'זירו').count(), 0, 'a new staple is not put on the list');
@@ -314,7 +314,7 @@ async function main() {
     ok('offline, two taps put "עגבניות" and "זירו" (2) on the list; they reached the other phone after reconnecting');
 
     if (process.env.SCREENSHOT_DIR) {
-      await dad.page.getByRole('button', { name: /^מזווה/ }).click();
+      await dad.page.getByRole('button', { name: /^רשימת הקבועים/ }).click();
       await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/list.png` });
       await kid.context.setOffline(true);
       await add(kid, 'קפה, סוכר');
