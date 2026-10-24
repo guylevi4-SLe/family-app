@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { doc, getDocFromServer } from 'firebase/firestore';
-import { db } from './firebase';
+import { signOut } from 'firebase/auth';
+import { auth, db } from './firebase';
 import { useAuthUser, useDoc } from './data/hooks';
 import type { JoinRequest, Member } from './data/family';
 import { SignIn } from './components/SignIn';
-import { Onboarding } from './components/Onboarding';
+import { Onboarding, SignedInAs } from './components/Onboarding';
 import { Waiting } from './components/Waiting';
 import { Home } from './components/Home';
 
@@ -45,8 +46,44 @@ function useInviteCodeFromLink() {
 export function App() {
   const user = useAuthUser();
   const [inviteCode, clearInviteCode] = useInviteCodeFromLink();
-  const profile = useDoc<{ familyId?: string | null; startScreen?: string }>(user ? ['users', user.uid] : null);
+  const [profileTry, setProfileTry] = useState(0);
+  const profile = useDoc<{ familyId?: string | null; startScreen?: string }>(
+    user ? ['users', user.uid, `#${profileTry}`] : null,
+  );
   const familyId = profile?.familyId ?? null;
+  // Right after signing in again the device's cache is empty, and a failed
+  // read looks just like "no family", so ask the server before offering to
+  // join one.
+  const [noFamily, setNoFamily] = useState<{ uid: string; state: 'confirmed' | 'offline' } | null>(null);
+  const [check, setCheck] = useState(0);
+  const uid = user?.uid;
+  const profileLoaded = profile !== undefined;
+  useEffect(() => {
+    if (!uid || !profileLoaded || familyId) return;
+    let live = true;
+    setNoFamily(null);
+    getDocFromServer(doc(db, 'users', uid))
+      .then((snap) => {
+        if (!live) return;
+        if (snap.data()?.familyId) setProfileTry((t) => t + 1);
+        else setNoFamily({ uid, state: 'confirmed' });
+      })
+      .catch(() => live && setNoFamily({ uid, state: 'offline' }));
+    return () => {
+      live = false;
+    };
+  }, [uid, profileLoaded, familyId, check]);
+  useEffect(() => {
+    if (noFamily?.state !== 'offline') return;
+    const retry = () => setCheck((c) => c + 1);
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, [noFamily?.state]);
+  // An invite link opened by someone already in a family is left over; forget
+  // it so the sign-in screen stops announcing an invite.
+  useEffect(() => {
+    if (familyId && inviteCode) clearInviteCode();
+  }, [familyId, inviteCode]);
   // A denied read ends a listener, so re-subscribe to the membership once
   // the join request is approved.
   const [attempt, setAttempt] = useState(0);
@@ -81,12 +118,33 @@ export function App() {
   if (user === undefined) return <Splash />;
   if (user === null) return <SignIn hasInvite={!!inviteCode} />;
   if (profile === undefined) return <Splash />;
-  if (!familyId) return <Onboarding inviteCode={inviteCode} onUsedInvite={clearInviteCode} />;
+  if (!familyId) {
+    const state = noFamily?.uid === user.uid ? noFamily.state : null;
+    if (!state) return <Splash />;
+    if (state === 'offline') return <NoConnection onRetry={() => setCheck((c) => c + 1)} />;
+    return <Onboarding inviteCode={inviteCode} onUsedInvite={clearInviteCode} />;
+  }
   if (membership === undefined) return <Splash />;
   if (revoked) return <Waiting familyId={familyId} request={null} />;
   if (membership) return <Home familyId={familyId} me={membership} startScreen={profile?.startScreen} />;
   if (request === undefined) return <Splash />;
   return <Waiting familyId={familyId} request={request} />;
+}
+
+function NoConnection({ onRetry }: { onRetry: () => void }) {
+  return (
+    <main className="center-page">
+      <h1>אין חיבור לשרת</h1>
+      <p className="muted">כדי למצוא את המשפחה שלכם צריך חיבור לאינטרנט. כשהחיבור יחזור, נמשיך מעצמנו.</p>
+      <SignedInAs />
+      <button className="primary big" onClick={onRetry}>
+        נסו שוב
+      </button>
+      <button className="link muted" onClick={() => signOut(auth)}>
+        התנתקות
+      </button>
+    </main>
+  );
 }
 
 function Splash() {

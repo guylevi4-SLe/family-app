@@ -120,7 +120,9 @@ export async function requestToJoin(rawCode: string) {
   const snap = await getDoc(doc(db, 'invites', code)).catch(() => null);
   if (!snap?.exists()) throw new JoinError('הקוד לא נמצא. בדקו שהוא הוקלד נכון, או בקשו הזמנה חדשה');
   const inv = snap.data() as Omit<Invite, 'id'>;
-  if (inv.usedBy && inv.usedBy !== me().uid) throw new JoinError('ההזמנה הזו כבר נוצלה. בקשו הזמנה חדשה');
+  if (inv.usedBy && inv.usedBy !== me().uid) {
+    throw new JoinError('ההזמנה הזו כבר נוצלה. אם כבר הצטרפתם בעבר, ייתכן שהתחברתם עכשיו עם חשבון גוגל אחר. אחרת, בקשו הזמנה חדשה');
+  }
   if (inv.expiresAt.toMillis() < Date.now()) throw new JoinError('פג תוקף ההזמנה. בקשו הזמנה חדשה');
   const u = me();
   if (!inv.usedBy) {
