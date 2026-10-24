@@ -18,6 +18,7 @@ import {
   decideRequest,
   inviteLink,
   removeMember,
+  renameFamily,
   renameMember,
   type Member,
   type Role,
@@ -34,6 +35,7 @@ import { PALETTES, applyPalette, readPalette, type Palette } from '../theme';
 
 export function FamilySettings({
   familyId,
+  familyName,
   me,
   deptOrder,
   pendingWrites,
@@ -41,6 +43,7 @@ export function FamilySettings({
   onClose,
 }: {
   familyId: string;
+  familyName: string | undefined;
   me: Member;
   deptOrder: string[] | undefined;
   pendingWrites: number;
@@ -94,6 +97,27 @@ export function FamilySettings({
             ))}
           </section>
         )}
+
+        <section className="card">
+          <h3>שם המשפחה</h3>
+          <div className="person">
+            <div className="who">
+              <strong>{familyName}</strong>
+              <span className="muted">מופיע למשל ב"רשימת הקבועים של {familyName}"</span>
+            </div>
+            {isAdmin && (
+              <button
+                className="small"
+                onClick={guard(async () => {
+                  const name = prompt('שם המשפחה:', familyName ?? '')?.trim();
+                  if (name && name !== familyName) await renameFamily(familyId, name);
+                })}
+              >
+                שינוי
+              </button>
+            )}
+          </div>
+        </section>
 
         <section className="card">
           <h3>בני המשפחה</h3>

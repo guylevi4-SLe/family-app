@@ -1114,7 +1114,7 @@ button .lock-mark, .primary .lock-mark { color: inherit; }
 .quick-note { display: grid; gap: 8px; }
 .quick-note-body { min-height: calc(100dvh - var(--nav-h) - 200px); font-size: 1.05rem; }
 body.kb-open .quick-note-body { min-height: 40dvh; }
-/* ---------- "מזווה": usual products, one tap onto the list ---------- */
+/* ---------- "רשימת הקבועים": usual products, one tap onto the list ---------- */
 .staples .section-head { justify-content: flex-start; gap: 4px; }
 .staples .section-head > :first-child { margin-inline-end: auto; }
 .staple-dept h3 { font-size: 1.15rem; font-weight: 800; margin: 2px 4px 0; }
@@ -1141,7 +1141,7 @@ body.kb-open .quick-note-body { min-height: 40dvh; }
 .picker-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .picker-list .muted { font-size: 0.8rem; }
 
-/* "מזווה" and WhatsApp share: two small soft buttons on one row; the products open in a sheet over the list. */
+/* "רשימת הקבועים" and WhatsApp share: two small soft buttons on one row; the products open in a sheet over the list. */
 .shopping .list-actions { flex-wrap: nowrap; align-items: center; gap: 6px; }
 .shopping .list-actions .whatsapp,
 :root[data-palette] .shopping .list-actions .whatsapp,
