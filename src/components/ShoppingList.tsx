@@ -92,7 +92,9 @@ export function ShoppingList({
   // Staples matching the product being typed (the last one, after any commas), one tap away.
   const typing = text.split(/[\n,،;]/).pop() ?? '';
   const typed = parseItems(typing)[0];
-  const suggestions = typed ? suggestStaples(typed.name, byId.values()) : [];
+  const found = typed ? suggestStaples(typed.name, byId.values(), 4) : [];
+  // Two to a row; the best two on the row next to the field (a third alone above, on the right).
+  const suggestions: (Item | null)[] = found.length > 2 ? [found[2], found[3] ?? null, found[0], found[1]] : found;
   const pickStaple = (s: Item) => {
     if (onList(s) && !typed?.qty) say(`${s.name} כבר ברשימה`);
     else addItems(familyId, [{ id: s.id, name: s.name, qty: typed?.qty || s.usualQty || '' }], byId, overrides);
@@ -269,15 +271,19 @@ export function ShoppingList({
       >
         {suggestions.length > 0 && (
           <div className="staple-suggestions" aria-label="מרשימת הקבועים">
-            {suggestions.map((s) => (
-              // preventDefault keeps the keyboard open while tapping.
-              <button key={s.id} type="button" className={onList(s) ? 'listed' : ''} onPointerDown={(e) => e.preventDefault()} onClick={() => pickStaple(s)}>
-                <span className="sugg-name">
-                  {onList(s) && <span aria-label="כבר ברשימה">✓ </span>}
-                  {s.name}
-                </span>
-              </button>
-            ))}
+            {suggestions.map((s, i) =>
+              !s ? (
+                <span key={i} />
+              ) : (
+                // preventDefault keeps the keyboard open while tapping.
+                <button key={s.id} type="button" className={onList(s) ? 'listed' : ''} onPointerDown={(e) => e.preventDefault()} onClick={() => pickStaple(s)}>
+                  <span className="sugg-name">
+                    {onList(s) && <span aria-label="כבר ברשימה">✓ </span>}
+                    {s.name}
+                  </span>
+                </button>
+              ),
+            )}
           </div>
         )}
         <textarea
