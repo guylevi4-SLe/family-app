@@ -34,8 +34,8 @@ const CHAT_PAGE = 50;
 const VIEWS: { id: View; label: string; icon: IconName }[] = [
   { id: 'home', label: 'בית', icon: 'home' },
   { id: 'list', label: 'קניות', icon: 'cart' },
-  { id: 'calendar', label: 'יומן', icon: 'calendar' },
   { id: 'lists', label: 'פתקים', icon: 'list' },
+  { id: 'calendar', label: 'יומן', icon: 'calendar' },
   { id: 'chat', label: 'צ׳אט', icon: 'chat' },
 ];
 
