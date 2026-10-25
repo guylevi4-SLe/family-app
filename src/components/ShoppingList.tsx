@@ -272,9 +272,10 @@ export function ShoppingList({
             {suggestions.map((s) => (
               // preventDefault keeps the keyboard open while tapping.
               <button key={s.id} type="button" className={onList(s) ? 'listed' : ''} onPointerDown={(e) => e.preventDefault()} onClick={() => pickStaple(s)}>
-                {onList(s) && <span aria-label="כבר ברשימה">✓ </span>}
-                {s.name}
-                {s.usualQty && <span className="chip-price">{qtyLabel(s.usualQty)}</span>}
+                <span className="sugg-name">
+                  {onList(s) && <span aria-label="כבר ברשימה">✓ </span>}
+                  {s.name}
+                </span>
               </button>
             ))}
           </div>
