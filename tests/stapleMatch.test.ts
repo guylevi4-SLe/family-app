@@ -32,10 +32,12 @@ describe('typed products that mean a staple', () => {
 });
 
 describe('suggestions while typing', () => {
-  it('offers staples holding the typed text, those starting with it first', () => {
+  it('offers staples whose name starts with the typed text', () => {
     expect(suggestStaples('נט', items).map((s) => s.id)).toEqual(['נטורינה']);
     expect(suggestStaples('גבינה', items).map((s) => s.id)).toEqual(['בולגרית', 'לבנה']);
-    expect(suggestStaples('לבנה', items).map((s) => s.id)).toEqual(['לבנה']);
+  });
+  it('skips a staple where the typed text is only in a later word ("עגב" is not "רסק עגבניות")', () => {
+    expect(suggestStaples('לבנה', items)).toEqual([]);
   });
   it('stays quiet for one letter, exact names and products not on the staples list', () => {
     expect(suggestStaples('נ', items)).toEqual([]);

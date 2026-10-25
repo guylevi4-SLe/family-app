@@ -418,9 +418,26 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 }
 /* Staples matching what is being typed: one row above the field, scrolling sideways. */
 .add-box.bottom-add { flex-wrap: wrap; }
-.staple-suggestions { flex: 0 0 100%; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-.staple-suggestions .chip { flex: none; min-height: 34px; white-space: nowrap; }
-.staple-suggestions .chip.listed { opacity: 0.6; }
+.staple-suggestions { flex: 0 0 100%; display: flex; margin-top: -4px; }
+/* Like a keyboard's suggestion bar: plain text sharing the width, long names cut with "…". */
+.staple-suggestions button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.staple-suggestions button + button { border-inline-start: 1px solid var(--line); }
+.staple-suggestions button.listed { color: var(--muted); }
+.staple-suggestions .chip-price { font-size: 0.8em; }
 body.kb-open .bottom-nav { display: none; }
 body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .list-page.with-bottom-add ~ .toast,
