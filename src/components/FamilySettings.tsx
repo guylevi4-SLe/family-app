@@ -130,16 +130,12 @@ export function FamilySettings({
                   {m.id === me.id ? ' (את/ה)' : ''}
                 </strong>
                 <span className="muted">{ROLE_LABELS[m.role]}</span>
-                {/* The Google account behind the name: an admin sees everyone's, the rest only their own. */}
-                {(isAdmin || m.id === me.id) && m.email && (
-                  <span className="muted" dir="ltr">
-                    {m.email}
-                  </span>
-                )}
               </div>
               {(isAdmin || m.id === me.id) && (
                 <MoreMenu
                   title={m.displayName}
+                  // The Google account behind the name, kept out of the row: an admin sees everyone's, the rest only their own.
+                  subtitle={m.email || undefined}
                   items={[
                     {
                       label: 'שינוי שם',
