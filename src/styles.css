@@ -418,26 +418,27 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 }
 /* Staples matching what is being typed: one row above the field, scrolling sideways. */
 .add-box.bottom-add { flex-wrap: wrap; }
-.staple-suggestions { flex: 0 0 100%; display: flex; margin-top: -4px; }
-/* Like a keyboard's suggestion bar: plain text sharing the width, long names cut with "…". */
+.staple-suggestions { flex: 0 0 100%; min-width: 0; display: flex; overflow: hidden; margin-top: -4px; }
+/* Like a keyboard's suggestion bar: plain text from the right, each as wide as its name, a long one cut with "…". */
 .staple-suggestions button {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 0;
+  display: flex;
+  align-items: center;
   min-height: 34px;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 0;
   border-radius: 0;
   background: none;
   color: var(--text);
   font-size: 0.9rem;
   font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
+.staple-suggestions button:first-child { padding-inline-start: 2px; }
 .staple-suggestions button + button { border-inline-start: 1px solid var(--line); }
 .staple-suggestions button.listed { color: var(--muted); }
-.staple-suggestions .chip-price { font-size: 0.8em; }
+/* The name, not the button, carries the "…": iOS Safari doesn't cut text inside a button. */
+.staple-suggestions .sugg-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 body.kb-open .bottom-nav { display: none; }
 body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .list-page.with-bottom-add ~ .toast,
