@@ -79,7 +79,8 @@ export function addItems(
     batch.set(
       doc(itemsCol(fid), id),
       {
-        name: p.name,
+        // A known product keeps its name (a renamed "נטורינה" stays "נטורינה בטעם נטרלי").
+        name: prev?.name ?? p.name,
         norm,
         // Already on the list: keep its quantity unless a new one was typed.
         qty: p.qty || (active ? prev.qty : ''),

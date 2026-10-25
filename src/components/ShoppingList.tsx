@@ -3,6 +3,7 @@ import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
 import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
+import { preferStaples, suggestStaples } from '../data/stapleMatch';
 import { knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
@@ -70,8 +71,20 @@ export function ShoppingList({
   const submit = () => {
     const parsed = parseItems(text);
     if (!parsed.length) return;
-    addItems(familyId, parsed, byId, overrides);
+    // A product on "רשימת הקבועים" is always added as that staple, not as a new item.
+    addItems(familyId, preferStaples(parsed, byId.values()), byId, overrides);
     setText('');
+    inputRef.current?.focus();
+  };
+
+  // Staples matching the product being typed (the last one, after any commas), one tap away.
+  const typing = text.split(/[\n,،;]/).pop() ?? '';
+  const typed = parseItems(typing)[0];
+  const suggestions = typed ? suggestStaples(typed.name, byId.values()) : [];
+  const pickStaple = (s: Item) => {
+    addItems(familyId, [{ id: s.id, name: s.name, qty: typed?.qty || s.usualQty || '' }], byId, overrides);
+    const rest = text.slice(0, text.length - typing.length);
+    setText(/^[\s,،;]*$/.test(rest) ? '' : rest);
     inputRef.current?.focus();
   };
 
@@ -235,6 +248,17 @@ export function ShoppingList({
           submit();
         }}
       >
+        {suggestions.length > 0 && (
+          <div className="staple-suggestions" aria-label="מרשימת הקבועים">
+            {suggestions.map((s) => (
+              // preventDefault keeps the keyboard open while tapping.
+              <button key={s.id} type="button" className="chip" onPointerDown={(e) => e.preventDefault()} onClick={() => pickStaple(s)}>
+                {s.name}
+                {s.usualQty && <span className="chip-price">{qtyLabel(s.usualQty)}</span>}
+              </button>
+            ))}
+          </div>
+        )}
         <textarea
           ref={inputRef}
           rows={1}

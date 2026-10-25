@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { addComment, CHAT_ID, deleteComment, type Comment, type TargetType } from '../data/comments';
 import { addItems, parseItems, qtyLabel, updateItem, type Item } from '../data/items';
+import { preferStaples } from '../data/stapleMatch';
 import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, deleteEntry, deleteList, restoreEntry, type FamilyList, type ListEntry } from '../data/lists';
@@ -100,12 +101,14 @@ export function ChatView({
 
     if (cmd.kind === 'shop') {
       const { add, remove } = splitRemovals(cmd.body);
-      const parsed = parseItems(add);
+      const byId = new Map((items ?? []).map((i) => [i.id, i]));
+      // A product on "רשימת הקבועים" is always added as that staple.
+      const parsed = preferStaples(parseItems(add), byId.values());
       if (!parsed.length && !remove.length) return fail('לא זיהיתי מוצרים.');
       const onList = (items ?? []).filter((i) => !i.checked && !i.deleted);
       const { found, missing } = pick(remove, onList, (i) => i.name);
       if (!parsed.length && !found.length) return fail(`${missing.join(', ')} לא ברשימת הקניות.`);
-      if (parsed.length) addItems(familyId, parsed, new Map((items ?? []).map((i) => [i.id, i])), overrides);
+      if (parsed.length) addItems(familyId, parsed, byId, overrides);
       for (const i of found) updateItem(familyId, i.id, { deleted: true });
       const line = say(
         [
