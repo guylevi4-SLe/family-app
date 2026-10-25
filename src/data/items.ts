@@ -64,16 +64,17 @@ const itemsCol = (fid: string) => collection(db, 'families', fid, 'items');
  */
 export function addItems(
   fid: string,
-  parsed: ParsedItem[],
+  parsed: (ParsedItem & { id?: string })[],
   existing: Map<string, Item>,
   overrides: Map<string, string>,
 ) {
   const uid = auth.currentUser!.uid;
   const batch = writeBatch(db);
   for (const p of parsed) {
-    const norm = normalize(p.name);
-    const id = itemId(norm);
+    // A known product (a staple) keeps its own document, even if renamed since it was created.
+    const id = p.id ?? itemId(normalize(p.name));
     const prev = existing.get(id);
+    const norm = prev?.norm ?? normalize(p.name);
     const active = prev && !prev.checked && !prev.deleted;
     batch.set(
       doc(itemsCol(fid), id),
@@ -158,7 +159,7 @@ export function addStaples(fid: string, parsed: ParsedItem[], existing: Map<stri
 
 /** Puts staples on the shopping list with their usual quantity. */
 export function addStaplesToList(fid: string, staples: Item[], existing: Map<string, Item>, overrides: Map<string, string>) {
-  addItems(fid, staples.map((s) => ({ name: s.name, qty: s.usualQty ?? '' })), existing, overrides);
+  addItems(fid, staples.map((s) => ({ id: s.id, name: s.name, qty: s.usualQty ?? '' })), existing, overrides);
 }
 
 export function reportWriteError(e: unknown) {
