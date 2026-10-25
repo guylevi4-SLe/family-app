@@ -433,9 +433,11 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
   font-size: 0.9rem;
   font-weight: 400;
 }
-.staple-suggestions button:nth-child(odd) { padding-inline-start: 2px; }
-.staple-suggestions button:nth-child(even) { border-inline-start: 1px solid var(--line); }
-.staple-suggestions button:nth-child(n + 3) { border-top: 1px solid var(--line); }
+.staple-suggestions button { padding-inline-start: 2px; }
+.staple-suggestions button.alone { grid-column: span 2; }
+/* Dividers between the two on a row, and above the row next to the field. */
+.staple-suggestions button.second { border-inline-start: 1px solid var(--line); padding-inline-start: 8px; }
+.staple-suggestions button.lower { border-top: 1px solid var(--line); }
 .staple-suggestions button.listed { color: var(--muted); }
 /* The name carries the "…": iOS Safari doesn't cut text inside a button. */
 .staple-suggestions .sugg-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
