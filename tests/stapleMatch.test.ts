@@ -37,10 +37,12 @@ describe('suggestions while typing', () => {
     expect(suggestStaples('גבינה', items).map((s) => s.id)).toEqual(['בולגרית', 'לבנה']);
     expect(suggestStaples('לבנה', items).map((s) => s.id)).toEqual(['לבנה']);
   });
-  it('stays quiet for one letter, exact names, products not on the staples list, and staples already on the list', () => {
+  it('stays quiet for one letter, exact names and products not on the staples list', () => {
     expect(suggestStaples('נ', items)).toEqual([]);
     expect(suggestStaples('חלב', items)).toEqual([]);
     expect(suggestStaples('סויה', items)).toEqual([]);
-    expect(suggestStaples('קוטג', items)).toEqual([]);
+  });
+  it('still offers a staple already on the list, so it shows it is there', () => {
+    expect(suggestStaples('קוטג', items).map((s) => s.id)).toEqual(['קוטג']);
   });
 });

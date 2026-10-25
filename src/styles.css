@@ -420,6 +420,7 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .add-box.bottom-add { flex-wrap: wrap; }
 .staple-suggestions { flex: 0 0 100%; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .staple-suggestions .chip { flex: none; min-height: 34px; white-space: nowrap; }
+.staple-suggestions .chip.listed { opacity: 0.6; }
 body.kb-open .bottom-nav { display: none; }
 body.kb-open .add-box.bottom-add { bottom: var(--kb); padding-bottom: 10px; }
 .list-page.with-bottom-add ~ .toast,

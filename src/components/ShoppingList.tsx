@@ -3,7 +3,7 @@ import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
 import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
-import { preferStaples, suggestStaples } from '../data/stapleMatch';
+import { onList, preferStaples, suggestStaples } from '../data/stapleMatch';
 import { knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
@@ -35,6 +35,8 @@ export function ShoppingList({
   const [editing, setEditing] = useState<{ item: Item; staple: boolean } | null>(null);
   const [showBought, setShowBought] = useState(false);
   const [undo, setUndo] = useState<{ item: Item; deleted: boolean; timer: number } | null>(null);
+  // A short line at the bottom, e.g. that a staple is already on the list.
+  const [notice, setNotice] = useState<{ text: string; timer: number } | null>(null);
   const [paying, setPaying] = useState(false);
   // At the store: the list as department squares, one department at a time. Each visit starts on the full list.
   const [byDept, setByDept] = useState(false);
@@ -72,9 +74,19 @@ export function ShoppingList({
     const parsed = parseItems(text);
     if (!parsed.length) return;
     // A product on "רשימת הקבועים" is always added as that staple, not as a new item.
-    addItems(familyId, preferStaples(parsed, byId.values()), byId, overrides);
+    const wanted = preferStaples(parsed, byId.values());
+    // A staple already on the list, typed without a new quantity, is left as is and said so.
+    const there = wanted.filter((p) => p.id && !p.qty && byId.get(p.id) && onList(byId.get(p.id)!));
+    const fresh = wanted.filter((p) => !there.includes(p));
+    if (fresh.length) addItems(familyId, fresh, byId, overrides);
+    if (there.length) say(`${there.map((p) => p.name).join(', ')} כבר ברשימה`);
     setText('');
     inputRef.current?.focus();
+  };
+
+  const say = (line: string) => {
+    if (notice) clearTimeout(notice.timer);
+    setNotice({ text: line, timer: window.setTimeout(() => setNotice(null), 3000) });
   };
 
   // Staples matching the product being typed (the last one, after any commas), one tap away.
@@ -82,7 +94,8 @@ export function ShoppingList({
   const typed = parseItems(typing)[0];
   const suggestions = typed ? suggestStaples(typed.name, byId.values()) : [];
   const pickStaple = (s: Item) => {
-    addItems(familyId, [{ id: s.id, name: s.name, qty: typed?.qty || s.usualQty || '' }], byId, overrides);
+    if (onList(s) && !typed?.qty) say(`${s.name} כבר ברשימה`);
+    else addItems(familyId, [{ id: s.id, name: s.name, qty: typed?.qty || s.usualQty || '' }], byId, overrides);
     const rest = text.slice(0, text.length - typing.length);
     setText(/^[\s,،;]*$/.test(rest) ? '' : rest);
     inputRef.current?.focus();
@@ -223,6 +236,12 @@ export function ShoppingList({
         </div>
       )}
 
+      {notice && !undo && (
+        <div className="toast" role="status">
+          {notice.text}
+        </div>
+      )}
+
       {paying && bought.length > 0 && (
         <PaidSheet familyId={familyId} bought={bought} byKey={byKey} stores={stores} onClose={() => setPaying(false)} />
       )}
@@ -252,7 +271,8 @@ export function ShoppingList({
           <div className="staple-suggestions" aria-label="מרשימת הקבועים">
             {suggestions.map((s) => (
               // preventDefault keeps the keyboard open while tapping.
-              <button key={s.id} type="button" className="chip" onPointerDown={(e) => e.preventDefault()} onClick={() => pickStaple(s)}>
+              <button key={s.id} type="button" className={`chip ${onList(s) ? 'listed' : ''}`} onPointerDown={(e) => e.preventDefault()} onClick={() => pickStaple(s)}>
+                {onList(s) && <span aria-label="כבר ברשימה">✓ </span>}
                 {s.name}
                 {s.usualQty && <span className="chip-price">{qtyLabel(s.usualQty)}</span>}
               </button>

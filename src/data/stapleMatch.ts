@@ -1,7 +1,7 @@
 import { normalize } from './departments';
 import type { ParsedItem } from './parse';
 
-interface StapleLike {
+export interface StapleLike {
   id: string;
   name: string;
   staple?: boolean;
@@ -33,15 +33,18 @@ export function preferStaples<T extends StapleLike>(parsed: ParsedItem[], items:
   });
 }
 
-/** Staples not on the list whose name holds what is being typed; ones starting with it first. */
+/** Staples whose name holds what is being typed (ones already on the list too, to show they are); ones starting with it first. */
 export function suggestStaples<T extends StapleLike>(typed: string, items: Iterable<T>, limit = 3): T[] {
   const n = normalize(typed);
   if (n.length < 2) return [];
   const found = [...items].filter((i) => {
-    if (!i.staple || !(i.deleted || i.checked)) return false;
+    if (!i.staple) return false;
     const name = normalize(i.name);
     return name !== n && name.includes(n);
   });
   const starts = (i: T) => (normalize(i.name).startsWith(n) ? 0 : 1);
   return found.sort((a, b) => starts(a) - starts(b) || a.name.localeCompare(b.name, 'he')).slice(0, limit);
 }
+
+/** On the shopping list now (not bought, not deleted). */
+export const onList = (i: StapleLike) => !i.deleted && !i.checked;
