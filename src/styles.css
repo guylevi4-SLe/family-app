@@ -86,7 +86,8 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .small-text { font-size: 0.85rem; }
 .error { color: var(--danger); }
 
-.splash { min-height: 100dvh; }
+.splash { min-height: 100dvh; display: grid; place-items: center; }
+.splash-logo { border-radius: 22%; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
 
 .center-page {
   min-height: 100dvh;
