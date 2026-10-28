@@ -4,18 +4,19 @@ import { addItems, parseItems, qtyLabel, updateItem, type Item } from '../data/i
 import { preferStaples } from '../data/stapleMatch';
 import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
-import { addEntries, createList, deleteEntry, deleteList, restoreEntry, type FamilyList, type ListEntry } from '../data/lists';
+import { addEntries, createList, createQuickNote, deleteEntry, deleteList, restoreEntry, firstWord, type FamilyList, type ListEntry } from '../data/lists';
+import { iconValue } from './ListIcon';
 import { autoCompleteTag, firstName } from '../data/mentions';
 import { COMMANDS, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
 import { byTime, CommentBubble, Composer, PhotoViewer } from './CommentsSheet';
 import { useFamily } from './FamilyContext';
-import { Calendar, Camera, Check, ClipboardList, ListChecks, ShoppingCart, X, type LucideIcon } from 'lucide-react';
+import { Calendar, Camera, Check, ClipboardList, ListChecks, ShoppingCart, StickyNote, X, type LucideIcon } from 'lucide-react';
 import { InlineIcon } from './ChatIcons';
 
 const KIND: Record<Exclude<TargetType, 'chat'>, LucideIcon> = { item: ShoppingCart, task: ListChecks, event: Calendar };
-const COMMAND_ICON: Record<string, LucideIcon> = { shop: ShoppingCart, task: ListChecks, event: Calendar, list: ClipboardList };
+const COMMAND_ICON: Record<string, LucideIcon> = { shop: ShoppingCart, task: ListChecks, event: Calendar, list: ClipboardList, note: StickyNote };
 
 /**
  * One family conversation. Chat messages show as bubbles; comments written on a
@@ -87,7 +88,7 @@ export function ChatView({
     return t?.name ?? t?.title ?? (c.targetType === 'item' ? c.targetId : '');
   };
 
-  /** Runs "@ק …", "@מ …", "@י …" or "@ר …"; the family sees what was added as a chat line. */
+  /** Runs "@ק …", "@מ …", "@י …", "@ר …" or "@פ …"; the family sees what was added as a chat line. */
   const runCommand = (text: string): 'done' | 'keep' | null => {
     const cmd = parseCommand(text);
     if (!cmd) return null;
@@ -192,6 +193,16 @@ export function ChatView({
       const when = `${dayLabel(w.date)}${w.time ? ` · ${w.time}` : ''}${w.weekly ? ' · כל שבוע' : ''}`;
       say(`📅 ליומן: ${w.title} · ${when}`);
       setNotice({ ok: true, text: `נקבע ביומן: ${w.title}, ${when}`, open: () => go('calendar') });
+      return 'done';
+    }
+
+    if (cmd.kind === 'note') {
+      if (!cmd.body) return fail('חסר מה לכתוב בפתק.');
+      const id = createQuickNote(familyId, cmd.body, iconValue('note'));
+      const title = firstWord(cmd.body) || 'פתק';
+      // Only the name goes to the chat: a note may hold something private, like a code.
+      say(`📝 פתק חדש: ${title}`);
+      setNotice({ ok: true, text: `נשמר פתק: ${title}`, open: () => openList(id) });
       return 'done';
     }
 

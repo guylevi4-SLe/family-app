@@ -3,15 +3,17 @@ import { isoDate } from './events';
 /**
  * Short chat commands that add things without leaving the chat:
  * "@ק חלב, 2 לחם" (shopping), "@מ תור לרופא מחר לרומי" (task),
- * "@י רומי שיעור פרטי חמישי 17:00" (calendar), "@ר ציוד לים: כובע, קרם" (list).
+ * "@י רומי שיעור פרטי חמישי 17:00" (calendar), "@ר ציוד לים: כובע, קרם" (list),
+ * "@פ קוד לשער 4521" (quick note).
  */
-export type CommandKind = 'shop' | 'task' | 'event' | 'list';
+export type CommandKind = 'shop' | 'task' | 'event' | 'list' | 'note';
 
 export const COMMANDS: { kind: CommandKind; key: string; word: string; emoji: string; label: string; example: string }[] = [
   { kind: 'shop', key: 'ק', word: 'קניות', emoji: '🛒', label: 'לקניות', example: 'חלב, 2 לחם' },
   { kind: 'task', key: 'מ', word: 'משימה', emoji: '✅', label: 'משימה', example: 'תור לרופא מחר לרומי' },
   { kind: 'event', key: 'י', word: 'יומן', emoji: '📅', label: 'ליומן', example: 'רומי חוג חמישי 17:00' },
   { kind: 'list', key: 'ר', word: 'רשימה', emoji: '📋', label: 'לרשימה', example: 'ציוד לים: כובע, קרם' },
+  { kind: 'note', key: 'פ', word: 'פתק', emoji: '📝', label: 'פתק מהיר', example: 'קוד לשער 4521' },
 ];
 
 const COMMAND_RE = /^\s*@\s?([֐-׿]+)\s*:?\s*([\s\S]*)$/;
