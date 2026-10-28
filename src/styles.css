@@ -159,6 +159,10 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
   background: var(--bg);
 }
 .add-box textarea { flex: 1; min-height: 52px; font-size: 1.05rem; }
+/* What "@…" was recognised as ("📝 פתק", "@שגב"), shown in the box without changing the text. */
+.composer-field { flex: 1; min-width: 0; position: relative; display: flex; }
+.composer-badges { position: absolute; inset-inline-start: 10px; top: 13px; display: flex; gap: 4px; max-width: 60%; overflow: hidden; pointer-events: none; z-index: 1; }
+.composer-badge { padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.85rem; font-weight: 700; white-space: nowrap; line-height: 1.5; }
 .add-button { min-width: 52px; min-height: 52px; font-size: 1.6rem; padding: 0; }
 
 .empty { text-align: center; color: var(--muted); padding: 48px 0; }

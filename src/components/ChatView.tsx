@@ -6,7 +6,7 @@ import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, createQuickNote, deleteEntry, deleteList, restoreEntry, firstWord, type FamilyList, type ListEntry } from '../data/lists';
 import { iconValue } from './ListIcon';
-import { autoCompleteTag, firstName } from '../data/mentions';
+import { expandTags, firstName, splitTags } from '../data/mentions';
 import { COMMANDS, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
@@ -87,6 +87,9 @@ export function ChatView({
     const t = rows.find((r) => r.id === c.targetId);
     return t?.name ?? t?.title ?? (c.targetType === 'item' ? c.targetId : '');
   };
+
+  const names = (members ?? []).filter((m) => m.id !== me.id).map(firstName);
+  const expandAll = (t: string) => expandTags(t, names, COMMANDS.map((c) => c.word));
 
   /** Runs "@ק …", "@מ …", "@י …", "@ר …" or "@פ …"; the family sees what was added as a chat line. */
   const runCommand = (text: string): 'done' | 'keep' | null => {
@@ -326,8 +329,16 @@ export function ChatView({
                 @{c.key} <InlineIcon icon={COMMAND_ICON[c.kind]} size={15} /> {c.word}
               </>
             ), insert: `@${c.word}: ` }))}
-          // "@רש" grows into "@רשימה: " and "@ש" into "@שגב ", whenever only one thing fits.
-          autoComplete={(t) => autoCompleteTag(t, (members ?? []).filter((m) => m.id !== me.id).map(firstName), COMMANDS.map((c) => c.word))}
+          // "@רש" counts as "@רשימה" and "@ש" as "@שגב" whenever only one thing fits: a label
+          // in the box says so while typing, and the text is grown only when it is sent.
+          expand={expandAll}
+          badges={(t) => {
+            const full = expandAll(t);
+            const cmd = parseCommand(full);
+            const c = cmd && COMMANDS.find((x) => x.kind === cmd.kind)!;
+            const tags = splitTags(full, names).filter((p) => p.tag).map((p) => p.text);
+            return [...new Set([...(c ? [`${c.emoji} ${c.word}`] : []), ...tags])];
+          }}
         />
       </div>
       {viewing && <PhotoViewer src={viewing} onClose={() => setViewing(null)} />}

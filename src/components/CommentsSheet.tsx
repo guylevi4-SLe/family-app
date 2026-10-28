@@ -1,5 +1,5 @@
 import { completeTag, firstName, splitTags, suggestTags, taggedIds } from '../data/mentions';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { addComment, deleteComment, editComment, shrinkPhoto, type Comment, type TargetType } from '../data/comments';
 import { useFamily } from './FamilyContext';
 import { Icon } from './Icon';
@@ -242,7 +242,8 @@ export function Composer({
   notifyFirst = false,
   onCommand,
   hints,
-  autoComplete,
+  expand,
+  badges,
   askAbout,
   tagging = false,
 }: {
@@ -257,8 +258,10 @@ export function Composer({
   onCommand?: (text: string) => 'done' | 'keep' | null;
   /** Shortcuts offered above the box for what is being typed. */
   hints?: (text: string) => { label: ReactNode; insert: string }[];
-  /** Rewrites what was typed (a shortcut grown into its full form), or null to keep it. */
-  autoComplete?: (text: string) => string | null;
+  /** Rewrites the text when it is sent ("@ש" grown into "@שגב"). */
+  expand?: (text: string) => string;
+  /** Labels shown in the box for what was recognised ("📝 פתק", "@שגב"); the text itself is left as typed. */
+  badges?: (text: string) => string[];
   /** A product's name: offers to ask about it on WhatsApp ("which washing-up liquid?"). */
   askAbout?: string;
   /** Tag people by typing "@name" (the chat) instead of picking them on chips. */
@@ -278,18 +281,23 @@ export function Composer({
   const fileRef = useRef<HTMLInputElement>(null);
   const askFileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
-  /** What the last completion added, so typing those same letters next does not repeat them. */
-  const swallow = useRef<{ rest: string } | null>(null);
+  const badgeRef = useRef<HTMLSpanElement>(null);
+  const shown = badges?.(text) ?? [];
+  const shownKey = shown.join(' ');
+  // The first line starts after the labels, so they never cover the text.
+  const [badgeWidth, setBadgeWidth] = useState(0);
+  useLayoutEffect(() => setBadgeWidth(shownKey ? (badgeRef.current?.offsetWidth ?? 0) : 0), [shownKey]);
 
   const send = () => {
     if (!text.trim() && !photo) return;
-    const handled = !photo && onCommand?.(text);
+    const full = expand ? expand(text) : text;
+    const handled = !photo && onCommand?.(full);
     if (handled === 'keep') return;
     if (handled === 'done') {
       setText('');
       return;
     }
-    addComment(familyId, type, targetId, text, photo ?? undefined, tagging ? taggedIds(text, members, me.id) : notify);
+    addComment(familyId, type, targetId, full, photo ?? undefined, tagging ? taggedIds(full, members, me.id) : notify);
     setText('');
     setPhoto(null);
   };
@@ -400,44 +408,33 @@ export function Composer({
         >
           <Icon name="camera" size={22} />
         </button>
-        <textarea
-          ref={boxRef}
-          rows={1}
-          value={text}
-          maxLength={1000}
-          placeholder={placeholder}
-          aria-label={label}
-          onChange={(e) => {
-            const v = e.target.value;
-            // Typing on after a completion ("@רש" → "@רשימה: ", then "ימה") just confirms it.
-            const sw = swallow.current;
-            swallow.current = null;
-            if (sw && v.length === text.length + 1 && v.startsWith(text) && sw.rest.startsWith(v.slice(-1))) {
-              swallow.current = { rest: sw.rest.slice(1) };
-              return;
-            }
-            // Only while typing forward, so deleting back past "@קניות: " is not undone.
-            const done = v.length > text.length ? autoComplete?.(v) : null;
-            if (done) swallow.current = { rest: done.slice(v.length) };
-            setText(done || v);
-            // The keyboard still holds the word as typed, so a prediction picked next would
-            // overwrite the completion. Moving the caret away and back makes it start afresh.
-            const box = e.target;
-            if (done)
-              requestAnimationFrame(() => {
-                if (document.activeElement !== box) return;
-                box.setSelectionRange(0, 0);
-                // A frame apart, so the keyboard sees both moves and not just where the caret ends up.
-                requestAnimationFrame(() => box.setSelectionRange(box.value.length, box.value.length));
-              });
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-        />
+        <div className="composer-field">
+          {shown.length > 0 && (
+            <span ref={badgeRef} className="composer-badges" aria-live="polite">
+              {shown.map((b) => (
+                <span key={b} className="composer-badge">
+                  {b}
+                </span>
+              ))}
+            </span>
+          )}
+          <textarea
+            ref={boxRef}
+            rows={1}
+            value={text}
+            maxLength={1000}
+            placeholder={placeholder}
+            aria-label={label}
+            style={badgeWidth ? { textIndent: badgeWidth + 8 } : undefined}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+          />
+        </div>
         <button className="primary add-button" aria-label="שליחה" disabled={busy || (!text.trim() && !photo)}>
           ↑
         </button>

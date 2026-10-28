@@ -65,19 +65,19 @@ export function splitTags(text: string, names: string[]): { text: string; tag: b
 }
 
 /**
- * Completes the "@…" being typed when only one thing fits: a chat command
- * ("@רש" → "@רשימה: ", at the start only) or a name ("@ש" → "@שגב ").
- * Null while more than one fits ("@ר" with רשימה, רומי and רוית).
+ * Each "@…" grown into the one command (at the start only) or name it begins,
+ * when only one fits: "@רש" → "@רשימה", "היי @ש" → "היי @שגב". Done when sending,
+ * not while typing, so the phone keyboard's word predictions are left alone.
  */
-export function autoCompleteTag(text: string, names: string[], commands: string[]) {
-  const typed = typingTag(text);
-  if (!typed) return null;
-  const atStart = /^\s*@[\p{L}\p{N}_]*$/u.test(text);
-  const fits = [
-    ...(atStart ? commands.filter((c) => c.startsWith(typed)).map((c) => `@${c}: `) : []),
-    ...[...new Set([...names, EVERYONE])].filter((n) => n && n.toLowerCase().startsWith(typed.toLowerCase())).map((n) => `@${n} `),
-  ];
-  if (fits.length !== 1) return null;
-  const done = text.replace(/@[\p{L}\p{N}_]*$/u, fits[0]);
-  return done === text ? null : done;
+export function expandTags(text: string, names: string[], commands: string[]) {
+  return text.replace(/@([\p{L}\p{N}_]+)/gu, (all, typed: string, at: number) => {
+    const before = text.slice(0, at);
+    // Not inside a word ("a@b.com"), except "ו@רומי".
+    if (/[\p{L}\p{N}_]$/u.test(before) && !/(^|\s)ו$/.test(before)) return all;
+    const lower = typed.toLowerCase();
+    const fits = new Set(
+      [...(before.trim() ? [] : commands), ...names, EVERYONE].filter((n) => n && n.toLowerCase().startsWith(lower)),
+    );
+    return fits.size === 1 ? `@${[...fits][0]}` : all;
+  });
 }
