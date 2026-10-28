@@ -420,6 +420,16 @@ export function Composer({
             const done = v.length > text.length ? autoComplete?.(v) : null;
             if (done) swallow.current = { rest: done.slice(v.length) };
             setText(done || v);
+            // The keyboard still holds the word as typed, so a prediction picked next would
+            // overwrite the completion. Moving the caret away and back makes it start afresh.
+            const box = e.target;
+            if (done)
+              requestAnimationFrame(() => {
+                if (document.activeElement !== box) return;
+                box.setSelectionRange(0, 0);
+                // A frame apart, so the keyboard sees both moves and not just where the caret ends up.
+                requestAnimationFrame(() => box.setSelectionRange(box.value.length, box.value.length));
+              });
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
