@@ -1,8 +1,6 @@
 // End-to-end check on two simulated phones: one week of a weekly event is
 // cancelled offline on one phone, and the other phone sees it after reconnecting.
 // Run like tests/run-e2e.sh does, with this file in place of e2e-offline-sync.mjs.
-//
-// Run: npm run test:e2e   (builds against the emulators and starts them)
 import { chromium, devices } from 'playwright';
 import assert from 'node:assert/strict';
 
