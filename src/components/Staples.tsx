@@ -87,9 +87,12 @@ export function StaplesSheet({
               → קניות
             </button>
           )}
-          <button className="icon-button" aria-label="סגירה" onClick={onClose}>
-            ✕
-          </button>
+          {/* On the departments screen "→ קניות" already closes; inside one, ✕ goes straight out. */}
+          {shown && (
+            <button className="icon-button" aria-label="סגירה" onClick={onClose}>
+              ✕
+            </button>
+          )}
         </div>
         {!shown && <h2 className="staples-title">{title}</h2>}
         {staples.length === 0 && <p className="muted small-text">עוד אין כאן מוצרים. אפשר להוסיף למטה, או לסמן מוצר כקבוע בעריכה שלו.</p>}
