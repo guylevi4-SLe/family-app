@@ -70,19 +70,18 @@ export function Dashboard({
     <main className="dashboard">
       <p className="greeting">{greeting(new Date(), me.displayName)}</p>
       <div className="tile-grid">
-        {/* The square opens the shopping squares; "לרשימה" goes straight to the list, for the store. The count is on the square's badge. */}
+        {/* The square opens the shopping squares; "לרשימה" goes straight to the list, for the store, and says how many are on it. */}
         <Tile
           icon="cart"
           title="קניות"
-          count={toBuy.length}
           onClick={() => go('shop')}
-          action={{ label: 'לרשימה', onClick: () => go('list') }}
+          action={{ label: toBuy.length ? `לרשימה (${toBuy.length})` : 'לרשימה', onClick: () => go('list') }}
         />
         <Tile icon="tasks" title="משימות" count={open.length} onClick={() => go('tasks')}>
           {open.length === 0 ? 'אין משימות פתוחות' : mine.length > 0 ? `${mine.length} שלך` : `${open.length} פתוחות`}
         </Tile>
         <Tile className="schedule-tile" icon="book" title="מערכת שעות" onClick={() => openSchedule(shown?.id ?? me.id)}>
-          {schedules === undefined ? '' : shown ? 'לחיצה לפתיחה' : 'לחיצה להעלאה'}
+          {schedules === undefined ? '' : 'לחיצה לצפייה / העלאה'}
         </Tile>
         <Tile className="lists-tile" icon="list" title="פתקים" onClick={() => openList(null)}>
           {notes === 0 ? 'לחיצה ליצירה' : notes === 1 ? 'רשימה או פתק אחד' : `${notes} רשימות ופתקים`}
