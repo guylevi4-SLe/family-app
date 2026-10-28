@@ -15,6 +15,10 @@ describe('weekly events', () => {
     const out = expandEvents([{ ...base, repeat: 'weekly', repeatUntil: '2026-12-01' }], '2026-11-20', '2027-01-01');
     expect(out.map((e) => e.date)).toEqual(['2026-11-26']);
   });
+  it('skips the weeks that were cancelled', () => {
+    const out = expandEvents([{ ...base, repeat: 'weekly', skipDates: ['2026-10-22'] }], '2026-10-01', '2026-11-05');
+    expect(out.map((e) => e.date)).toEqual(['2026-10-15', '2026-10-29', '2026-11-05']);
+  });
   it('leaves one-off events alone', () => {
     expect(expandEvents([base], '2026-01-01', '2026-02-01')).toEqual([base]);
   });
@@ -31,6 +35,11 @@ describe('calendar export', () => {
     expect(ics).toContain('DTEND;TZID=Asia/Jerusalem:20261015T170000');
     expect(ics).toContain('BEGIN:VTIMEZONE');
     expect(ics).toContain('RRULE:FREQ=WEEKLY;UNTIL=20261126T235959Z');
+  });
+  it('leaves the cancelled weeks out of the copy', () => {
+    expect(icsText({ ...lesson, skipDates: ['2026-10-22'] })).toContain('EXDATE;TZID=Asia/Jerusalem:20261022T160000');
+    expect(icsText({ ...lesson, time: '', skipDates: ['2026-10-22'] })).toContain('EXDATE;VALUE=DATE:20261022');
+    expect(icsText(lesson)).not.toContain('EXDATE');
   });
   it('google link carries the time zone', () => {
     const url = new URL(googleCalendarLink(lesson));

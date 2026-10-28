@@ -208,7 +208,7 @@ service cloud.firestore {
       match /events/{eventId} {
         allow read: if isMember(fid);
         allow create, update: if isMember(fid)
-          && onlyKeys(['title', 'date', 'endDate', 'repeat', 'repeatUntil', 'time', 'endTime', 'location', 'people', 'deleted',
+          && onlyKeys(['title', 'date', 'endDate', 'repeat', 'repeatUntil', 'skipDates', 'time', 'endTime', 'location', 'people', 'deleted',
                        'createdBy', 'createdAt', 'updatedAt', 'updatedBy'])
           && shortString(data().title, 120) && data().title.size() > 0
           && data().date is string && data().date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
@@ -217,6 +217,7 @@ service cloud.firestore {
           && (!('repeat' in data()) || data().repeat in ['', 'weekly'])
           && (!('repeatUntil' in data()) || data().repeatUntil == ''
               || (data().repeatUntil is string && data().repeatUntil.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') && data().repeatUntil > data().date))
+          && (!('skipDates' in data()) || (data().skipDates is list && data().skipDates.size() <= 200))
           && data().time is string && (data().time == '' || data().time.matches('^[0-9]{2}:[0-9]{2}$'))
           && (!('endTime' in data()) || data().endTime == ''
               || (data().endTime is string && data().endTime.matches('^[0-9]{2}:[0-9]{2}$') && data().endTime > data().time))

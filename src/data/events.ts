@@ -1,4 +1,4 @@
-import { collection, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayUnion, collection, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { reportWriteError } from './items';
 
@@ -9,6 +9,7 @@ export interface FamilyEvent {
   endDate?: string; // YYYY-MM-DD for events lasting several days, else '' or missing
   repeat?: '' | 'weekly'; // a weekly event (a lesson every Thursday)
   repeatUntil?: string; // last possible date of a weekly event, '' = no end
+  skipDates?: string[]; // dates of a weekly event that were cancelled (that week only)
   seriesStart?: string; // on a shown occurrence: the series' first date (not stored)
   time: string; // HH:MM or ''
   endTime?: string; // HH:MM when it ends (after `time`), else '' or missing
@@ -59,7 +60,7 @@ export function expandEvents(list: FamilyEvent[], from: string, to: string): Fam
       d = addDays(d, weeks * 7);
       if (d < from) d = addDays(d, 7);
     }
-    for (; d <= end; d = addDays(d, 7)) out.push({ ...e, date: d, endDate: '', seriesStart: e.date });
+    for (; d <= end; d = addDays(d, 7)) if (!e.skipDates?.includes(d)) out.push({ ...e, date: d, endDate: '', seriesStart: e.date });
   }
   return out;
 }
@@ -117,6 +118,13 @@ export function deleteEvent(fid: string, id: string, deleted = true) {
   );
 }
 
+/** Cancels one week of a weekly event. arrayUnion keeps cancellations from two phones (or made offline). */
+export function skipOccurrence(fid: string, id: string, date: string) {
+  updateDoc(doc(eventsCol(fid), id), { skipDates: arrayUnion(date), updatedAt: serverTimestamp(), updatedBy: auth.currentUser!.uid }).catch(
+    reportWriteError,
+  );
+}
+
 /** Local calendar date as YYYY-MM-DD. */
 export function isoDate(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -161,6 +169,13 @@ function range(e: FamilyEvent) {
 
 function rrule(e: FamilyEvent) {
   return e.repeatUntil ? `FREQ=WEEKLY;UNTIL=${e.repeatUntil.replace(/-/g, '')}T235959Z` : 'FREQ=WEEKLY';
+}
+
+/** The cancelled weeks, so the copy skips them too. */
+function exdates(e: FamilyEvent) {
+  return (e.skipDates ?? []).map((d) =>
+    e.time ? `EXDATE;TZID=${TZ}:${localStamp(d, e.time)}` : `EXDATE;VALUE=DATE:${d.replace(/-/g, '')}`,
+  );
 }
 
 /** `free`: the copy is marked "available" so it doesn't block the person's day. */
@@ -214,7 +229,7 @@ export function icsText(e: FamilyEvent, free = true) {
     `TRANSP:${free ? 'TRANSPARENT' : 'OPAQUE'}`,
     ...(free ? ['X-MICROSOFT-CDO-BUSYSTATUS:FREE'] : []),
     ...(e.location ? [`LOCATION:${esc(e.location)}`] : []),
-    ...(e.repeat === 'weekly' ? [`RRULE:${rrule(e)}`] : []),
+    ...(e.repeat === 'weekly' ? [`RRULE:${rrule(e)}`, ...exdates(e)] : []),
     'END:VEVENT',
     'END:VCALENDAR',
   ];

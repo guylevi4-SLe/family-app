@@ -7,6 +7,7 @@ import {
   repeatLabel,
   untilLabel,
   deleteEvent,
+  skipOccurrence,
   downloadIcs,
   googleCalendarLink,
   isoDate,
@@ -21,6 +22,7 @@ import { whenLabel } from './BirthdaysSheet';
 import { memberName, useFamily } from './FamilyContext';
 import { CommentButton } from './CommentButton';
 import { MoreMenu } from './MoreMenu';
+import { confirmChoice } from './ConfirmSheet';
 import { TasksView } from './TasksView';
 import { InlineIcon } from './ChatIcons';
 import { BookOpen, CalendarClock, MapPin, Repeat, CalendarDays, CalendarPlus, Cake, ChevronLeft, ChevronRight, List, ListChecks, ListTodo, Plus } from 'lucide-react';
@@ -228,6 +230,7 @@ export function CalendarView({
       {editing && (
         <EventSheet
           event={editing === 'new' ? null : (live.find((e) => e.id === editing.id) ?? editing)}
+          occurrence={editing !== 'new' && editing.seriesStart ? editing.date : undefined}
           initialDate={newDate ?? today}
           onClose={() => setEditing(null)}
         />
@@ -454,7 +457,18 @@ function EventRow({
   );
 }
 
-function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null; initialDate: string; onClose: () => void }) {
+function EventSheet({
+  event,
+  occurrence,
+  initialDate,
+  onClose,
+}: {
+  event: FamilyEvent | null;
+  /** The week that was tapped, on a weekly event. */
+  occurrence?: string;
+  initialDate: string;
+  onClose: () => void;
+}) {
   const { familyId, members } = useFamily();
   const [f, setF] = useState<EventFields>(
     event
@@ -594,7 +608,15 @@ function EventSheet({ event, initialDate, onClose }: { event: FamilyEvent | null
           {event && (
             <button
               className="danger"
-              onClick={() => {
+              onClick={async () => {
+                if (event.repeat === 'weekly' && occurrence) {
+                  const [, m, d] = occurrence.split('-').map(Number);
+                  const answer = await confirmChoice(`למחוק את "${event.title}"?`, 'זה אירוע שחוזר כל שבוע.', `רק ב־${d}.${m}`, 'את כל הסדרה');
+                  if (answer === 'yes') skipOccurrence(familyId, event.id, occurrence);
+                  else if (answer === 'alt') deleteEvent(familyId, event.id);
+                  if (answer) onClose();
+                  return;
+                }
                 if (!window.confirm(event.repeat === 'weekly' ? `למחוק את "${event.title}" מכל השבועות?` : `למחוק את האירוע "${event.title}"?`)) return;
                 deleteEvent(familyId, event.id);
                 onClose();

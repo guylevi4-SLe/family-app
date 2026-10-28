@@ -290,6 +290,9 @@ describe('tasks and events', () => {
     await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w2'), { ...ev, repeat: 'weekly', repeatUntil: '2099-12-31' }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w3'), { ...ev, repeat: 'daily' }));
     await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w4'), { ...ev, repeat: 'weekly', repeatUntil: ev.date }));
+    await assertSucceeds(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w5'), { ...ev, repeat: 'weekly', skipDates: ['2026-10-19'] }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w6'), { ...ev, repeat: 'weekly', skipDates: '2026-10-19' }));
+    await assertFails(setDoc(doc(db('dad'), 'families', 'levi', 'events', 'w7'), { ...ev, repeat: 'weekly', skipDates: Array(201).fill('2026-10-19') }));
     await assertFails(deleteDoc(doc(db('dad'), 'families', 'levi', 'tasks', 't1')));
   });
 });
