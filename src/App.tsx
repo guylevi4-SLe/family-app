@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { doc, getDocFromServer } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
@@ -7,7 +7,7 @@ import type { JoinRequest, Member } from './data/family';
 import { SignIn } from './components/SignIn';
 import { Onboarding, SignedInAs } from './components/Onboarding';
 import { Waiting } from './components/Waiting';
-import { Home, HomeShell, forgetShell, hasShell } from './components/Home';
+import { Home } from './components/Home';
 
 const JOIN_KEY = 'pendingJoinCode';
 
@@ -116,25 +116,19 @@ export function App() {
   }, [user, familyId, membership]);
 
   if (user === undefined) return <Splash />;
-  if (user === null) return <NotHome><SignIn hasInvite={!!inviteCode} /></NotHome>;
+  if (user === null) return <SignIn hasInvite={!!inviteCode} />;
   if (profile === undefined) return <Splash />;
   if (!familyId) {
     const state = noFamily?.uid === user.uid ? noFamily.state : null;
     if (!state) return <Splash />;
     if (state === 'offline') return <NoConnection onRetry={() => setCheck((c) => c + 1)} />;
-    return <NotHome><Onboarding inviteCode={inviteCode} onUsedInvite={clearInviteCode} /></NotHome>;
+    return <Onboarding inviteCode={inviteCode} onUsedInvite={clearInviteCode} />;
   }
   if (membership === undefined) return <Splash />;
-  if (revoked) return <NotHome><Waiting familyId={familyId} request={null} /></NotHome>;
+  if (revoked) return <Waiting familyId={familyId} request={null} />;
   if (membership) return <Home familyId={familyId} me={membership} startScreen={profile?.startScreen} />;
   if (request === undefined) return <Splash />;
-  return <NotHome><Waiting familyId={familyId} request={request} /></NotHome>;
-}
-
-/** A screen other than the home: the next launch starts on a plain splash again. */
-function NotHome({ children }: { children: ReactNode }) {
-  useEffect(forgetShell, []);
-  return <>{children}</>;
+  return <Waiting familyId={familyId} request={request} />;
 }
 
 function NoConnection({ onRetry }: { onRetry: () => void }) {
@@ -153,8 +147,6 @@ function NoConnection({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-/** While loading: the home's frame on a phone that last opened into it, otherwise a blank page. */
 function Splash() {
-  const [shell] = useState(hasShell);
-  return shell ? <HomeShell /> : <div className="splash" aria-busy="true" />;
+  return <div className="splash" aria-busy="true" />;
 }
