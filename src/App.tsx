@@ -8,6 +8,7 @@ import { SignIn } from './components/SignIn';
 import { Onboarding, SignedInAs } from './components/Onboarding';
 import { Waiting } from './components/Waiting';
 import { Home } from './components/Home';
+import { BrandLogo } from './components/BrandLogo';
 
 const JOIN_KEY = 'pendingJoinCode';
 
@@ -147,6 +148,11 @@ function NoConnection({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+/** The logo on the background, as in index.html, so the page that loads first carries on unchanged. */
 function Splash() {
-  return <div className="splash" aria-busy="true" />;
+  return (
+    <div className="splash" aria-busy="true">
+      <BrandLogo className="splash-logo" size={96} />
+    </div>
+  );
 }
