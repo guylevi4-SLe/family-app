@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expandTags, completeTag, splitTags, suggestTags, taggedIds, typingTag } from '../src/data/mentions';
+import { expandTags, leadingCommand, completeTag, splitTags, suggestTags, taggedIds, typingTag } from '../src/data/mentions';
 
 const members = [
   { id: 'g', displayName: 'גיא לוי' },
@@ -34,6 +34,22 @@ describe('chat tags', () => {
       { text: '@שגב', tag: true },
       { text: ' ו@מישהו', tag: false },
     ]);
+  });
+});
+
+describe('a command at the start, once it is certain', () => {
+  const names = ['שגב', 'רומי', 'רוית'];
+  const commands = ['קניות', 'משימה', 'יומן', 'רשימה', 'פתק'];
+  it('takes it when only it fits, or a space or colon follows', () => {
+    expect(leadingCommand('@פ', names, commands)).toEqual({ word: 'פתק', typed: 'פ', rest: '' });
+    expect(leadingCommand('@ר', names, commands)).toBeNull();
+    expect(leadingCommand('@ר ', names, commands)).toEqual({ word: 'רשימה', typed: 'ר', rest: '' });
+    expect(leadingCommand('@רש', names, commands)?.word).toBe('רשימה');
+    expect(leadingCommand('@רו', names, commands)).toBeNull();
+    expect(leadingCommand('@רומי ', names, commands)).toBeNull();
+    expect(leadingCommand('@קניות: חלב, לחם', names, commands)).toEqual({ word: 'קניות', typed: 'קניות', rest: 'חלב, לחם' });
+    expect(leadingCommand('היי @פ', names, commands)).toBeNull();
+    expect(leadingCommand('@שגב', names, commands)).toBeNull();
   });
 });
 

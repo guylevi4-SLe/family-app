@@ -6,7 +6,7 @@ import { addTask, updateTask, type Task } from '../data/tasks';
 import { dayLabel, saveEvent, type FamilyEvent } from '../data/events';
 import { addEntries, createList, createQuickNote, deleteEntry, deleteList, restoreEntry, firstWord, type FamilyList, type ListEntry } from '../data/lists';
 import { iconValue } from './ListIcon';
-import { expandTags, firstName, splitTags } from '../data/mentions';
+import { expandTags, firstName, leadingCommand, splitTags } from '../data/mentions';
 import { COMMANDS, findByName, findList, splitRemovals, parseCommand, parseWhen, splitListCommand, suggestCommands } from '../data/commands';
 import { useOverrides } from '../data/hooks';
 import type { Screen } from './Home';
@@ -329,9 +329,14 @@ export function ChatView({
                 @{c.key} <InlineIcon icon={COMMAND_ICON[c.kind]} size={15} /> {c.word}
               </>
             ), insert: `@${c.word}: ` }))}
-          // "@רש" counts as "@רשימה" and "@ש" as "@שגב" whenever only one thing fits: a label
-          // in the box says so while typing, and the text is grown only when it is sent.
+          // A command at the start ("@פ") leaves the text and shows as a label. "@ש" counts as
+          // "@שגב" whenever only one name fits: a label says so, and the text grows when sent.
           expand={expandAll}
+          commandFor={(t) => {
+            const lead = leadingCommand(t, names, COMMANDS.map((c) => c.word));
+            const c = lead && COMMANDS.find((x) => x.word === lead.word)!;
+            return lead && c ? { ...lead, label: `${c.emoji} ${c.word}` } : null;
+          }}
           badges={(t) => {
             const full = expandAll(t);
             const cmd = parseCommand(full);
