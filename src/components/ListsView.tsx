@@ -346,7 +346,7 @@ function Library({
     <LibRow
       className="folder-card"
       icon={<Folder size={22} />}
-      title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
+      title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}<bdi>{f.title}</bdi></>}
       count={count(f.id)}
       onOpen={() => setFolder(f.id)}
       actions={[
@@ -362,14 +362,14 @@ function Library({
       <LibRow
         className="note-card"
         icon={<ListIcon value={l.emoji} size={22} />}
-        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
-        sub={at(l) ? <><InlineIcon icon={Folder} size={14} />{folderPath(all, at(l)).join(' › ')}</> : l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}
+        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}<bdi>{l.title}</bdi></>}
+        sub={at(l) ? <><InlineIcon icon={Folder} size={14} />{folderPath(all, at(l)).join(' › ')}</> : l.locked ? <><LockMark />נעול בסיסמה</> : <bdi>{(l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</bdi>}
         onOpen={() => onOpen(l.id)}
         actions={itemActions(l)}
         onHold={itemMenu(l)}
       />
     ) : (
-      <LibRow className="list-card" icon={<ListIcon value={l.emoji} size={22} />} title={l.title} sub={progress(l)} onOpen={() => onOpen(l.id)} actions={itemActions(l)} onHold={itemMenu(l)} />
+      <LibRow className="list-card" icon={<ListIcon value={l.emoji} size={22} />} title={<bdi>{l.title}</bdi>} sub={progress(l)} onOpen={() => onOpen(l.id)} actions={itemActions(l)} onHold={itemMenu(l)} />
     );
 
   return (
@@ -434,8 +434,8 @@ function Library({
                     <LibRow
                       className="note-card"
                       icon={<ListIcon value={l.emoji} size={22} />}
-                      title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
-                      sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</span>}
+                      title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}<bdi>{l.title}</bdi></>}
+                      sub={<span className="note-preview"><bdi>{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'פתק ריק'}</bdi></span>}
                       onOpen={() => onOpen(l.id)}
                       actions={itemActions(l)}
                       onHold={itemMenu(l, rootNotes)}
@@ -460,7 +460,7 @@ function Library({
                       <LibRow
                         className="list-card"
                         icon={<ListIcon value={l.emoji} size={22} />}
-                        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.title}</>}
+                        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}<bdi>{l.title}</bdi></>}
                         sub={progress(l)}
                         onOpen={() => onOpen(l.id)}
                         actions={itemActions(l)}
@@ -492,8 +492,8 @@ function Library({
                       <LibRow
                         className="note-card"
                         icon={<ListIcon value={l.emoji} size={22} />}
-                        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.title}</>}
-                        sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'קבלה'}</span>}
+                        title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}<bdi>{l.title}</bdi></>}
+                        sub={<span className="note-preview"><bdi>{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || 'קבלה'}</bdi></span>}
                         onOpen={() => onOpen(l.id)}
                         actions={itemActions(l)}
                         onHold={itemMenu(l, receiptNotes)}
@@ -679,7 +679,7 @@ function ListDetail({
           ) : (
             <h2 className="list-title">
               <button className="link-plain" aria-label="שינוי שם הרשימה" onClick={() => setRenaming(list.title)}>
-                {list.title}
+                <bdi>{list.title}</bdi>
               </button>
             </h2>
           )}
@@ -921,13 +921,13 @@ function Notebook({
           {ancestors.map((id) => (
             <span key={id}>
               <span className="muted" aria-hidden="true"> › </span>
-              <button className="link-plain" onClick={() => setFolder(id)}>{all.find((l) => l.id === id)?.title}</button>
+              <button className="link-plain" onClick={() => setFolder(id)}><bdi>{all.find((l) => l.id === id)?.title}</bdi></button>
             </span>
           ))}
           {here && (
             <span>
               <span className="muted" aria-hidden="true"> › </span>
-              <strong className="here">{path[path.length - 1]}</strong>
+              <strong className="here"><bdi>{path[path.length - 1]}</bdi></strong>
             </span>
           )}
         </nav>
@@ -990,7 +990,7 @@ function Notebook({
               <LibRow
                 className="folder-card"
                 icon={<Folder size={22} />}
-                title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}{f.title}</>}
+                title={<>{f.locked && <span aria-label="נעולה"><LockMark /></span>}<bdi>{f.title}</bdi></>}
                 sub={count(f.id)}
                 onOpen={() => setFolder(f.id)}
                 actions={[
@@ -1019,8 +1019,8 @@ function Notebook({
               <LibRow
                 className="note-card"
                 icon={<ListIcon value={l.emoji} size={22} />}
-                title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}{l.title}</>}
-                sub={<span className="note-preview">{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || (inRec ? 'קבלה' : 'פתק ריק')}</span>}
+                title={<>{l.pinned && <span aria-label="נעוץ"><InlineIcon icon={Pin} size={14} /></span>}{l.viewers && <span aria-label="פרטי"><LockMark kind="private" /></span>}<bdi>{l.title}</bdi></>}
+                sub={<span className="note-preview"><bdi>{l.locked ? <><LockMark />נעול בסיסמה</> : (l.body ?? '').trim().split('\n')[0] || (inRec ? 'קבלה' : 'פתק ריק')}</bdi></span>}
                 onOpen={() => onOpen(l.id)}
                 actions={[
                   ...(l.locked ? [] : [{ label: 'שיתוף', icon: <Icon name="whatsapp" size={20} />, onClick: () => shareItem(l, entries) }]),
@@ -1471,7 +1471,7 @@ function NoteEditor({
           ) : (
             <h2 className="list-title">
               <button className="link-plain" aria-label="שינוי שם הפתק" onClick={() => setRenaming(note.title)}>
-                {note.title}
+                <bdi>{note.title}</bdi>
               </button>
             </h2>
           )}

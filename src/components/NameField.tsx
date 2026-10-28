@@ -22,6 +22,7 @@ export function NameField({ label, value, onChange }: { label: string; value: st
     <textarea
       ref={ref}
       className="name-field"
+      dir="auto"
       aria-label={label}
       rows={1}
       maxLength={60}
