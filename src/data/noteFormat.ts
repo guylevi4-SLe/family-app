@@ -153,3 +153,12 @@ export function togglePrefix(value: string, start: number, end: number, prefix: 
   const delta = block.length - (lineEnd - lineStart);
   return { value: next, start: lines.length === 1 ? Math.max(lineStart, end + delta) : lineStart, end: Math.max(lineStart, end + delta) };
 }
+
+/** The direction of the line the cursor is on, from its first letter; null on a line with no letters. */
+export function lineDir(value: string, at: number): 'ltr' | 'rtl' | null {
+  const start = value.lastIndexOf('\n', at - 1) + 1;
+  const end = value.indexOf('\n', at);
+  const first = value.slice(start, end < 0 ? undefined : end).match(/\p{L}/u);
+  if (!first) return null;
+  return /[֐-ࣿיִ-﷿ﹰ-﻿]/.test(first[0]) ? 'rtl' : 'ltr';
+}

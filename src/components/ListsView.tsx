@@ -62,7 +62,7 @@ import { InlineIcon } from './ChatIcons';
 import { ArrowDown, ArrowUp, Receipt, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
-import { FormatBar, NoteView, viewSelection } from './NoteFormat';
+import { FormatBar, NoteView, useLineDir, viewSelection } from './NoteFormat';
 import { hasFormatting, toggleCheck, toWhatsApp } from '../data/noteFormat';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
@@ -526,6 +526,8 @@ function QuickNote({ onDone }: { onDone: () => void }) {
   const { familyId } = useFamily();
   const [text, setText] = useState('');
   const latest = useRef('');
+  const box = useRef<HTMLTextAreaElement>(null);
+  useLineDir(box);
   latest.current = text;
   const saved = useRef(false);
   const save = () => {
@@ -539,7 +541,7 @@ function QuickNote({ onDone }: { onDone: () => void }) {
       <div className="detail-top">
         <button className="link back" onClick={() => { save(); onDone(); }}>→ כל הפתקים</button>
       </div>
-      <textarea className="note-body quick-note-body" aria-label="פתק מהיר" placeholder="כותבים…" autoFocus value={text} maxLength={MAX_NOTE} onChange={(e) => setText(e.target.value)} />
+      <textarea ref={box} className="note-body quick-note-body" aria-label="פתק מהיר" placeholder="כותבים…" autoFocus value={text} maxLength={MAX_NOTE} onChange={(e) => setText(e.target.value)} />
     </div>
   );
 }
@@ -1320,6 +1322,7 @@ function NoteEditor({
   const [picking, setPicking] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  useLineDir(bodyRef);
   const [focused, setFocused] = useState(false);
   // The formatting buttons show while a word (or more) is selected in the note.
   // A word can also be picked on the formatted view (long press), without opening the keyboard.
