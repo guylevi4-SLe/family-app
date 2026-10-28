@@ -70,9 +70,14 @@ export function Dashboard({
     <main className="dashboard">
       <p className="greeting">{greeting(new Date(), me.displayName)}</p>
       <div className="tile-grid">
-        <Tile icon="cart" title="קניות" count={toBuy.length} onClick={() => go('list')}>
-          {toBuy.length === 0 ? 'הרשימה ריקה' : toBuy.length === 1 ? 'פריט אחד' : `${toBuy.length} פריטים`}
-        </Tile>
+        {/* The square opens the shopping squares; "לרשימה" goes straight to the list, for the store. */}
+        <Tile
+          icon="cart"
+          title="קניות"
+          count={toBuy.length}
+          onClick={() => go('shop')}
+          action={{ label: `לרשימה · ${toBuy.length === 0 ? 'ריקה' : toBuy.length === 1 ? 'פריט אחד' : `${toBuy.length} פריטים`}`, onClick: () => go('list') }}
+        />
         <Tile icon="tasks" title="משימות" count={open.length} onClick={() => go('tasks')}>
           {open.length === 0 ? 'אין משימות פתוחות' : mine.length > 0 ? `${mine.length} שלך` : `${open.length} פתוחות`}
         </Tile>
@@ -100,15 +105,29 @@ export function Dashboard({
   );
 }
 
-function Tile({ icon, title, count = 0, className, onClick, children }: { icon: IconName; title: string; count?: number; className?: string; onClick: () => void; children: ReactNode }) {
-  return (
-    <button className={`tile${className ? ` ${className}` : ''}`} onClick={onClick}>
+function Tile({ icon, title, count = 0, className, onClick, action, children }: { icon: IconName; title: string; count?: number; className?: string; onClick: () => void; action?: { label: string; onClick: () => void }; children?: ReactNode }) {
+  const inner = (
+    <>
       <span className="tile-icon"><Icon name={icon} size={26} /></span>
       {count > 0 && <span className="tile-count">{count}</span>}
       <span className="tile-text">
         <h2>{title}</h2>
-        <span className="tile-body">{children}</span>
+        {children && <span className="tile-body">{children}</span>}
       </span>
+    </>
+  );
+  // A tile with its own button: two buttons side by side in one square, since a button can't hold another.
+  if (action) {
+    return (
+      <div className={`tile with-action${className ? ` ${className}` : ''}`}>
+        <button className="tile-main" onClick={onClick}>{inner}</button>
+        <button className="tile-action" onClick={action.onClick}>{action.label}</button>
+      </div>
+    );
+  }
+  return (
+    <button className={`tile${className ? ` ${className}` : ''}`} onClick={onClick}>
+      {inner}
     </button>
   );
 }

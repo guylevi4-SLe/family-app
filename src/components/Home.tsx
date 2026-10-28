@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useComments, useTargetComments, useItemPhotos, useDoc, useEvents, useItems, useMembers, useOnline, usePendingRequests, useSchedules, useTasks, useLists, useListEntries, useBirthdays, usePrivateNotes } from '../data/hooks';
 import type { Member } from '../data/family';
 import { commentKey, type TargetType } from '../data/comments';
-import { ShoppingList } from './ShoppingList';
+import { ShoppingList, type ShopPage } from './ShoppingList';
 import { FamilySettings } from './FamilySettings';
 import { Dashboard } from './Dashboard';
 import { CalendarView } from './CalendarView';
@@ -25,8 +25,8 @@ interface Family {
 }
 
 export type View = 'home' | 'list' | 'calendar' | 'lists' | 'chat';
-/** Where a screen can be opened: the bottom-bar screens, plus the calendar's tasks side. */
-export type Screen = View | 'tasks';
+/** Where a screen can be opened: the bottom-bar screens, plus the calendar's tasks side and the shopping squares ('list' is the list itself). */
+export type Screen = View | 'tasks' | 'shop';
 
 /** How many chat messages are read at a time (the rest load on request). */
 const CHAT_PAGE = 50;
@@ -41,6 +41,7 @@ const VIEWS: { id: View; label: string; icon: IconName }[] = [
 
 export const START_KEY = 'startScreen';
 const isScreen = (v: unknown): v is Screen => v === 'tasks' || VIEWS.some((x) => x.id === v);
+const viewOf = (s: Screen): View => (s === 'tasks' ? 'calendar' : s === 'shop' ? 'list' : s);
 
 export function readCachedStart(): Screen | null {
   try {
@@ -81,12 +82,15 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
   const isAdmin = me.role === 'admin';
   const requests = usePendingRequests(familyId, isAdmin);
   const firstScreen: Screen = readCachedStart() ?? (isScreen(startScreen) ? startScreen : 'home');
-  const [view, setView] = useState<View>(firstScreen === 'tasks' ? 'calendar' : firstScreen);
+  const [view, setView] = useState<View>(viewOf(firstScreen));
+  // Shopping opens on its four squares; the home square's "לרשימה", and things that point at an item, open the list itself.
+  const [shopPage, setShopPage] = useState<ShopPage>('menu');
   // The calendar always opens on the calendar; "tasks" (the home square, a task's notification) opens it with the tasks window on top.
   const [tasksOpen, setTasksOpen] = useState(firstScreen === 'tasks');
   const go = (s: Screen) => {
     setTasksOpen(s === 'tasks');
-    setView(s === 'tasks' ? 'calendar' : s);
+    if (s === 'list' || s === 'shop') setShopPage(s === 'shop' ? 'menu' : 'list');
+    setView(viewOf(s));
   };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [writeError, setWriteError] = useState('');
@@ -275,7 +279,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
 
         <ErrorBoundary resetKey={view}>
         {view === 'home' && <Dashboard items={items} tasks={tasks} events={events} schedules={schedules} lists={lists} birthdays={birthdays} unreadChat={unreadChat} go={go} openSchedule={setScheduleFor} openList={(id) => { setListId(id); if (!id) setNoteFolder(null); setView('lists'); }} />}
-        {view === 'list' && <ShoppingList familyId={familyId} familyName={family?.name} items={items} deptOrder={family?.deptOrder} />}
+        {view === 'list' && <ShoppingList familyId={familyId} familyName={family?.name} items={items} deptOrder={family?.deptOrder} page={shopPage} setPage={setShopPage} />}
         {view === 'calendar' && (
           <main className="list-page planner">
             <CalendarView events={events} tasks={tasks} birthdays={birthdays} openBirthdays={(id, newOn) => { setBirthdayNew(newOn); setBirthdayOpen(id); }} tasksOpen={tasksOpen} setTasksOpen={setTasksOpen} openSchedule={() => setScheduleFor(defaultScheduleUid(schedules, (members ?? []).map((m) => m.id), me.id))} />
@@ -290,6 +294,8 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
             <button key={v.id} className={view === v.id ? 'active' : ''} aria-current={view === v.id ? 'page' : undefined} onClick={() => {
                 // Tapping "פתקים" again goes back to the library.
                 if (v.id === 'lists' && view === 'lists') { setListId(null); setNoteFolder(null); }
+                // "קניות" always opens on the four squares.
+                if (v.id === 'list') setShopPage('menu');
                 setView(v.id);
                 setTasksOpen(false);
               }}>
