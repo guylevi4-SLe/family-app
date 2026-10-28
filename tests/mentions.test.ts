@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { autoCompleteTag, completeTag, splitTags, suggestTags, taggedIds, typingTag } from '../src/data/mentions';
+import { expandTags, completeTag, splitTags, suggestTags, taggedIds, typingTag } from '../src/data/mentions';
 
 const members = [
   { id: 'g', displayName: 'גיא לוי' },
@@ -37,18 +37,19 @@ describe('chat tags', () => {
   });
 });
 
-describe('completing "@…" when only one thing fits', () => {
+describe('expanding "@…" when only one thing fits', () => {
   const names = ['שגב', 'רומי', 'רוית'];
-  const commands = ['קניות', 'משימה', 'יומן', 'רשימה'];
-  it('completes commands at the start and names anywhere', () => {
-    expect(autoCompleteTag('@רש', names, commands)).toBe('@רשימה: ');
-    expect(autoCompleteTag('@ק', names, commands)).toBe('@קניות: ');
-    expect(autoCompleteTag('@ר', names, commands)).toBeNull();
-    expect(autoCompleteTag('@רו', names, commands)).toBeNull();
-    expect(autoCompleteTag('@רומ', names, commands)).toBe('@רומי ');
-    expect(autoCompleteTag('היי @ש', names, commands)).toBe('היי @שגב ');
-    expect(autoCompleteTag('היי @רש', names, commands)).toBeNull();
-    expect(autoCompleteTag('@כ', names, commands)).toBe('@כולם ');
-    expect(autoCompleteTag('@', names, commands)).toBeNull();
+  const commands = ['קניות', 'משימה', 'יומן', 'רשימה', 'פתק'];
+  it('expands commands at the start and names anywhere', () => {
+    expect(expandTags('@רש ציוד: כובע', names, commands)).toBe('@רשימה ציוד: כובע');
+    expect(expandTags('@פ קוד לשער', names, commands)).toBe('@פתק קוד לשער');
+    expect(expandTags('@ר ציוד: כובע', names, commands)).toBe('@ר ציוד: כובע');
+    expect(expandTags('@רו', names, commands)).toBe('@רו');
+    expect(expandTags('@רומ תביאי', names, commands)).toBe('@רומי תביאי');
+    expect(expandTags('היי @ש ו@רוי', names, commands)).toBe('היי @שגב ו@רוית');
+    expect(expandTags('היי @רש', names, commands)).toBe('היי @רש');
+    expect(expandTags('@כ אוכל', names, commands)).toBe('@כולם אוכל');
+    expect(expandTags('מייל a@ש.com', names, commands)).toBe('מייל a@ש.com');
+    expect(expandTags('@שגב', names, commands)).toBe('@שגב');
   });
 });
