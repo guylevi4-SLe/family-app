@@ -289,7 +289,14 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 /* ---------- home dashboard ---------- */
 .dashboard { padding: 0 16px calc(96px + env(safe-area-inset-bottom)); }
 .greeting { margin: 0 2px 14px; color: var(--muted); font-size: 0.95rem; }
-.tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Each row gets up to a third of the height left between the bars, so all six
+     tiles show without scrolling; a tile whose text needs more still grows. */
+  grid-auto-rows: minmax(clamp(96px, (100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 210px) / 3, 150px), auto);
+  gap: 12px;
+}
 .tile {
   position: relative;
   display: flex;
@@ -297,7 +304,6 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
   justify-content: space-between;
   gap: 14px;
   min-width: 0;
-  min-height: 150px;
   text-align: start;
   padding: 16px 14px 14px;
   border-radius: 22px;
@@ -324,6 +330,15 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
 .tile-text { display: grid; gap: 3px; min-width: 0; }
 .tile h2 { font-size: 1.15rem; line-height: 1.2; overflow-wrap: anywhere; }
 .tile-body { color: var(--muted); font-size: 0.85rem; line-height: 1.35; overflow-wrap: anywhere; }
+/* Narrow screens (e.g. a phone set to the zoomed display): a smaller icon and less padding leave the text room. */
+@media (max-width: 359px) {
+  .tile-grid { gap: 10px; }
+  .tile { gap: 8px; padding: 12px; border-radius: 18px; }
+  .tile-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .tile-icon svg { width: 22px; height: 22px; }
+  .tile-count { top: 12px; inset-inline-end: 12px; }
+  .tile h2 { font-size: 1.05rem; }
+}
 
 /* ---------- tasks & calendar ---------- */
 .task-add { position: sticky; top: calc(max(10px, env(safe-area-inset-top)) + 54px); z-index: 4; background: var(--bg); padding-bottom: 8px; }
