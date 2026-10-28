@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { Bold, Heading, Highlighter, Italic, List, ListChecks, Strikethrough, Underline } from 'lucide-react';
-import { parseInline, parseLine, togglePrefix, wrapSelection, type Edit, type Inline } from '../data/noteFormat';
+import { lineDir, parseInline, parseLine, togglePrefix, wrapSelection, type Edit, type Inline } from '../data/noteFormat';
 
 const TAG: Record<string, string> = { b: 'strong', i: 'em', s: 's', u: 'u', hl: 'mark' };
 
@@ -22,6 +22,30 @@ function runsAt(text: string, base: number): ReactNode[] {
       <a className="nf-link" dir="ltr" href={r.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>{run}</a>
     ) : run);
   }).map((n, k) => <span key={k}>{n}</span>);
+}
+
+/**
+ * The text box takes the direction of the line the cursor is on. Each line already
+ * shows in its own direction, but the iPhone places the cursor by the box's.
+ */
+export function useLineDir(target: RefObject<HTMLTextAreaElement>) {
+  useEffect(() => {
+    const el = target.current;
+    if (!el) return;
+    const follow = () => {
+      if (document.activeElement !== el) return;
+      const d = lineDir(el.value, el.selectionStart);
+      if (d && el.dir !== d) el.dir = d;
+    };
+    // Where the selection change is announced differs between browsers: listen on both.
+    const events = ['selectionchange', 'input', 'keyup', 'pointerup', 'focus'];
+    events.forEach((t) => el.addEventListener(t, follow));
+    document.addEventListener('selectionchange', follow);
+    return () => {
+      events.forEach((t) => el.removeEventListener(t, follow));
+      document.removeEventListener('selectionchange', follow);
+    };
+  }, [target]);
 }
 
 /** Where the selection on the formatted view sits in the note's text, or null when nothing there is selected. */

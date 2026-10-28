@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasFormatting, parseInline, parseLine, toggleCheck, togglePrefix, toWhatsApp, wrapSelection } from '../src/data/noteFormat';
+import { hasFormatting, lineDir, parseInline, parseLine, toggleCheck, togglePrefix, toWhatsApp, wrapSelection } from '../src/data/noteFormat';
 
 describe('note formatting', () => {
   it('reads WhatsApp marks and our own', () => {
@@ -56,5 +56,14 @@ describe('note formatting', () => {
     expect(toggleCheck('[ ] א\n[x] ב', 0)).toBe('[x] א\n[x] ב');
     expect(toggleCheck('[ ] א\n[x] ב', 1)).toBe('[ ] א\n[ ] ב');
     expect(toWhatsApp('# כותרת\n[ ] משימה\n++קו++ ==מרקר== *מודגש*')).toBe('*כותרת*\n☐ משימה\nקו *מרקר* *מודגש*');
+  });
+  it('gives the cursor line the direction of its first letter', () => {
+    const v = 'קניות!\nHello world!\n- 2 eggs\n\n123';
+    expect(lineDir(v, 3)).toBe('rtl');
+    expect(lineDir(v, v.indexOf('!', 10) + 1)).toBe('ltr');
+    expect(lineDir(v, v.indexOf('eggs'))).toBe('ltr');
+    expect(lineDir(v, v.length - 4)).toBe(null);
+    expect(lineDir(v, v.length)).toBe(null);
+    expect(lineDir('Call דנה', 0)).toBe('ltr');
   });
 });
