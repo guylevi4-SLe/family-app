@@ -70,20 +70,20 @@ export function NoteView({ text, onEdit, onToggle, viewRef }: { text: string; on
         const runs = (t: string) => runsAt(t, base);
         switch (line.kind) {
           case 'empty':
-            return <p key={i} className="nf-empty" />;
+            return <p key={i} dir="auto" className="nf-empty" />;
           case 'h1':
-            return <p key={i} className="nf-h1">{runs(line.text)}</p>;
+            return <p key={i} dir="auto" className="nf-h1">{runs(line.text)}</p>;
           case 'h2':
-            return <p key={i} className="nf-h2">{runs(line.text)}</p>;
+            return <p key={i} dir="auto" className="nf-h2">{runs(line.text)}</p>;
           case 'quote':
-            return <p key={i} className="nf-quote">{runs(line.text)}</p>;
+            return <p key={i} dir="auto" className="nf-quote">{runs(line.text)}</p>;
           case 'bullet':
-            return <p key={i} className="nf-li"><span className="nf-bullet" aria-hidden="true">•</span>{runs(line.text)}</p>;
+            return <p key={i} dir="auto" className="nf-li"><span className="nf-bullet" aria-hidden="true">•</span>{runs(line.text)}</p>;
           case 'number':
-            return <p key={i} className="nf-li"><span className="nf-bullet">{line.n}.</span>{runs(line.text)}</p>;
+            return <p key={i} dir="auto" className="nf-li"><span className="nf-bullet">{line.n}.</span>{runs(line.text)}</p>;
           case 'check':
             return (
-              <p key={i} className={`nf-check ${line.done ? 'done' : ''}`}>
+              <p key={i} dir="auto" className={`nf-check ${line.done ? 'done' : ''}`}>
                 <button
                   type="button"
                   role="checkbox"
@@ -100,7 +100,7 @@ export function NoteView({ text, onEdit, onToggle, viewRef }: { text: string; on
               </p>
             );
           default:
-            return <p key={i}>{runs(line.text)}</p>;
+            return <p key={i} dir="auto">{runs(line.text)}</p>;
         }
       })}
     </div>

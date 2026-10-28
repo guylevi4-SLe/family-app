@@ -1179,6 +1179,23 @@ async function main() {
         window.visualViewport.dispatchEvent(new Event('resize'));
       });
       await onKb.waitFor({ state: 'detached' });
+      // An English line runs left to right, its "!" at the end; a Hebrew line stays right to left.
+      await bodyBox.fill('*קניות* לשבת!\nHello world!\n- Call the plumber.');
+      assert.equal(await bodyBox.evaluate((el) => getComputedStyle(el).unicodeBidi), 'plaintext', 'each line in the text box takes its own direction');
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-english-edit.png` });
+      await bodyBox.blur();
+      const side = (p) => p.evaluate((el) => {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        const t = r.getBoundingClientRect();
+        const box = el.closest('.note-view').getBoundingClientRect();
+        return t.left - box.left < box.right - t.right ? 'left' : 'right';
+      });
+      await view.locator('p', { hasText: 'Hello world!' }).waitFor();
+      assert.equal(await side(view.locator('p', { hasText: 'Hello world!' })), 'left', 'an English line sits on the left');
+      assert.equal(await side(view.locator('p', { hasText: 'Call the plumber.' })), 'left', 'an English bullet sits on the left');
+      assert.equal(await side(view.locator('p', { hasText: 'לשבת' })), 'right', 'a Hebrew line stays on the right');
+      if (process.env.SCREENSHOT_DIR) await dad.page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/note-english.png` });
       // A web address shows as a link that opens in a new tab, without starting editing.
       await bodyBox.fill('מתכון: https://example.com/a_b_ נשמע טוב');
       await bodyBox.blur();
