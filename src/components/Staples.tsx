@@ -47,7 +47,7 @@ export function StaplesButton(props: {
 }
 
 /** What the family usually buys: a square per department, and a department's products a tap away; a tap on one puts it on the list. */
-function StaplesSheet({
+export function StaplesSheet({
   familyId,
   familyName,
   items,

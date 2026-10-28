@@ -342,6 +342,26 @@ label { display: grid; gap: 6px; font-size: 0.92rem; color: var(--muted); }
   .tile h2 { font-size: 1.05rem; }
 }
 
+/* The shopping square: the square itself opens the shopping squares, its wide bottom button opens the list. */
+.tile.with-action { padding: 0; gap: 0; overflow: hidden; }
+.tile.with-action:active { background: inherit; }
+.tile-main,
+:root[data-palette] .tile-main {
+  flex: 1; display: flex; flex-direction: column; justify-content: flex-start; gap: 14px; min-width: 0; min-height: 0;
+  padding: 16px 14px 8px; text-align: start; border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit;
+}
+.tile-main:active { transform: none; background: var(--accent-soft); }
+.tile-action,
+:root[data-palette] .tile-action {
+  min-height: 40px; margin: 0 10px 10px; padding: 0 8px; border-radius: 12px; border: 0;
+  background: var(--grad); color: var(--accent-ink); font-size: 0.85rem; font-weight: 700; box-shadow: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 359px) {
+  .tile-main { gap: 8px; padding: 12px 12px 6px; }
+  .tile-action { margin: 0 8px 8px; font-size: 0.8rem; }
+}
+
 /* ---------- tasks & calendar ---------- */
 .task-add { position: sticky; top: calc(max(10px, env(safe-area-inset-top)) + 54px); z-index: 4; background: var(--bg); padding-bottom: 8px; }
 .task-add .add-box { position: static; padding-bottom: 8px; }
@@ -1216,4 +1236,30 @@ body.kb-open .quick-note-body { min-height: 40dvh; }
 .store-depts-title { font-size: 1.35rem; font-weight: 800; margin: 12px 4px 0; }
 .store-depts { margin-top: 10px; }
 .dept-back { font-weight: 700; color: var(--accent); min-height: 40px; margin-bottom: 4px; }
+/* The shopping screen's four squares. */
+.shop-menu { margin-top: 12px; }
+.shop-tile { position: relative; min-height: 132px; font-size: 1.02rem; }
+.shop-tile svg { width: 36px; height: 36px; stroke-width: 1.6; }
+.shop-count { position: absolute; top: 8px; inset-inline-end: 10px; min-width: 26px; height: 22px; padding: 0 7px; border-radius: 11px; display: grid; place-items: center; background: var(--surface); color: var(--accent); font-size: 0.8rem; font-weight: 700; }
+.shopping .list-actions .shop-back,
+:root[data-palette] .shopping .list-actions .shop-back {
+  display: grid; place-items: center; flex: none; width: 34px; min-height: 32px; height: 32px; padding: 0; border-radius: 999px;
+  color: var(--accent); background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); box-shadow: none;
+}
+.shopping .dept h2.shop-title { font-size: 1.2rem; font-weight: 800; letter-spacing: 0; margin: 0 4px; }
+.paid-history { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.paid-history > li { border-bottom: 1px solid var(--line); }
+.paid-row,
+:root[data-palette] .paid-row {
+  width: 100%; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 4px; text-align: start;
+  border: 0; border-radius: 0; background: none; box-shadow: none; color: inherit;
+}
+.paid-row:disabled { opacity: 1; cursor: default; }
+.paid-row:active { transform: none; }
+.paid-main { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.paid-row .name { overflow-wrap: anywhere; }
+.paid-row .muted { font-size: 0.8rem; }
+.paid-row strong { white-space: nowrap; }
+.paid-more { font-size: 0.8rem; color: var(--accent); white-space: nowrap; }
+.paid-history .price-history { padding: 0 12px 8px; }
 .staples-sheet .staple-dept ul { list-style: none; margin: 0; padding: 0; }

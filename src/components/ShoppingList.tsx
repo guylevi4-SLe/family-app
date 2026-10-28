@@ -1,30 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
 import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { onList, preferStaples, suggestStaples } from '../data/stapleMatch';
-import { knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
+import { ago, cheapestByUnit, knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
-import { DEPT_ICONS, StaplesButton } from './Staples';
+import { DEPT_ICONS, StaplesButton, StaplesSheet } from './Staples';
 import { CommentButton } from './CommentButton';
 import { useFamily } from './FamilyContext';
 import { ZoomViewer } from './ZoomViewer';
 import { Icon } from './Icon';
 import { confirmAsk } from './ConfirmSheet';
-import { Eraser, LayoutGrid, List, Shapes } from 'lucide-react';
+import { ArrowRight, Eraser, LayoutGrid, List, ListChecks, PackageCheck, Receipt, Shapes, ShoppingBasket } from 'lucide-react';
+
+/** The shopping screen: four squares, each opening one part. */
+export type ShopPage = 'menu' | 'list' | 'staples' | 'bought' | 'paid';
 
 export function ShoppingList({
   familyId,
   familyName,
   items,
   deptOrder,
+  page,
+  setPage,
 }: {
   familyId: string;
   familyName: string | undefined;
   items: Item[] | undefined;
   deptOrder: string[] | undefined;
+  page: ShopPage;
+  setPage: (p: ShopPage) => void;
 }) {
   const overrides = useOverrides(familyId);
   const priceRows = usePrices(familyId);
@@ -33,7 +40,6 @@ export function ShoppingList({
   const lastPrice = (it: Item) => byKey.get(priceKey(it.name))?.[0];
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<{ item: Item; staple: boolean } | null>(null);
-  const [showBought, setShowBought] = useState(false);
   const [undo, setUndo] = useState<{ item: Item; deleted: boolean; timer: number } | null>(null);
   // A short line at the bottom, e.g. that a staple is already on the list.
   const [notice, setNotice] = useState<{ text: string; timer: number } | null>(null);
@@ -121,10 +127,25 @@ export function ShoppingList({
     if (!it.checked) offerUndo(it, false);
   };
 
+  const staples = (items ?? []).filter((i) => i.staple);
+  const back = <button className="link-plain dept-back" onClick={() => setPage('menu')}>→ קניות</button>;
+
   return (
-    <main className="list-page with-bottom-add shopping">
+    <main className={`list-page shopping${page === 'list' ? ' with-bottom-add' : ''}`}>
+      {(page === 'menu' || page === 'staples') && items !== undefined && (
+        <div className="dept-grid shop-menu">
+          <ShopTile icon={<ListChecks />} label="הרשימה שלנו" count={active.length} onClick={() => setPage('list')} />
+          <ShopTile icon={<ShoppingBasket />} label="הקבועים שלנו" count={staples.length} onClick={() => setPage('staples')} />
+          <ShopTile icon={<PackageCheck />} label="נקנו בשבוע האחרון" count={bought.length} onClick={() => setPage('bought')} />
+          <ShopTile icon={<Receipt />} label="כמה שילמתי" count={byKey.size} onClick={() => setPage('paid')} />
+        </div>
+      )}
+
+      {page === 'list' && (
+        <>
       {items !== undefined && (
         <div className="list-actions">
+          <BackButton onClick={() => setPage('menu')} />
           {active.length > 0 && (
             <button
               className="small view-toggle"
@@ -192,24 +213,29 @@ export function ShoppingList({
         ))
       )}
 
-      {/* What was bought shows only on the full list. */}
-      {!byDept && bought.length > 0 && (
+        </>
+      )}
+
+      {page === 'bought' && items !== undefined && (
         <section className="dept bought">
+          {back}
           <div className="section-head">
-            <button className="link" onClick={() => setShowBought(!showBought)} aria-expanded={showBought}>
-              נקנו בשבוע האחרון ({bought.length}) {showBought ? '▴' : '▾'}
-            </button>
-            <button
-              className="link"
-              onClick={async () => {
-                const n = bought.length;
-                if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יוסר מהרשימה. אם הוא ברשימת הקבועים, הוא יישאר שם.' : 'הם יוסרו מהרשימה. מה שברשימת הקבועים יישאר שם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
-              }}
-            >
-              ניקוי
-            </button>
+            <h2 className="shop-title">נקנו בשבוע האחרון</h2>
+            {bought.length > 0 && (
+              <button
+                className="link"
+                onClick={async () => {
+                  const n = bought.length;
+                  if (await confirmAsk(n === 1 ? 'לנקות את הפריט שנקנה?' : `לנקות ${n} פריטים שנקנו?`, n === 1 ? 'הוא יוסר מהרשימה. אם הוא ברשימת הקבועים, הוא יישאר שם.' : 'הם יוסרו מהרשימה. מה שברשימת הקבועים יישאר שם.', 'כן, לנקות', <Eraser size={22} />)) clearChecked(familyId, bought);
+                }}
+              >
+                ניקוי
+              </button>
+            )}
           </div>
-          {showBought && (
+          {bought.length === 0 ? (
+            <p className="empty">לא נקנה כלום בשבוע האחרון.</p>
+          ) : (
             <>
               <div className="list-actions price-actions">
                 <button className="small price-button" onClick={() => setPaying(true)}>
@@ -225,6 +251,30 @@ export function ShoppingList({
             </>
           )}
         </section>
+      )}
+
+      {page === 'paid' && (
+        <section className="dept paid-page">
+          {back}
+          <div className="section-head">
+            <h2 className="shop-title">כמה שילמתי</h2>
+          </div>
+          <PaidHistory byKey={byKey} />
+        </section>
+      )}
+
+      {page === 'staples' && items !== undefined && (
+        <StaplesSheet
+          familyId={familyId}
+          familyName={familyName}
+          items={items}
+          byId={byId}
+          overrides={overrides}
+          deptOrder={deptOrder}
+          lastPrice={lastPrice}
+          onEdit={(it) => setEditing({ item: it, staple: true })}
+          onClose={() => setPage('menu')}
+        />
       )}
 
       {undo && (
@@ -269,6 +319,7 @@ export function ShoppingList({
           onClose={() => setEditing(null)}
         />
       )}
+      {page === 'list' && (
       <form
         className="add-box bottom-add"
         onSubmit={(e) => {
@@ -315,6 +366,7 @@ export function ShoppingList({
           +
         </button>
       </form>
+      )}
     </main>
   );
 }
@@ -385,6 +437,68 @@ function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last
         <Icon name="edit" size={18} />
       </button>
     </li>
+  );
+}
+
+/** One of the shopping screen's four squares, with how many are in it. */
+function ShopTile({ icon, label, count, onClick }: { icon: ReactNode; label: string; count: number; onClick: () => void }) {
+  return (
+    <button className="dept-tile shop-tile" onClick={onClick}>
+      {icon}
+      <span>{label}</span>
+      <span className="shop-count">{count}</span>
+    </button>
+  );
+}
+
+/** Back to the four squares, beside the list's buttons. */
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button className="small shop-back" aria-label="חזרה לקניות" onClick={onClick}>
+      <ArrowRight size={18} aria-hidden="true" />
+    </button>
+  );
+}
+
+/** Every product the family wrote a price for: the last price, and the ones before it a tap away. */
+function PaidHistory({ byKey }: { byKey: Map<string, PriceEntry[]> }) {
+  const [open, setOpen] = useState<string | null>(null);
+  if (!byKey.size) return <p className="empty">עוד לא נרשמו מחירים. אפשר לרשום אותם ב"נקנו בשבוע האחרון".</p>;
+  return (
+    <ul className="paid-history">
+      {[...byKey].map(([key, history]) => {
+        const last = history[0];
+        const isCheapest = cheapestByUnit(history);
+        const shown = open === key;
+        return (
+          <li key={key}>
+            <button className="paid-row" aria-expanded={history.length > 1 ? shown : undefined} disabled={history.length < 2} onClick={() => setOpen(shown ? null : key)}>
+              <span className="paid-main">
+                <span className="name">{last.name}</span>
+                <span className="muted">
+                  {last.store ? `${last.store} · ` : ''}
+                  {ago(last)}
+                </span>
+              </span>
+              <strong>{priceLabel(last)}</strong>
+              {history.length > 1 && <span className="paid-more">{shown ? '▴' : `${history.length} ▾`}</span>}
+            </button>
+            {shown && (
+              <ul className="price-history" aria-label={`היסטוריית מחירים ${last.name}`}>
+                {history.map((h) => (
+                  <li key={h.id} className={isCheapest(h) ? 'cheapest' : ''}>
+                    <strong>{priceLabel(h)}</strong>
+                    <span>{h.store || 'בלי חנות'}</span>
+                    <span className="muted">{ago(h)}</span>
+                    {isCheapest(h) && <span className="cheap-mark">הכי זול</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
