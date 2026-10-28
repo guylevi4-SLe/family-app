@@ -890,7 +890,8 @@ body.kb-open .chat-compose { bottom: var(--kb); }
 .new-list-row .new-list { flex: 1; }
 .new-note { background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; }
 .note-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.note-body { width: 100%; min-height: 220px; resize: vertical; font: inherit; font-size: 1.02rem; line-height: 1.5; padding: 12px 14px; border-radius: var(--radius); }
+/* Each line takes its own direction from its first letter, so an English line runs left to right. */
+.note-body { unicode-bidi: plaintext; width: 100%; min-height: 220px; resize: vertical; font: inherit; font-size: 1.02rem; line-height: 1.5; padding: 12px 14px; border-radius: var(--radius); }
 .note-files { display: grid; gap: 10px; }
 .note-file-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 .note-file { position: relative; display: grid; gap: 4px; }
