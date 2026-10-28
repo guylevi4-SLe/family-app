@@ -70,13 +70,13 @@ export function Dashboard({
     <main className="dashboard">
       <p className="greeting">{greeting(new Date(), me.displayName)}</p>
       <div className="tile-grid">
-        {/* The square opens the shopping squares; "לרשימה" goes straight to the list, for the store. */}
+        {/* The square opens the shopping squares; "לרשימה" goes straight to the list, for the store. The count is on the square's badge. */}
         <Tile
           icon="cart"
           title="קניות"
           count={toBuy.length}
           onClick={() => go('shop')}
-          action={{ label: `לרשימה · ${toBuy.length === 0 ? 'ריקה' : toBuy.length === 1 ? 'פריט אחד' : `${toBuy.length} פריטים`}`, onClick: () => go('list') }}
+          action={{ label: 'לרשימה', onClick: () => go('list') }}
         />
         <Tile icon="tasks" title="משימות" count={open.length} onClick={() => go('tasks')}>
           {open.length === 0 ? 'אין משימות פתוחות' : mine.length > 0 ? `${mine.length} שלך` : `${open.length} פתוחות`}
