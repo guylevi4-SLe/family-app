@@ -18,6 +18,8 @@ describe('parseCommand', () => {
     ['  @מ תור לרופא', 'task', 'תור לרופא'],
     ['@י חוג חמישי', 'event', 'חוג חמישי'],
     ['@ר ציוד לים: כובע', 'list', 'ציוד לים: כובע'],
+    ['@פ קוד לשער 4521', 'note', 'קוד לשער 4521'],
+    ['@פתק: שורה\nשנייה', 'note', 'שורה\nשנייה'],
   ])('%s', (text, kind, body) => {
     expect(parseCommand(text)).toEqual({ kind, body });
   });
@@ -29,13 +31,14 @@ describe('parseCommand', () => {
   it('grows a typed shortcut into its full form', () => {
     expect(expandCommand('@ק')).toBe('@קניות: ');
     expect(expandCommand('@ר')).toBe('@רשימה: ');
+    expect(expandCommand('@פ')).toBe('@פתק: ');
     expect(expandCommand('@ק ')).toBeNull();
     expect(expandCommand('@א')).toBeNull();
     expect(parseCommand('@קניות: חלב')).toEqual({ kind: 'shop', body: 'חלב' });
   });
 
   it('offers commands while typing @', () => {
-    expect(suggestCommands('@').map((c) => c.key)).toEqual(['ק', 'מ', 'י', 'ר']);
+    expect(suggestCommands('@').map((c) => c.key)).toEqual(['ק', 'מ', 'י', 'ר', 'פ']);
     expect(suggestCommands('@ר').map((c) => c.key)).toEqual(['ר']);
     expect(suggestCommands('@ק ')).toEqual([]);
     expect(suggestCommands('שלום')).toEqual([]);
