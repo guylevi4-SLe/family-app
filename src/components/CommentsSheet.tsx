@@ -244,6 +244,7 @@ export function Composer({
   hints,
   expand,
   badges,
+  commandFor,
   askAbout,
   tagging = false,
 }: {
@@ -262,6 +263,8 @@ export function Composer({
   expand?: (text: string) => string;
   /** Labels shown in the box for what was recognised ("📝 פתק", "@שגב"); the text itself is left as typed. */
   badges?: (text: string) => string[];
+  /** A command the text starts with, taken out of the text and kept as a label ("📝 פתק"). */
+  commandFor?: (text: string) => { word: string; typed: string; label: string; rest: string } | null;
   /** A product's name: offers to ask about it on WhatsApp ("which washing-up liquid?"). */
   askAbout?: string;
   /** Tag people by typing "@name" (the chat) instead of picking them on chips. */
@@ -282,23 +285,43 @@ export function Composer({
   const askFileRef = useRef<HTMLInputElement>(null);
   const boxRef = useRef<HTMLTextAreaElement>(null);
   const badgeRef = useRef<HTMLSpanElement>(null);
-  const shown = badges?.(text) ?? [];
+  /** The command taken out of the text: only its label shows, and it is put back when sending. */
+  const [cmd, setCmd] = useState<{ word: string; typed: string; label: string } | null>(null);
+  const shown = [...(cmd ? [cmd.label] : []), ...(badges?.(text) ?? [])];
   const shownKey = shown.join(' ');
   // The first line starts after the labels, so they never cover the text.
   const [badgeWidth, setBadgeWidth] = useState(0);
   useLayoutEffect(() => setBadgeWidth(shownKey ? (badgeRef.current?.offsetWidth ?? 0) : 0), [shownKey]);
 
+  /**
+   * Sets the text, taking a leading command out of it ("@פ" → the "📝 פתק" label and an
+   * empty box). Going on to type more of the command's word, then a space or colon ("תק: "), is dropped too.
+   */
+  const put = (v: string) => {
+    const c = !cmd && commandFor?.(v);
+    if (c) {
+      setCmd({ word: c.word, typed: c.typed, label: c.label });
+      setText(c.rest);
+      return;
+    }
+    const more = v.match(/^([^\s:]*)[\s:]+$/)?.[1];
+    setText(cmd && more !== undefined && cmd.word.slice(cmd.typed.length).startsWith(more) ? '' : v);
+  };
+
   const send = () => {
     if (!text.trim() && !photo) return;
-    const full = expand ? expand(text) : text;
+    const typed = cmd ? `@${cmd.word}: ${text}` : text;
+    const full = expand ? expand(typed) : typed;
     const handled = !photo && onCommand?.(full);
     if (handled === 'keep') return;
     if (handled === 'done') {
       setText('');
+      setCmd(null);
       return;
     }
     addComment(familyId, type, targetId, full, photo ?? undefined, tagging ? taggedIds(full, members, me.id) : notify);
     setText('');
+    setCmd(null);
     setPhoto(null);
   };
 
@@ -375,7 +398,7 @@ export function Composer({
         <div className="command-hints" role="group" aria-label="פקודות מהירות">
           {allHints.map((h) => (
             <button type="button" key={h.insert} className="chip" onClick={() => {
-                setText(h.insert);
+                put(h.insert);
                 boxRef.current?.focus();
               }}>
               {h.label}
@@ -426,8 +449,13 @@ export function Composer({
             placeholder={placeholder}
             aria-label={label}
             style={badgeWidth ? { textIndent: badgeWidth + 8 } : undefined}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => put(e.target.value)}
             onKeyDown={(e) => {
+              // Deleting in an empty box takes the command's label off.
+              if (e.key === 'Backspace' && cmd && !text) {
+                e.preventDefault();
+                setCmd(null);
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 send();

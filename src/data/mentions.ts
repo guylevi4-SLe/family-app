@@ -65,6 +65,22 @@ export function splitTags(text: string, names: string[]): { text: string; tag: b
 }
 
 /**
+ * The command a message starts with, once it is certain: "@פ" alone when no name
+ * starts with פ, "@ר " or "@רש" (a space or colon settles "@ר" against רומי and רוית).
+ * Returns the command's word and what follows it, or null.
+ */
+export function leadingCommand(text: string, names: string[], commands: string[]) {
+  const m = text.match(/^\s*@([\p{L}\p{N}_]+)(\s*:\s*|\s+)?([\s\S]*)$/u);
+  if (!m) return null;
+  const [, typed, sep, rest] = m;
+  const fits = commands.filter((c) => c.startsWith(typed));
+  if (fits.length !== 1) return null;
+  const lower = typed.toLowerCase();
+  const people = [...names, EVERYONE].some((n) => n && n.toLowerCase().startsWith(lower));
+  return sep || !people ? { word: fits[0], typed, rest } : null;
+}
+
+/**
  * Each "@…" grown into the one command (at the start only) or name it begins,
  * when only one fits: "@רש" → "@רשימה", "היי @ש" → "היי @שגב". Done when sending,
  * not while typing, so the phone keyboard's word predictions are left alone.
