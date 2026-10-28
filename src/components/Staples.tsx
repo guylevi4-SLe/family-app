@@ -3,7 +3,7 @@ import { orderedDepartments } from '../data/departments';
 import { addStaples, addStaplesToList, parseItems, qtyLabel, updateItem, type Item } from '../data/items';
 import { priceLabel, type PriceEntry } from '../data/prices';
 import { Icon } from './Icon';
-import { Apple, Baby, Bath, Beef, Candy, Croissant, CupSoda, House, Milk, Package, Salad, Shapes, Plus, ShoppingBasket, Snowflake, SprayCan, Wheat, type LucideIcon } from 'lucide-react';
+import { Apple, Baby, Bath, Beef, Candy, Croissant, CupSoda, House, Milk, Package, Salad, Shapes, Snowflake, SprayCan, Wheat, type LucideIcon } from 'lucide-react';
 
 /** A picture for each department's square in the pantry; a family's own department gets the generic one. */
 export const DEPT_ICONS: Record<string, LucideIcon> = {
@@ -22,29 +22,6 @@ export const DEPT_ICONS: Record<string, LucideIcon> = {
   'תינוקות': Baby,
   'בית וחד״פ': House,
 };
-
-/** The family's usual products ("רשימת הקבועים"): a small "+" and basket above the list opens them. */
-export function StaplesButton(props: {
-  familyId: string;
-  familyName: string | undefined;
-  items: Item[];
-  byId: Map<string, Item>;
-  overrides: Map<string, string>;
-  deptOrder: string[] | undefined;
-  lastPrice: (it: Item) => PriceEntry | undefined;
-  onEdit: (it: Item) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button className="small staples-button" aria-label="רשימת הקבועים" onClick={() => setOpen(true)}>
-        <Plus size={16} strokeWidth={2.6} aria-hidden="true" />
-        <ShoppingBasket size={16} aria-hidden="true" />
-      </button>
-      {open && <StaplesSheet {...props} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
 
 /** What the family usually buys: a square per department, and a department's products a tap away; a tap on one puts it on the list. */
 export function StaplesSheet({
@@ -72,7 +49,7 @@ export function StaplesSheet({
   const [dept, setDept] = useState<string | null>(null);
   const staples = items.filter((i) => i.staple);
   // Each family sees its own name, as set in the family settings.
-  const title = familyName?.trim() ? `רשימת הקבועים של ${familyName.trim()}` : 'רשימת הקבועים';
+  const title = familyName?.trim() ? `הקבועים של ${familyName.trim()}` : 'הקבועים שלנו';
 
   const groups = useMemo(() => {
     const order = orderedDepartments(deptOrder);
@@ -106,12 +83,15 @@ export function StaplesSheet({
               → רשימת הקבועים
             </button>
           ) : (
-            <h2>{title}</h2>
+            <button className="link-plain staples-back" onClick={onClose}>
+              → קניות
+            </button>
           )}
           <button className="icon-button" aria-label="סגירה" onClick={onClose}>
             ✕
           </button>
         </div>
+        {!shown && <h2 className="staples-title">{title}</h2>}
         {staples.length === 0 && <p className="muted small-text">עוד אין כאן מוצרים. אפשר להוסיף למטה, או לסמן מוצר כקבוע בעריכה שלו.</p>}
         {!shown && groups.length > 0 && (
           <div className="dept-grid">
@@ -156,6 +136,8 @@ export function StaplesSheet({
             </ul>
           </div>
         )}
+        {/* New products are added inside their department; the first one, before there are any, from here. */}
+        {(shown || staples.length === 0) && (
         <form
           className="staple-new"
           onSubmit={(e) => {
@@ -168,6 +150,7 @@ export function StaplesSheet({
             הוספה
           </button>
         </form>
+        )}
       </div>
     </div>
   );

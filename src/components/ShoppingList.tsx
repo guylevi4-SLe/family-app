@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { orderedDepartments } from '../data/departments';
+import { guessDepartment, normalize, orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
 import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
@@ -7,13 +7,13 @@ import { onList, preferStaples, suggestStaples } from '../data/stapleMatch';
 import { ago, cheapestByUnit, knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
-import { DEPT_ICONS, StaplesButton, StaplesSheet } from './Staples';
+import { DEPT_ICONS, StaplesSheet } from './Staples';
 import { CommentButton } from './CommentButton';
 import { useFamily } from './FamilyContext';
 import { ZoomViewer } from './ZoomViewer';
 import { Icon } from './Icon';
 import { confirmAsk } from './ConfirmSheet';
-import { ArrowRight, Eraser, LayoutGrid, List, ListChecks, PackageCheck, Receipt, Shapes, ShoppingBasket } from 'lucide-react';
+import { Eraser, LayoutGrid, List, ListChecks, PackageCheck, Receipt, Shapes, ShoppingBasket } from 'lucide-react';
 
 /** The shopping screen: four squares, each opening one part. */
 export type ShopPage = 'menu' | 'list' | 'staples' | 'bought' | 'paid';
@@ -143,38 +143,25 @@ export function ShoppingList({
 
       {page === 'list' && (
         <>
-      {items !== undefined && (
+      {/* An open department has its own way back, to all the departments. */}
+      {!shownDept && back}
+      {active.length > 0 && (
         <div className="list-actions">
-          <BackButton onClick={() => setPage('menu')} />
-          {active.length > 0 && (
-            <button
-              className="small view-toggle"
-              aria-label={byDept ? 'תצוגת רשימה' : 'תצוגת מחלקות'}
-              aria-pressed={byDept}
-              onClick={() => {
-                setByDept(!byDept);
-                setOpenDept(null);
-              }}
-            >
-              {byDept ? <List size={18} aria-hidden="true" /> : <LayoutGrid size={18} aria-hidden="true" />}
-            </button>
-          )}
-          {active.length > 0 && (
-            <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
-              <Icon name="whatsapp" size={16} />
-              שליחה בוואטסאפ
-            </button>
-          )}
-          <StaplesButton
-            familyId={familyId}
-            familyName={familyName}
-            items={items}
-            byId={byId}
-            overrides={overrides}
-            deptOrder={deptOrder}
-            lastPrice={lastPrice}
-            onEdit={(it) => setEditing({ item: it, staple: true })}
-          />
+          <button
+            className="small view-toggle"
+            aria-label={byDept ? 'תצוגת רשימה' : 'תצוגת מחלקות'}
+            aria-pressed={byDept}
+            onClick={() => {
+              setByDept(!byDept);
+              setOpenDept(null);
+            }}
+          >
+            {byDept ? <List size={18} aria-hidden="true" /> : <LayoutGrid size={18} aria-hidden="true" />}
+          </button>
+          <button className="small whatsapp" onClick={() => shareToWhatsApp(groups)}>
+            <Icon name="whatsapp" size={16} />
+            שליחה בוואטסאפ
+          </button>
         </div>
       )}
 
@@ -259,7 +246,7 @@ export function ShoppingList({
           <div className="section-head">
             <h2 className="shop-title">כמה שילמתי</h2>
           </div>
-          <PaidHistory byKey={byKey} />
+          <PaidHistory byKey={byKey} items={items ?? []} overrides={overrides} deptOrder={deptOrder} />
         </section>
       )}
 
@@ -451,54 +438,65 @@ function ShopTile({ icon, label, count, onClick }: { icon: ReactNode; label: str
   );
 }
 
-/** Back to the four squares, beside the list's buttons. */
-function BackButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button className="small shop-back" aria-label="חזרה לקניות" onClick={onClick}>
-      <ArrowRight size={18} aria-hidden="true" />
-    </button>
-  );
-}
-
-/** Every product the family wrote a price for: the last price, and the ones before it a tap away. */
-function PaidHistory({ byKey }: { byKey: Map<string, PriceEntry[]> }) {
+/** Every product the family wrote a price for, by department: the last price, and the ones before it a tap away. */
+function PaidHistory({ byKey, items, overrides, deptOrder }: { byKey: Map<string, PriceEntry[]>; items: Item[]; overrides: Map<string, string>; deptOrder: string[] | undefined }) {
   const [open, setOpen] = useState<string | null>(null);
+  const groups = useMemo(() => {
+    // A product's department is the one its row on the list has (moved by hand, too), else the usual guess by name.
+    const deptOf = new Map(items.map((it) => [priceKey(it.name), it.category]));
+    const order = orderedDepartments(deptOrder);
+    const map = new Map<string, [string, PriceEntry[]][]>();
+    for (const [key, history] of byKey) {
+      const guess = deptOf.get(key) ?? guessDepartment(normalize(history[0].name), overrides);
+      const dept = order.includes(guess) ? guess : order[order.length - 1];
+      if (!map.has(dept)) map.set(dept, []);
+      map.get(dept)!.push([key, history]);
+    }
+    return order.filter((d) => map.has(d)).map((d) => [d, map.get(d)!] as const);
+  }, [byKey, items, overrides, deptOrder]);
   if (!byKey.size) return <p className="empty">עוד לא נרשמו מחירים. אפשר לרשום אותם ב"נקנו בשבוע האחרון".</p>;
   return (
-    <ul className="paid-history">
-      {[...byKey].map(([key, history]) => {
-        const last = history[0];
-        const isCheapest = cheapestByUnit(history);
-        const shown = open === key;
-        return (
-          <li key={key}>
-            <button className="paid-row" aria-expanded={history.length > 1 ? shown : undefined} disabled={history.length < 2} onClick={() => setOpen(shown ? null : key)}>
-              <span className="paid-main">
-                <span className="name">{last.name}</span>
-                <span className="muted">
-                  {last.store ? `${last.store} · ` : ''}
-                  {ago(last)}
-                </span>
-              </span>
-              <strong>{priceLabel(last)}</strong>
-              {history.length > 1 && <span className="paid-more">{shown ? '▴' : `${history.length} ▾`}</span>}
-            </button>
-            {shown && (
-              <ul className="price-history" aria-label={`היסטוריית מחירים ${last.name}`}>
-                {history.map((h) => (
-                  <li key={h.id} className={isCheapest(h) ? 'cheapest' : ''}>
-                    <strong>{priceLabel(h)}</strong>
-                    <span>{h.store || 'בלי חנות'}</span>
-                    <span className="muted">{ago(h)}</span>
-                    {isCheapest(h) && <span className="cheap-mark">הכי זול</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      {groups.map(([dept, products]) => (
+        <section key={dept} className="paid-dept">
+          <h2>{dept}</h2>
+          <ul className="paid-history">
+            {products.map(([key, history]) => {
+              const last = history[0];
+              const isCheapest = cheapestByUnit(history);
+              const shown = open === key;
+              return (
+                <li key={key}>
+                  <button className="paid-row" aria-expanded={history.length > 1 ? shown : undefined} disabled={history.length < 2} onClick={() => setOpen(shown ? null : key)}>
+                    <span className="paid-main">
+                      <span className="name">{last.name}</span>
+                      <span className="muted">
+                        {last.store ? `${last.store} · ` : ''}
+                        {ago(last)}
+                      </span>
+                    </span>
+                    <strong>{priceLabel(last)}</strong>
+                    {history.length > 1 && <span className="paid-more">{shown ? '▴' : `${history.length} ▾`}</span>}
+                  </button>
+                  {shown && (
+                    <ul className="price-history" aria-label={`היסטוריית מחירים ${last.name}`}>
+                      {history.map((h) => (
+                        <li key={h.id} className={isCheapest(h) ? 'cheapest' : ''}>
+                          <strong>{priceLabel(h)}</strong>
+                          <span>{h.store || 'בלי חנות'}</span>
+                          <span className="muted">{ago(h)}</span>
+                          {isCheapest(h) && <span className="cheap-mark">הכי זול</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </>
   );
 }
 
