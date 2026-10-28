@@ -211,7 +211,7 @@ export function Home({ familyId, me, startScreen }: { familyId: string; me: Memb
 
   const pendingCount = [items, tasks, events, comments, lists, listEntries, birthdays].reduce((n, rows) => n + (rows?.filter((r) => r.pending).length ?? 0), 0);
   const requestCount = requests?.length ?? 0;
-  const title = view === 'home' ? "Levi's" : VIEWS.find((v) => v.id === view)!.label;
+  const title = VIEWS.find((v) => v.id === view)!.label;
 
   // The chat counts as read up to its newest message whenever it is open;
   // on a phone that never opened it, everything already there counts as read.

@@ -350,7 +350,7 @@ async function main() {
     step('Home screen, tasks, calendar and comments');
     await kid.page.evaluate(() => localStorage.setItem('startScreen', 'home'));
     await kid.page.reload();
-    await kid.page.locator('.topbar h1', { hasText: "Levi's" }).waitFor();
+    await kid.page.locator('.topbar h1', { hasText: 'בית' }).waitFor();
     await kid.page.locator('.greeting', { hasText: 'kid · יום' }).waitFor();
     // Right after the reload the tile can still be waiting for the list.
     const shopTile = kid.page.locator('.tile', { hasText: 'קניות' });
