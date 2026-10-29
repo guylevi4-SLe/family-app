@@ -24,6 +24,9 @@ describe('a picture for each product', () => {
     expect(foodEmoji('לחם לבן פרוס', 'לחם ומאפים')).toBe('svg:bread');
     expect(foodEmoji('לבן 3%', 'מוצרי חלב וביצים')).toBe('🥛');
     expect(foodEmoji('אורז פרסי', 'יבשים ושימורים')).toBe('svg:rice');
+    expect(foodEmoji('חומוס שימורים', 'יבשים ושימורים')).toBe('svg:chickpeas');
+    expect(foodEmoji('חומוס אחלה', 'מעדנייה')).toBe('svg:hummus');
+    expect(foodEmoji('טונה בשמן', 'יבשים ושימורים')).toBe('svg:tuna');
     expect(foodEmoji('פתיתים אפויים אורז', 'יבשים ושימורים')).toBe('svg:ptitim');
     expect(foodEmoji('רסק עגבניות פריניר', 'יבשים ושימורים')).toBe('svg:paste');
   });
