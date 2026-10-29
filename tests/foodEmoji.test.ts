@@ -10,7 +10,10 @@ describe('a picture for each product', () => {
     expect(foodEmoji('גבינה בולגרית 5%', 'מוצרי חלב וביצים')).toBe('svg:feta');
     expect(foodEmoji('שמנת מתוקה 32%', 'מוצרי חלב וביצים')).toBe('svg:cream');
     expect(foodEmoji('ביצים L', 'מוצרי חלב וביצים')).toBe('🥚');
-    expect(foodEmoji('חלב 3%', 'מוצרי חלב וביצים')).toBe('🥛');
+    expect(foodEmoji('חלב 3%', 'מוצרי חלב וביצים')).toBe('svg:milk');
+    expect(foodEmoji('נקניק סלמי', 'מעדנייה')).toBe('svg:salami');
+    expect(foodEmoji('נקניקיות עוף', 'בשר עוף ודגים')).toBe('🌭');
+    expect(foodEmoji('שמן קנולה', 'יבשים ושימורים')).toBe('svg:oil');
   });
   it('prefers the longer words', () => {
     expect(foodEmoji('לחמניות', 'לחם ומאפים')).toBe('🍞');
