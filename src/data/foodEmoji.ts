@@ -3,7 +3,8 @@ import { DRAWN } from './foodIcons';
 
 /**
  * A picture for each common product, by the words in its name: the longest
- * one found wins, so "גבינה צהובה עמק קלאסית" is 🧀 and "חלב סויה" is not 🥛.
+ * one found wins (of two as long, the one earlier in the name), so
+ * "גבינה צהובה עמק קלאסית" is 🧀 and "חלב סויה" is not 🥛.
  * A "svg:" picture is one drawn for the app (foodIcons.ts).
  */
 const WORDS: [string, string][] = [
@@ -33,9 +34,9 @@ const WORDS: [string, string][] = [
   // Deli
   ['חומוס', 'svg:hummus'], ['טחינה', 'svg:tahini'], ['זיתים', '🫒'], ['חמוצים', '🥒'], ['מטבוחה', '🥫'], ['סלט חצילים', '🍆'],
   // Dry goods
-  ['פסטה', '🍝'], ['ספגטי', '🍝'], ['אטריות', '🍜'], ['אורז', '🍚'], ['קוסקוס', '🍚'], ['פתיתים', '🍚'], ['בורגול', '🍚'], ['קינואה', '🍚'],
+  ['פסטה', '🍝'], ['ספגטי', '🍝'], ['אטריות', '🍜'], ['אורז', 'svg:rice'], ['קוסקוס', '🍚'], ['פתיתים', '🍚'], ['בורגול', '🍚'], ['קינואה', '🍚'],
   ['עדשים', '🫘'], ['שעועית', '🫘'], ['חומוס יבש', '🫘'], ['קמח', '🌾'], ['שיבולת שועל', '🥣'], ['קורנפלקס', '🥣'], ['דגני בוקר', '🥣'],
-  ['גרנולה', '🥣'], ['שימורים', '🥫'], ['רסק', '🥫'], ['רסק עגבניות', '🥫'], ['תירס שימורים', '🌽'], ['שמן', 'svg:oil'], ['שמן זית', '🫒'],
+  ['גרנולה', '🥣'], ['שימורים', '🥫'], ['רסק', 'svg:paste'], ['רסק עגבניות', 'svg:paste'], ['תירס שימורים', '🌽'], ['שמן', 'svg:oil'], ['שמן זית', '🫒'],
   ['סוכר', '🍬'], ['מלח', '🧂'], ['פלפל שחור', '🧂'], ['תבלינים', '🧂'], ['פפריקה', '🌶️'], ['קטשופ', '🥫'], ['מיונז', '🥫'], ['חרדל', '🥫'],
   ['דבש', '🍯'], ['ריבה', '🍯'], ['ממרח', '🍯'], ['נוטלה', '🍫'], ['חמאת בוטנים', '🥜'], ['שקדים', '🥜'], ['אגוזים', '🥜'], ['בוטנים', '🥜'],
   ['קפה', '☕'], ['נס קפה', '☕'], ['תה', '🍵'], ['שמרים', '🌾'], ['אבקת אפייה', '🌾'], ['וניל', '🌾'],
@@ -83,10 +84,16 @@ const DEPT_EMOJI: Record<string, string> = {
 /** The picture for a product: the words in its name, else its department's. */
 export function foodEmoji(name: string, category: string): string {
   const norm = normalize(name);
-  const words = norm.split(' ');
-  // Two-letter words ("תה", "דג") only as a whole word, so "פיתה" isn't tea.
-  for (const [word, emoji] of BY_WORD) if (word.length > 2 ? norm.includes(word) : words.includes(word)) return emoji;
-  return DEPT_EMOJI[category] ?? '🛒';
+  const padded = ` ${norm} `;
+  let best: { len: number; at: number; emoji: string } | undefined;
+  for (const [word, emoji] of BY_WORD) {
+    if (best && word.length < best.len) break;
+    // Two-letter words ("תה", "דג") only as a whole word, so "פיתה" isn't tea.
+    const at = word.length > 2 ? norm.indexOf(word) : padded.indexOf(` ${word} `);
+    // Of two as long, the earlier one: the product comes first ("לחם לבן" is bread).
+    if (at >= 0 && (!best || at < best.at)) best = { len: word.length, at, emoji };
+  }
+  return best?.emoji ?? DEPT_EMOJI[category] ?? '🛒';
 }
 
 /** Pictures to choose from by hand: the drawn ones, then by department. */

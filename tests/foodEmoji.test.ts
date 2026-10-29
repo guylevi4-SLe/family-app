@@ -20,6 +20,12 @@ describe('a picture for each product', () => {
     expect(foodEmoji('שמן זית', 'יבשים ושימורים')).toBe('🫒');
     expect(foodEmoji('נייר טואלט', 'טיפוח, היגיינה ופארם')).toBe('🧻');
   });
+  it('of two words as long, takes the one earlier in the name', () => {
+    expect(foodEmoji('לחם לבן פרוס', 'לחם ומאפים')).toBe('svg:bread');
+    expect(foodEmoji('לבן 3%', 'מוצרי חלב וביצים')).toBe('🥛');
+    expect(foodEmoji('אורז פרסי', 'יבשים ושימורים')).toBe('svg:rice');
+    expect(foodEmoji('רסק עגבניות פריניר', 'יבשים ושימורים')).toBe('svg:paste');
+  });
   it('takes two-letter words only whole', () => {
     expect(foodEmoji('תה ירוק', 'משקאות')).toBe('🍵');
     expect(foodEmoji('פיתה', 'לחם ומאפים')).toBe('svg:pita');
