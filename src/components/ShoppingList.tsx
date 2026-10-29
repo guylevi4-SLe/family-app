@@ -489,7 +489,7 @@ function QuickAdd({ staples, deptOrder, onTap, onEdit }: { staples: Item[]; dept
                   onTap(it);
                 }}
               >
-                <span className="quick-emoji">
+                <span className={`quick-emoji${photo ? ' photo' : ''}`}>
                   {photo ? <img src={photo} alt="" /> : <FoodIcon value={it.quickEmoji || foodEmoji(it.name, it.category)} />}
                   {on && <span className="quick-on" aria-hidden="true">✓</span>}
                 </span>
