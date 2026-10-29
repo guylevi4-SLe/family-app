@@ -30,6 +30,12 @@ export interface Item {
   staple?: boolean;
   /** The quantity a staple is added with. */
   usualQty?: string;
+  /** A staple with its own button under the shopping squares ("הוספה מהירה"). */
+  quick?: boolean;
+  /** The button's short name ("גבינה צהובה" for "גבינה צהובה עמק קלאסית"); empty shows the whole name. */
+  quickLabel?: string;
+  /** A picture chosen by hand for the button; empty means one found from the name. */
+  quickEmoji?: string;
 }
 
 /** How a quantity shows: a bare number is a count of units ("2" → "2 יח׳"); anything else as typed. */
@@ -99,7 +105,7 @@ export function addItems(
   batch.commit().catch(reportWriteError);
 }
 
-export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted' | 'urgency' | 'staple' | 'usualQty'>>) {
+export function updateItem(fid: string, id: string, fields: Partial<Pick<Item, 'name' | 'qty' | 'category' | 'checked' | 'deleted' | 'urgency' | 'staple' | 'usualQty' | 'quick' | 'quickLabel' | 'quickEmoji'>>) {
   updateDoc(doc(itemsCol(fid), id), {
     ...fields,
     ...(fields.checked ? { checkedAt: serverTimestamp() } : {}),

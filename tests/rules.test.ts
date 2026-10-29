@@ -316,6 +316,13 @@ describe('shopping list and comments', () => {
     await assertFails(updateDoc(ref, { usualQty: 'x'.repeat(31), updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
     await assertFails(updateDoc(doc(db('neighbor'), 'families', 'levi', 'items', 'חלב'), { staple: true, updatedBy: users.neighbor.uid }));
   });
+  it('a staple can have a quick-add button with a short name and a picture', async () => {
+    const ref = doc(db('dad'), 'families', 'levi', 'items', 'חלב');
+    await assertSucceeds(updateDoc(ref, { quick: true, quickLabel: 'חלב', quickEmoji: '🥛', updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(ref, { quick: 'yes', updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(ref, { quickLabel: 'x'.repeat(31), updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+    await assertFails(updateDoc(ref, { quickEmoji: 'x'.repeat(17), updatedAt: serverTimestamp(), updatedBy: users.dad.uid }));
+  });
   it('comments: authors edit their own, others cannot', async () => {
     await createInvite('dad', 'levi', 'CODE17', 'child');
     await requestToJoin('daughter', 'levi', 'CODE17', 'child');
