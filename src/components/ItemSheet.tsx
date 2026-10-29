@@ -5,6 +5,8 @@ import { addItems, setCategory, updateItem, type Item, type Urgency } from '../d
 import { shrinkPhoto } from '../data/comments';
 import { removeItemPhoto, setItemPhoto } from '../data/itemPhotos';
 import { EMOJI_CHOICES, foodEmoji } from '../data/foodEmoji';
+import { DRAWN } from '../data/foodIcons';
+import { FoodIcon } from './FoodIcon';
 import { addPrice, ago, cheapestByUnit, defaultUnit, deletePrice, estimateTotal, formatPrice, parsePrice, priceKey, priceLabel, similarKinds, type PriceEntry } from '../data/prices';
 import { auth } from '../firebase';
 import { CommentButton } from './CommentButton';
@@ -161,7 +163,7 @@ export function ItemSheet({
                 <div className="quick-icon-row">
                   <span className="field-label">אייקון</span>
                   <button type="button" className="quick-icon-current" aria-label="בחירת אייקון" aria-expanded={pickEmoji} onClick={() => setPickEmoji(!pickEmoji)}>
-                    {quickEmoji || foodEmoji(name.trim() || item.name, item.category)}
+                    <FoodIcon value={quickEmoji || foodEmoji(name.trim() || item.name, item.category)} />
                   </button>
                   {quickEmoji && (
                     <button type="button" className="link" onClick={() => setQuickEmoji('')}>
@@ -176,12 +178,13 @@ export function ItemSheet({
                         key={e}
                         type="button"
                         aria-pressed={quickEmoji === e}
+                        aria-label={DRAWN[e]?.label}
                         onClick={() => {
                           setQuickEmoji(e);
                           setPickEmoji(false);
                         }}
                       >
-                        {e}
+                        <FoodIcon value={e} />
                       </button>
                     ))}
                   </div>
