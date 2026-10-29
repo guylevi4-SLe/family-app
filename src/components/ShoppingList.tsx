@@ -453,14 +453,20 @@ function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last
 function QuickAdd({ staples, deptOrder, onTap, onEdit }: { staples: Item[]; deptOrder: string[] | undefined; onTap: (it: Item) => void; onEdit: (it: Item) => void }) {
   const photos = useFamily().itemPhotos;
   const press = useRef<{ timer: number; long: boolean } | null>(null);
+  // Closed each time the screen opens; the title opens it.
+  const [open, setOpen] = useState(false);
   const order = orderedDepartments(deptOrder);
   const quick = staples
     .filter((s) => s.quick)
     .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || (a.quickLabel || a.name).localeCompare(b.quickLabel || b.name, 'he'));
   return (
     <section className="quick-add">
-      <h2>הוספה מהירה לרשימה</h2>
-      {quick.length === 0 ? (
+      <h2>
+        <button className="quick-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
+          הוספה מהירה לרשימה {open ? '▴' : '▾'}
+        </button>
+      </h2>
+      {!open ? null : quick.length === 0 ? (
         <p className="muted small-text">כאן יופיעו מוצרים להוספה בלחיצה אחת. בוחרים אותם ב"הקבועים שלנו": עריכת מוצר, "הוספה מהירה ממסך הקניות".</p>
       ) : (
         <div className="quick-grid">
