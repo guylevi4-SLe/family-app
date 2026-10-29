@@ -6,6 +6,7 @@ import { useOverrides, usePrices } from '../data/hooks';
 import { onList, preferStaples, suggestStaples } from '../data/stapleMatch';
 import { ago, cheapestByUnit, knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
 import { foodEmoji } from '../data/foodEmoji';
+import { FoodIcon } from './FoodIcon';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
 import { DEPT_ICONS, StaplesSheet } from './Staples';
@@ -489,7 +490,7 @@ function QuickAdd({ staples, deptOrder, onTap, onEdit }: { staples: Item[]; dept
                 }}
               >
                 <span className="quick-emoji">
-                  {photo ? <img src={photo} alt="" /> : it.quickEmoji || foodEmoji(it.name, it.category)}
+                  {photo ? <img src={photo} alt="" /> : <FoodIcon value={it.quickEmoji || foodEmoji(it.name, it.category)} />}
                   {on && <span className="quick-on" aria-hidden="true">✓</span>}
                 </span>
                 <span className="quick-name">{it.quickLabel || it.name}</span>
