@@ -136,7 +136,7 @@ export function ShoppingList({
     <main className={`list-page shopping${page === 'list' ? ' with-bottom-add' : ''}`}>
       {(page === 'menu' || page === 'staples') && items !== undefined && (
         <div className="dept-grid shop-menu">
-          <ShopTile icon={<ListChecks />} label="הרשימה שלנו" count={active.length} onClick={() => setPage('list')} />
+          <ShopTile icon={<ListChecks />} label="רשימת הקניות" count={active.length} onClick={() => setPage('list')} />
           <ShopTile icon={<ShoppingBasket />} label="הקבועים שלנו" count={staples.length} onClick={() => setPage('staples')} />
           <ShopTile icon={<PackageCheck />} label="נקנו בשבוע האחרון" count={bought.length} onClick={() => setPage('bought')} />
           <ShopTile icon={<Receipt />} label="כמה שילמתי" count={byKey.size} onClick={() => setPage('paid')} />
