@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { guessDepartment, normalize, orderedDepartments } from '../data/departments';
 import { splitBought } from '../data/bought';
-import { addItems, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
+import { addItems, addStaplesToList, clearChecked, parseItems, updateItem, byUrgency, qtyLabel, type Item, type Urgency } from '../data/items';
 import { useOverrides, usePrices } from '../data/hooks';
 import { onList, preferStaples, suggestStaples } from '../data/stapleMatch';
 import { ago, cheapestByUnit, knownStores, priceKey, priceLabel, pricesByKey, type PriceEntry } from '../data/prices';
+import { foodEmoji } from '../data/foodEmoji';
 import { ItemSheet } from './ItemSheet';
 import { PaidSheet } from './PaidSheet';
 import { DEPT_ICONS, StaplesSheet } from './Staples';
@@ -139,6 +140,22 @@ export function ShoppingList({
           <ShopTile icon={<PackageCheck />} label="נקנו בשבוע האחרון" count={bought.length} onClick={() => setPage('bought')} />
           <ShopTile icon={<Receipt />} label="כמה שילמתי" count={byKey.size} onClick={() => setPage('paid')} />
         </div>
+      )}
+      {page === 'menu' && items !== undefined && (
+        <QuickAdd
+          staples={staples}
+          deptOrder={deptOrder}
+          onTap={(it) => {
+            if (onList(it)) {
+              updateItem(familyId, it.id, { deleted: true });
+              say(`${it.name} הוסר מהרשימה`);
+            } else {
+              addStaplesToList(familyId, [it], byId, overrides);
+              say(`${it.name} נוסף לרשימה`);
+            }
+          }}
+          onEdit={(it) => setEditing({ item: it, staple: true })}
+        />
       )}
 
       {page === 'list' && (
@@ -424,6 +441,64 @@ function ItemRow({ item, last, onToggle, onEdit, onUrgency }: { item: Item; last
         <Icon name="edit" size={18} />
       </button>
     </li>
+  );
+}
+
+/**
+ * Under the squares: a round button for each staple marked "הוספה מהירה". A tap
+ * puts it on the list (a ✓ shows it's there) and another tap takes it off; a
+ * long press opens it for editing (its short name and picture).
+ */
+function QuickAdd({ staples, deptOrder, onTap, onEdit }: { staples: Item[]; deptOrder: string[] | undefined; onTap: (it: Item) => void; onEdit: (it: Item) => void }) {
+  const photos = useFamily().itemPhotos;
+  const press = useRef<{ timer: number; long: boolean } | null>(null);
+  const order = orderedDepartments(deptOrder);
+  const quick = staples
+    .filter((s) => s.quick)
+    .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || (a.quickLabel || a.name).localeCompare(b.quickLabel || b.name, 'he'));
+  return (
+    <section className="quick-add">
+      <h2>הוספה מהירה</h2>
+      {quick.length === 0 ? (
+        <p className="muted small-text">כאן יופיעו מוצרים להוספה בלחיצה אחת. בוחרים אותם ב"הקבועים שלנו": עריכת מוצר, "הוספה מהירה ממסך הקניות".</p>
+      ) : (
+        <div className="quick-grid">
+          {quick.map((it) => {
+            const on = onList(it);
+            const photo = photos.get(it.id);
+            return (
+              <button
+                key={it.id}
+                className={`quick-btn${on ? ' on' : ''}`}
+                aria-pressed={on}
+                aria-label={on ? `הסרת ${it.name} מהרשימה` : `הוספת ${it.name} לרשימה`}
+                onPointerDown={() => {
+                  const p = { long: false, timer: 0 };
+                  p.timer = window.setTimeout(() => {
+                    p.long = true;
+                    onEdit(it);
+                  }, 550);
+                  press.current = p;
+                }}
+                onPointerUp={() => press.current && clearTimeout(press.current.timer)}
+                onPointerLeave={() => press.current && clearTimeout(press.current.timer)}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={() => {
+                  if (press.current?.long) return;
+                  onTap(it);
+                }}
+              >
+                <span className="quick-emoji">
+                  {photo ? <img src={photo} alt="" /> : it.quickEmoji || foodEmoji(it.name, it.category)}
+                  {on && <span className="quick-on" aria-hidden="true">✓</span>}
+                </span>
+                <span className="quick-name">{it.quickLabel || it.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 

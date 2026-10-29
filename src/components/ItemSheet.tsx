@@ -4,6 +4,7 @@ import { normalize, orderedDepartments } from '../data/departments';
 import { addItems, setCategory, updateItem, type Item, type Urgency } from '../data/items';
 import { shrinkPhoto } from '../data/comments';
 import { removeItemPhoto, setItemPhoto } from '../data/itemPhotos';
+import { EMOJI_CHOICES, foodEmoji } from '../data/foodEmoji';
 import { addPrice, ago, cheapestByUnit, defaultUnit, deletePrice, estimateTotal, formatPrice, parsePrice, priceKey, priceLabel, similarKinds, type PriceEntry } from '../data/prices';
 import { auth } from '../firebase';
 import { CommentButton } from './CommentButton';
@@ -40,6 +41,10 @@ export function ItemSheet({
   const [name, setName] = useState(item.name);
   const [qty, setQty] = useState(staple ? (item.usualQty ?? '') : item.qty);
   const [isStaple, setIsStaple] = useState(!!item.staple);
+  const [quick, setQuick] = useState(!!item.quick);
+  const [quickLabel, setQuickLabel] = useState(item.quickLabel ?? '');
+  const [quickEmoji, setQuickEmoji] = useState(item.quickEmoji ?? '');
+  const [pickEmoji, setPickEmoji] = useState(false);
   const [urgency, setUrgency] = useState<Urgency>(item.urgency ?? '');
   const history = byKey.get(priceKey(name.trim() || item.name)) ?? [];
   const [paid, setPaid] = useState({ price: '', store: stores[0] ?? '', unit: defaultUnit(history[0], item.category) });
@@ -75,6 +80,9 @@ export function ItemSheet({
     if (name.trim() && name.trim() !== item.name) fields.name = name.trim().slice(0, 80);
     if (staple) {
       if (qty.trim() !== (item.usualQty ?? '')) fields.usualQty = qty.trim().slice(0, 30);
+      if (quick !== !!item.quick) fields.quick = quick;
+      if (quickLabel.trim() !== (item.quickLabel ?? '')) fields.quickLabel = quickLabel.trim().slice(0, 30);
+      if (quickEmoji !== (item.quickEmoji ?? '')) fields.quickEmoji = quickEmoji;
     } else {
       if (qty.trim() !== item.qty) fields.qty = qty.trim().slice(0, 30);
       if (urgency !== (item.urgency ?? '')) fields.urgency = urgency;
@@ -138,6 +146,50 @@ export function ItemSheet({
           {staple ? 'כמות רגילה' : 'כמות'}
           <input value={qty} maxLength={30} placeholder="למשל: 2, 1 ק״ג" onChange={(e) => setQty(e.target.value)} />
         </label>
+        {staple && (
+          <div className="quick-pick">
+            <label className="check-line">
+              <input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} />
+              הוספה מהירה ממסך הקניות
+            </label>
+            {quick && (
+              <>
+                <label>
+                  שם קצר להוספה מהירה
+                  <input value={quickLabel} maxLength={30} placeholder={name.trim() || item.name} onChange={(e) => setQuickLabel(e.target.value)} />
+                </label>
+                <div className="quick-icon-row">
+                  <span className="field-label">אייקון</span>
+                  <button type="button" className="quick-icon-current" aria-label="בחירת אייקון" aria-expanded={pickEmoji} onClick={() => setPickEmoji(!pickEmoji)}>
+                    {quickEmoji || foodEmoji(name.trim() || item.name, item.category)}
+                  </button>
+                  {quickEmoji && (
+                    <button type="button" className="link" onClick={() => setQuickEmoji('')}>
+                      אוטומטי
+                    </button>
+                  )}
+                </div>
+                {pickEmoji && (
+                  <div className="emoji-choices" role="group" aria-label="אייקונים">
+                    {EMOJI_CHOICES.map((e) => (
+                      <button
+                        key={e}
+                        type="button"
+                        aria-pressed={quickEmoji === e}
+                        onClick={() => {
+                          setQuickEmoji(e);
+                          setPickEmoji(false);
+                        }}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
         {!staple && (
           <>
             {/* No tag means a normal item; tapping the chosen tag again takes it off. */}
