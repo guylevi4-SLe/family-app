@@ -1267,7 +1267,12 @@ body.kb-open .quick-note-body { min-height: 40dvh; }
 
 /* "הוספה מהירה": round buttons under the shopping squares, five to a row. */
 .quick-add { margin-top: 18px; }
-.quick-add h2 { font-size: 0.85rem; color: var(--accent); font-weight: 700; margin: 0 4px 8px; }
+.quick-add h2 { font-size: 0.85rem; margin: 0 4px 8px; }
+.quick-toggle,
+:root[data-palette] .quick-toggle {
+  padding: 4px 0; min-height: 0; border: 0; background: none; box-shadow: none;
+  font: inherit; color: var(--accent); font-weight: 700;
+}
 .quick-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 4px; }
 .quick-btn,
 :root[data-palette] .quick-btn {
