@@ -29,6 +29,8 @@ describe('a picture for each product', () => {
     expect(foodEmoji('טונה בשמן', 'יבשים ושימורים')).toBe('svg:tuna');
     expect(foodEmoji('פתיתים אפויים אורז', 'יבשים ושימורים')).toBe('svg:ptitim');
     expect(foodEmoji('רסק עגבניות פריניר', 'יבשים ושימורים')).toBe('svg:paste');
+    expect(foodEmoji('ספגטי 8 אסם', 'יבשים ושימורים')).toBe('svg:pasta');
+    expect(foodEmoji('פסטה פנה', 'יבשים ושימורים')).toBe('svg:pasta');
   });
   it('takes two-letter words only whole', () => {
     expect(foodEmoji('תה ירוק', 'משקאות')).toBe('🍵');
