@@ -459,7 +459,7 @@ function QuickAdd({ staples, deptOrder, onTap, onEdit }: { staples: Item[]; dept
     .sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category) || (a.quickLabel || a.name).localeCompare(b.quickLabel || b.name, 'he'));
   return (
     <section className="quick-add">
-      <h2>הוספה מהירה</h2>
+      <h2>הוספה מהירה לרשימה</h2>
       {quick.length === 0 ? (
         <p className="muted small-text">כאן יופיעו מוצרים להוספה בלחיצה אחת. בוחרים אותם ב"הקבועים שלנו": עריכת מוצר, "הוספה מהירה ממסך הקניות".</p>
       ) : (
