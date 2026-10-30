@@ -37,6 +37,9 @@ describe('a picture for each product', () => {
     expect(foodEmoji('פלפל', 'פירות וירקות')).toBe('🫑');
     expect(foodEmoji('לחמניות כוסמין', 'לחם ומאפים')).toBe('svg:rolls');
     expect(foodEmoji('קוביות בולגרית 5%', 'מוצרי חלב וביצים')).toBe('svg:bulgarian');
+    expect(foodEmoji('חמאה תנובה', 'מוצרי חלב וביצים')).toBe('svg:butter');
+    expect(foodEmoji('פיצה מעדנות זיתים', 'קפואים')).toBe('svg:pizza-maadanot');
+    expect(foodEmoji('פיצה משפחתית', 'קפואים')).toBe('🍕');
   });
   it('takes two-letter words only whole', () => {
     expect(foodEmoji('תה ירוק', 'משקאות')).toBe('🍵');
