@@ -7,7 +7,7 @@ describe('a picture for each product', () => {
     expect(foodEmoji('גבינה צהובה עמק קלאסית', 'מוצרי חלב וביצים')).toBe('🧀');
     expect(foodEmoji('פיתות כוסמין', 'לחם ומאפים')).toBe('svg:pita');
     expect(foodEmoji('במבה 80 גרם', 'חטיפים ומתוקים')).toBe('svg:bamba');
-    expect(foodEmoji('גבינה בולגרית 5%', 'מוצרי חלב וביצים')).toBe('svg:feta');
+    expect(foodEmoji('גבינה בולגרית 5%', 'מוצרי חלב וביצים')).toBe('svg:bulgarian');
     expect(foodEmoji('שמנת מתוקה 32%', 'מוצרי חלב וביצים')).toBe('svg:cream');
     expect(foodEmoji('ביצים L', 'מוצרי חלב וביצים')).toBe('🥚');
     expect(foodEmoji('חלב 3%', 'מוצרי חלב וביצים')).toBe('svg:milk');
@@ -16,7 +16,7 @@ describe('a picture for each product', () => {
     expect(foodEmoji('שמן קנולה', 'יבשים ושימורים')).toBe('svg:oil');
   });
   it('prefers the longer words', () => {
-    expect(foodEmoji('לחמניות', 'לחם ומאפים')).toBe('🍞');
+    expect(foodEmoji('לחמניות', 'לחם ומאפים')).toBe('svg:rolls');
     expect(foodEmoji('שמן זית', 'יבשים ושימורים')).toBe('🫒');
     expect(foodEmoji('נייר טואלט', 'טיפוח, היגיינה ופארם')).toBe('🧻');
   });
@@ -31,6 +31,12 @@ describe('a picture for each product', () => {
     expect(foodEmoji('רסק עגבניות פריניר', 'יבשים ושימורים')).toBe('svg:paste');
     expect(foodEmoji('ספגטי 8 אסם', 'יבשים ושימורים')).toBe('svg:pasta');
     expect(foodEmoji('פסטה פנה', 'יבשים ושימורים')).toBe('svg:pasta');
+    expect(foodEmoji('פלפל אדום', 'פירות וירקות')).toBe('svg:pepper-red');
+    expect(foodEmoji('פלפל כתום', 'פירות וירקות')).toBe('svg:pepper-orange');
+    expect(foodEmoji('פלפל ירוק', 'פירות וירקות')).toBe('svg:pepper-green');
+    expect(foodEmoji('פלפל', 'פירות וירקות')).toBe('🫑');
+    expect(foodEmoji('לחמניות כוסמין', 'לחם ומאפים')).toBe('svg:rolls');
+    expect(foodEmoji('קוביות בולגרית 5%', 'מוצרי חלב וביצים')).toBe('svg:bulgarian');
   });
   it('takes two-letter words only whole', () => {
     expect(foodEmoji('תה ירוק', 'משקאות')).toBe('🍵');
