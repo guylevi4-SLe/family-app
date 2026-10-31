@@ -463,7 +463,7 @@ function QuickAdd({ staples, deptOrder, onTap, onEdit }: { staples: Item[]; dept
     <section className="quick-add">
       <h2>
         <button className="quick-toggle" aria-expanded={open} onClick={() => setOpen(!open)}>
-          הוספה מהירה לרשימה {open ? '▴' : '▾'}
+          הוספה מהירה לרשימה <span className="quick-arrow" aria-hidden="true">{open ? '▴' : '▾'}</span>
         </button>
       </h2>
       {!open ? null : quick.length === 0 ? (
