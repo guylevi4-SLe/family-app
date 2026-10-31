@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasFormatting, lineDir, parseInline, parseLine, toggleCheck, togglePrefix, toWhatsApp, wrapSelection } from '../src/data/noteFormat';
+import { hasFormatting, lineDir, lineDirs, markLines, parseInline, stripMarks, toRaw, toShown, parseLine, toggleCheck, togglePrefix, toWhatsApp, wrapSelection } from '../src/data/noteFormat';
 
 describe('note formatting', () => {
   it('reads WhatsApp marks and our own', () => {
@@ -65,5 +65,17 @@ describe('note formatting', () => {
     expect(lineDir(v, v.length - 4)).toBe(null);
     expect(lineDir(v, v.length)).toBe(null);
     expect(lineDir('Call דנה', 0)).toBe('ltr');
+  });
+  it('puts a line of numbers on the side of the line above it', () => {
+    expect(lineDirs('Guy phone\n0576766\n\n0541234\nטלפון של גיא\n054-1234\nguy 77677')).toEqual(['ltr', 'ltr', null, 'rtl', 'rtl', 'rtl', 'ltr']);
+    const v = 'טלפון\n054-1234\nGuy phone\n0576766';
+    const shown = markLines(v);
+    expect(shown).toBe('טלפון\n\u200F054-1234\nGuy phone\n0576766');
+    expect(stripMarks(shown)).toBe(v);
+    expect(lineDir(shown, shown.indexOf('054'))).toBe('rtl');
+    // Places in the text and on screen line up, the cursor landing after the mark.
+    expect(toShown(shown, v.indexOf('054'))).toBe(shown.indexOf('054'));
+    expect(toRaw(shown, shown.indexOf('054'))).toBe(v.indexOf('054'));
+    expect(toShown(shown, v.length)).toBe(shown.length);
   });
 });

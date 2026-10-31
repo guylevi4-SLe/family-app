@@ -158,7 +158,49 @@ export function togglePrefix(value: string, start: number, end: number, prefix: 
 export function lineDir(value: string, at: number): 'ltr' | 'rtl' | null {
   const start = value.lastIndexOf('\n', at - 1) + 1;
   const end = value.indexOf('\n', at);
-  const first = value.slice(start, end < 0 ? undefined : end).match(/\p{L}/u);
-  if (!first) return null;
+  const line = value.slice(start, end < 0 ? undefined : end);
+  const first = line.match(/\p{L}/u);
+  if (!first) return line.startsWith(RLM) ? 'rtl' : null;
   return /[֐-ࣿיִ-﷿ﹰ-﻿]/.test(first[0]) ? 'rtl' : 'ltr';
+}
+
+// A line with no letters (a phone number, a sum) has no direction of its own, and
+// the browser would put it on the left. It follows the line above it instead
+// (right to left at the top, or after an empty line). In the text box this needs
+// an invisible right-to-left mark at its start, shown on screen but never saved.
+const RLM = '\u200F';
+const DIR_MARKS = /[\u200E\u200F]/g;
+const isMark = (c: string) => c === '\u200E' || c === '\u200F';
+
+/** The note's text without the invisible direction marks. */
+export const stripMarks = (s: string) => s.replace(DIR_MARKS, '');
+
+/** Each line's direction: from its first letter, or the line above it when it has none; null for an empty line. */
+export function lineDirs(text: string): ('ltr' | 'rtl' | null)[] {
+  let prev: 'ltr' | 'rtl' | null = null;
+  return text.split('\n').map((line) => {
+    if (!line.trim()) return (prev = null);
+    const first = line.match(/\p{L}/u);
+    return (prev = first ? (/[֐-ࣿיִ-﷿ﹰ-﻿]/.test(first[0]) ? 'rtl' : 'ltr') : (prev ?? 'rtl'));
+  });
+}
+
+/** The text as the text box shows it: a right-to-left mark before each letterless line that should sit on the right. */
+export function markLines(text: string): string {
+  const dirs = lineDirs(text);
+  return text
+    .split('\n')
+    .map((line, i) => (dirs[i] === 'rtl' && !/\p{L}/u.test(line) ? RLM + line : line))
+    .join('\n');
+}
+
+/** A place in the shown text, as a place in the saved text. */
+export const toRaw = (shown: string, at: number) => stripMarks(shown.slice(0, at)).length;
+
+/** A place in the saved text, as a place in the shown text (after any mark there). */
+export function toShown(shown: string, at: number): number {
+  let i = 0;
+  for (let n = 0; i < shown.length && n < at; i++) if (!isMark(shown[i])) n++;
+  while (i < shown.length && isMark(shown[i])) i++;
+  return i;
 }
