@@ -62,7 +62,7 @@ import { InlineIcon } from './ChatIcons';
 import { ArrowDown, ArrowUp, Receipt, ListPlus, Folder, Paperclip, Search, Users, FolderInput, FolderPlus, KeyRound, ListChecks, Lock, LockOpen, Pencil, Pin, PinOff, Plus, RotateCcw, Shapes, StickyNote, Trash2 } from 'lucide-react';
 import { LibRow } from './LibRow';
 import { NameField } from './NameField';
-import { FormatBar, NoteView, useLineDir, viewSelection } from './NoteFormat';
+import { FormatBar, NoteBox, NoteView, useLineDir, viewSelection } from './NoteFormat';
 import { hasFormatting, toggleCheck, toWhatsApp } from '../data/noteFormat';
 import { LockMark } from './LockMark';
 import { MoveSheet } from './MoveSheet';
@@ -541,7 +541,7 @@ function QuickNote({ onDone }: { onDone: () => void }) {
       <div className="detail-top">
         <button className="link back" onClick={() => { save(); onDone(); }}>→ כל הפתקים</button>
       </div>
-      <textarea ref={box} className="note-body quick-note-body" aria-label="פתק מהיר" placeholder="כותבים…" autoFocus value={text} maxLength={MAX_NOTE} onChange={(e) => setText(e.target.value)} />
+      <NoteBox boxRef={box} className="note-body quick-note-body" aria-label="פתק מהיר" placeholder="כותבים…" autoFocus value={text} maxLength={MAX_NOTE} onText={setText} />
     </div>
   );
 }
@@ -1543,8 +1543,8 @@ function NoteEditor({
         />
       )}
       {focused && selected && <FormatBar target={bodyRef} onChange={change} />}
-      <textarea
-        ref={bodyRef}
+      <NoteBox
+        boxRef={bodyRef}
         className={`note-body ${ready && !focused && hasFormatting(body) ? 'note-editor-hidden' : ''}`}
         aria-label="תוכן הפתק"
         placeholder={ready ? 'כותבים כאן כל מה שצריך: מספרי טלפון, הוראות, קודים…' : 'פותח…'}
@@ -1553,7 +1553,7 @@ function NoteEditor({
         maxLength={MAX_NOTE}
         onFocus={() => { editing.current = true; setFocused(true); }}
         onBlur={() => { editing.current = false; setFocused(false); flush(); }}
-        onChange={(e) => change(e.target.value)}
+        onText={change}
       />
 
       <section className="note-files" aria-label="קבצים מצורפים">
